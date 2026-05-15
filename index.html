@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Track your income and expenses with real-time Firebase sync." />
+  <title>ExpenseFlow — Personal Finance Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Auth Overlay -->
+  <div id="auth-overlay" class="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="logo-icon">💸</span>
+        <h1>ExpenseFlow</h1>
+        <p>Your personal finance dashboard</p>
+      </div>
+      <div id="login-form" class="auth-form active">
+        <h2>Welcome back</h2>
+        <div class="input-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com" />
+        </div>
+        <div class="input-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" />
+        </div>
+        <button id="btn-login" class="btn-primary">Sign In</button>
+        <p class="auth-switch">Don't have an account? <span onclick="switchAuth('register')">Sign Up</span></p>
+        <div id="login-error" class="auth-error"></div>
+      </div>
+      <div id="register-form" class="auth-form">
+        <h2>Create account</h2>
+        <div class="input-group">
+          <label for="reg-name">Full Name</label>
+          <input type="text" id="reg-name" placeholder="Your name" />
+        </div>
+        <div class="input-group">
+          <label for="reg-email">Email</label>
+          <input type="email" id="reg-email" placeholder="you@example.com" />
+        </div>
+        <div class="input-group">
+          <label for="reg-password">Password</label>
+          <input type="password" id="reg-password" placeholder="Min. 6 characters" />
+        </div>
+        <button id="btn-register" class="btn-primary">Create Account</button>
+        <p class="auth-switch">Already have an account? <span onclick="switchAuth('login')">Sign In</span></p>
+        <div id="register-error" class="auth-error"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" class="app hidden">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="logo-icon">💸</span>
+        <span class="logo-text">ExpenseFlow</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard',this)">
+          <span class="nav-icon">📊</span> Dashboard
+        </a>
+        <a href="#" class="nav-item" data-page="transactions" onclick="navigateTo('transactions',this)">
+          <span class="nav-icon">📋</span> Transactions
+        </a>
+        <a href="#" class="nav-item" data-page="categories" onclick="navigateTo('categories',this)">
+          <span class="nav-icon">🏷️</span> Categories
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar">U</div>
+          <div class="user-details">
+            <span id="user-name-display">User</span>
+            <span id="user-email-display" class="user-email">user@email.com</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logoutUser()">Sign Out</button>
+      </div>
+    </aside>
+
+    <header class="mobile-header">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="mobile-logo">💸 ExpenseFlow</span>
+      <button class="btn-logout-mobile" onclick="logoutUser()">↩</button>
+    </header>
+
+    <main class="main-content">
+      <!-- Dashboard -->
+      <section id="page-dashboard" class="page active">
+        <div class="page-header">
+          <div>
+            <h1 id="greeting">Good morning! 👋</h1>
+            <p class="page-subtitle">Here's your financial summary</p>
+          </div>
+          <button class="btn-add-tx" onclick="openModal()">+ Add Transaction</button>
+        </div>
+        <div class="summary-grid">
+          <div class="summary-card balance">
+            <div class="card-icon">💰</div>
+            <div class="card-info">
+              <span class="card-label">Net Balance</span>
+              <span class="card-value" id="total-balance">$0.00</span>
+            </div>
+          </div>
+          <div class="summary-card income">
+            <div class="card-icon">📈</div>
+            <div class="card-info">
+              <span class="card-label">Total Income</span>
+              <span class="card-value" id="total-income">$0.00</span>
+            </div>
+          </div>
+          <div class="summary-card expense">
+            <div class="card-icon">📉</div>
+            <div class="card-info">
+              <span class="card-label">Total Expenses</span>
+              <span class="card-value" id="total-expense">$0.00</span>
+            </div>
+          </div>
+          <div class="summary-card count">
+            <div class="card-icon">🧾</div>
+            <div class="card-info">
+              <span class="card-label">Transactions</span>
+              <span class="card-value" id="tx-count">0</span>
+            </div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <h2>Recent Transactions</h2>
+            <button class="btn-text" onclick="navigateTo('transactions',null)">View all →</button>
+          </div>
+          <div id="recent-list" class="transaction-list">
+            <div class="empty-state"><span>🗂️</span><p>No transactions yet. Add your first one!</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Transactions -->
+      <section id="page-transactions" class="page">
+        <div class="page-header">
+          <div>
+            <h1>Transactions</h1>
+            <p class="page-subtitle">All your income and expenses</p>
+          </div>
+          <button class="btn-add-tx" onclick="openModal()">+ Add Transaction</button>
+        </div>
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="filterTransactions('all',this)">All</button>
+          <button class="filter-btn" onclick="filterTransactions('income',this)">Income</button>
+          <button class="filter-btn" onclick="filterTransactions('expense',this)">Expense</button>
+          <input type="month" id="filter-month" class="filter-month" onchange="filterByMonth()" />
+        </div>
+        <div id="all-transactions-list" class="transaction-list">
+          <div class="empty-state"><span>🗂️</span><p>No transactions found.</p></div>
+        </div>
+      </section>
+
+      <!-- Categories -->
+      <section id="page-categories" class="page">
+        <div class="page-header">
+          <div>
+            <h1>Categories</h1>
+            <p class="page-subtitle">Breakdown by category</p>
+          </div>
+        </div>
+        <div id="categories-content" class="categories-grid">
+          <div class="empty-state"><span>🏷️</span><p>No data yet. Add some transactions!</p></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Add/Edit Transaction Modal -->
+  <div id="modal-overlay" class="modal-overlay hidden" onclick="closeModalOnOverlay(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">Add Transaction</h2>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="type-toggle">
+          <button id="type-income" class="type-btn income active" onclick="setType('income')">📈 Income</button>
+          <button id="type-expense" class="type-btn expense" onclick="setType('expense')">📉 Expense</button>
+        </div>
+        <div class="input-group">
+          <label for="tx-description">Description</label>
+          <input type="text" id="tx-description" placeholder="e.g. Salary, Rent, Groceries..." />
+        </div>
+        <div class="input-group">
+          <label for="tx-amount">Amount</label>
+          <div class="amount-input-wrap">
+            <span class="currency-symbol">$</span>
+            <input type="number" id="tx-amount" placeholder="0.00" min="0" step="0.01" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="input-group">
+            <label for="tx-category">Category</label>
+            <select id="tx-category">
+              <option value="General">General</option>
+              <option value="Food & Dining">🍔 Food &amp; Dining</option>
+              <option value="Housing">🏠 Housing</option>
+              <option value="Transport">🚗 Transport</option>
+              <option value="Shopping">🛍️ Shopping</option>
+              <option value="Entertainment">🎬 Entertainment</option>
+              <option value="Health">💊 Health</option>
+              <option value="Education">📚 Education</option>
+              <option value="Salary">💼 Salary</option>
+              <option value="Freelance">💻 Freelance</option>
+              <option value="Investment">📈 Investment</option>
+              <option value="Other">✨ Other</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="tx-date">Date</label>
+            <input type="date" id="tx-date" />
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="tx-notes">Notes (optional)</label>
+          <textarea id="tx-notes" placeholder="Any extra details..."></textarea>
+        </div>
+        <div id="modal-error" class="auth-error"></div>
+        <button id="btn-save-tx" class="btn-primary" onclick="saveTransaction()">Save Transaction</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div id="delete-modal" class="modal-overlay hidden">
+    <div class="modal small-modal">
+      <div class="modal-header">
+        <h2>Delete Transaction</h2>
+        <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-secondary);margin-bottom:1.5rem;">Are you sure? This cannot be undone.</p>
+        <div style="display:flex;gap:1rem;">
+          <button class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+          <button class="btn-danger" id="confirm-delete-btn">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

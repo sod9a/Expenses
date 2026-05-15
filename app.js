@@ -1,0 +1,436 @@
+// ─── Firebase Configuration ───────────────────────────────────────────────
+// IMPORTANT: Replace the values below with YOUR Firebase project config.
+// Go to: Firebase Console → Project Settings → Your Apps → Web App → Config
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged, updateProfile
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc,
+  doc, query, where, orderBy, onSnapshot, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ─── State ────────────────────────────────────────────────────────────────
+let currentUser = null;
+let allTransactions = [];
+let activeFilter = 'all';
+let editingTxId = null;
+let pendingDeleteId = null;
+let txType = 'income';
+let unsubscribeListener = null;
+
+// ─── Auth State ───────────────────────────────────────────────────────────
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+    showApp(user);
+    subscribeToTransactions();
+  } else {
+    currentUser = null;
+    hideApp();
+    if (unsubscribeListener) { unsubscribeListener(); unsubscribeListener = null; }
+    allTransactions = [];
+  }
+});
+
+function showApp(user) {
+  document.getElementById('auth-overlay').style.display = 'none';
+  document.getElementById('app').classList.remove('hidden');
+  const name = user.displayName || user.email.split('@')[0];
+  document.getElementById('user-name-display').textContent = name;
+  document.getElementById('user-email-display').textContent = user.email;
+  document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+  setGreeting();
+}
+
+function hideApp() {
+  document.getElementById('auth-overlay').style.display = 'flex';
+  document.getElementById('app').classList.add('hidden');
+}
+
+function setGreeting() {
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning! 👋' : h < 17 ? 'Good afternoon! ☀️' : 'Good evening! 🌙';
+  document.getElementById('greeting').textContent = greet;
+}
+
+// ─── Auth Actions ──────────────────────────────────────────────────────────
+window.switchAuth = function (form) {
+  document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+  document.getElementById(form + '-form').classList.add('active');
+  clearAuthErrors();
+};
+
+function clearAuthErrors() {
+  document.querySelectorAll('.auth-error').forEach(el => { el.style.display = 'none'; el.textContent = ''; });
+}
+
+function showAuthError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.style.display = 'block';
+}
+
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-password').value;
+  if (!email || !pw) return showAuthError('login-error', 'Please fill in all fields.');
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    await signInWithEmailAndPassword(auth, email, pw);
+  } catch (e) {
+    showAuthError('login-error', friendlyAuthError(e.code));
+  } finally { btn.disabled = false; btn.textContent = 'Sign In'; }
+});
+
+document.getElementById('btn-register').addEventListener('click', async () => {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pw = document.getElementById('reg-password').value;
+  if (!name || !email || !pw) return showAuthError('register-error', 'Please fill in all fields.');
+  if (pw.length < 6) return showAuthError('register-error', 'Password must be at least 6 characters.');
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pw);
+    await updateProfile(cred.user, { displayName: name });
+    currentUser = cred.user;
+  } catch (e) {
+    showAuthError('register-error', friendlyAuthError(e.code));
+  } finally { btn.disabled = false; btn.textContent = 'Create Account'; }
+});
+
+window.logoutUser = async function () {
+  await signOut(auth);
+  showToast('Signed out successfully.', 'success');
+};
+
+function friendlyAuthError(code) {
+  const map = {
+    'auth/user-not-found': 'No account found with this email.',
+    'auth/wrong-password': 'Incorrect password.',
+    'auth/email-already-in-use': 'Email is already registered.',
+    'auth/invalid-email': 'Invalid email address.',
+    'auth/weak-password': 'Password is too weak.',
+    'auth/invalid-credential': 'Invalid email or password.',
+    'auth/too-many-requests': 'Too many attempts. Try again later.'
+  };
+  return map[code] || 'An error occurred. Please try again.';
+}
+
+// ─── Firestore Subscription ───────────────────────────────────────────────
+function subscribeToTransactions() {
+  if (!currentUser) return;
+  const q = query(
+    collection(db, 'transactions'),
+    where('uid', '==', currentUser.uid),
+    orderBy('date', 'desc')
+  );
+  unsubscribeListener = onSnapshot(q, (snap) => {
+    allTransactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderAll();
+  }, (err) => {
+    console.error('Firestore error:', err);
+    if (err.code === 'failed-precondition') {
+      showToast('Please create a Firestore index. Check console for link.', 'error');
+    }
+  });
+}
+
+// ─── Navigation ────────────────────────────────────────────────────────────
+window.navigateTo = function (page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  else document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+  closeSidebar();
+  if (page === 'categories') renderCategories();
+  if (page === 'transactions') renderAllTransactions();
+};
+
+window.toggleSidebar = function () {
+  const sb = document.getElementById('sidebar');
+  sb.classList.toggle('open');
+  let ov = document.getElementById('sidebar-overlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'sidebar-overlay'; ov.className = 'sidebar-overlay';
+    ov.onclick = closeSidebar; document.body.appendChild(ov);
+  }
+  ov.classList.toggle('visible', sb.classList.contains('open'));
+};
+
+function closeSidebar() {
+  document.getElementById('sidebar')?.classList.remove('open');
+  document.getElementById('sidebar-overlay')?.classList.remove('visible');
+}
+
+// ─── Modal ─────────────────────────────────────────────────────────────────
+window.openModal = function (txId = null) {
+  editingTxId = txId;
+  const modal = document.getElementById('modal-overlay');
+  modal.classList.remove('hidden');
+  document.getElementById('modal-title').textContent = txId ? 'Edit Transaction' : 'Add Transaction';
+  document.getElementById('btn-save-tx').textContent = txId ? 'Update Transaction' : 'Save Transaction';
+  document.getElementById('modal-error').style.display = 'none';
+
+  if (txId) {
+    const tx = allTransactions.find(t => t.id === txId);
+    if (tx) {
+      setType(tx.type);
+      document.getElementById('tx-description').value = tx.description;
+      document.getElementById('tx-amount').value = tx.amount;
+      document.getElementById('tx-category').value = tx.category;
+      document.getElementById('tx-date').value = tx.date;
+      document.getElementById('tx-notes').value = tx.notes || '';
+    }
+  } else {
+    resetModal();
+    document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+  }
+};
+
+window.closeModal = function () {
+  document.getElementById('modal-overlay').classList.add('hidden');
+  resetModal();
+  editingTxId = null;
+};
+
+window.closeModalOnOverlay = function (e) {
+  if (e.target.id === 'modal-overlay') closeModal();
+};
+
+function resetModal() {
+  setType('income');
+  document.getElementById('tx-description').value = '';
+  document.getElementById('tx-amount').value = '';
+  document.getElementById('tx-category').value = 'General';
+  document.getElementById('tx-notes').value = '';
+  document.getElementById('modal-error').style.display = 'none';
+}
+
+window.setType = function (t) {
+  txType = t;
+  document.getElementById('type-income').classList.toggle('active', t === 'income');
+  document.getElementById('type-expense').classList.toggle('active', t === 'expense');
+};
+
+// ─── Save Transaction ──────────────────────────────────────────────────────
+window.saveTransaction = async function () {
+  const desc = document.getElementById('tx-description').value.trim();
+  const amount = parseFloat(document.getElementById('tx-amount').value);
+  const category = document.getElementById('tx-category').value;
+  const date = document.getElementById('tx-date').value;
+  const notes = document.getElementById('tx-notes').value.trim();
+  const errEl = document.getElementById('modal-error');
+
+  if (!desc) { errEl.textContent = 'Please enter a description.'; errEl.style.display = 'block'; return; }
+  if (!amount || amount <= 0) { errEl.textContent = 'Please enter a valid amount.'; errEl.style.display = 'block'; return; }
+  if (!date) { errEl.textContent = 'Please select a date.'; errEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('btn-save-tx');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const data = { uid: currentUser.uid, type: txType, description: desc, amount, category, date, notes, updatedAt: serverTimestamp() };
+
+  try {
+    if (editingTxId) {
+      await updateDoc(doc(db, 'transactions', editingTxId), data);
+      showToast('Transaction updated!', 'success');
+    } else {
+      data.createdAt = serverTimestamp();
+      await addDoc(collection(db, 'transactions'), data);
+      showToast('Transaction added!', 'success');
+    }
+    closeModal();
+  } catch (e) {
+    errEl.textContent = 'Failed to save. Check your Firebase config.';
+    errEl.style.display = 'block';
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = editingTxId ? 'Update Transaction' : 'Save Transaction';
+  }
+};
+
+// ─── Delete Transaction ────────────────────────────────────────────────────
+window.promptDelete = function (id) {
+  pendingDeleteId = id;
+  document.getElementById('delete-modal').classList.remove('hidden');
+  document.getElementById('confirm-delete-btn').onclick = async () => {
+    try {
+      await deleteDoc(doc(db, 'transactions', pendingDeleteId));
+      showToast('Transaction deleted.', 'success');
+    } catch (e) { showToast('Failed to delete.', 'error'); console.error(e); }
+    closeDeleteModal();
+  };
+};
+
+window.closeDeleteModal = function () {
+  document.getElementById('delete-modal').classList.add('hidden');
+  pendingDeleteId = null;
+};
+
+// ─── Render Functions ──────────────────────────────────────────────────────
+function renderAll() {
+  updateSummaryCards();
+  renderRecentTransactions();
+  if (document.getElementById('page-transactions').classList.contains('active')) renderAllTransactions();
+  if (document.getElementById('page-categories').classList.contains('active')) renderCategories();
+}
+
+function formatCurrency(n) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function getCategoryIcon(cat) {
+  const icons = {
+    'Food & Dining': '🍔', 'Housing': '🏠', 'Transport': '🚗',
+    'Shopping': '🛍️', 'Entertainment': '🎬', 'Health': '💊',
+    'Education': '📚', 'Salary': '💼', 'Freelance': '💻',
+    'Investment': '📈', 'Other': '✨', 'General': '💡'
+  };
+  return icons[cat] || '💡';
+}
+
+function updateSummaryCards() {
+  const income = allTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expense = allTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  document.getElementById('total-income').textContent = formatCurrency(income);
+  document.getElementById('total-expense').textContent = formatCurrency(expense);
+  document.getElementById('total-balance').textContent = formatCurrency(income - expense);
+  document.getElementById('tx-count').textContent = allTransactions.length;
+}
+
+function buildTransactionItem(tx) {
+  const div = document.createElement('div');
+  div.className = 'transaction-item';
+  div.innerHTML = `
+    <div class="tx-icon ${tx.type}">${getCategoryIcon(tx.category)}</div>
+    <div class="tx-info">
+      <div class="tx-desc">${tx.description}</div>
+      <div class="tx-meta">
+        <span class="tx-cat">${tx.category}</span>
+        <span class="tx-date">${formatDate(tx.date)}</span>
+        ${tx.notes ? `<span class="tx-cat">${tx.notes}</span>` : ''}
+      </div>
+    </div>
+    <div class="tx-right">
+      <span class="tx-amount ${tx.type}">${tx.type === 'income' ? '+' : '-'}${formatCurrency(tx.amount)}</span>
+      <div class="tx-actions">
+        <button class="tx-btn edit" onclick="openModal('${tx.id}')">Edit</button>
+        <button class="tx-btn del" onclick="promptDelete('${tx.id}')">Delete</button>
+      </div>
+    </div>
+  `;
+  return div;
+}
+
+function renderRecentTransactions() {
+  const container = document.getElementById('recent-list');
+  const recent = allTransactions.slice(0, 5);
+  container.innerHTML = '';
+  if (!recent.length) {
+    container.innerHTML = '<div class="empty-state"><span>🗂️</span><p>No transactions yet. Add your first one!</p></div>';
+    return;
+  }
+  recent.forEach(tx => container.appendChild(buildTransactionItem(tx)));
+}
+
+function getFilteredTransactions() {
+  let list = [...allTransactions];
+  if (activeFilter !== 'all') list = list.filter(t => t.type === activeFilter);
+  const monthVal = document.getElementById('filter-month').value;
+  if (monthVal) list = list.filter(t => t.date && t.date.startsWith(monthVal));
+  return list;
+}
+
+function renderAllTransactions() {
+  const container = document.getElementById('all-transactions-list');
+  const list = getFilteredTransactions();
+  container.innerHTML = '';
+  if (!list.length) {
+    container.innerHTML = '<div class="empty-state"><span>🗂️</span><p>No transactions found.</p></div>';
+    return;
+  }
+  list.forEach(tx => container.appendChild(buildTransactionItem(tx)));
+}
+
+window.filterTransactions = function (type, el) {
+  activeFilter = type;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderAllTransactions();
+};
+
+window.filterByMonth = function () { renderAllTransactions(); };
+
+function renderCategories() {
+  const container = document.getElementById('categories-content');
+  if (!allTransactions.length) {
+    container.innerHTML = '<div class="empty-state"><span>🏷️</span><p>No data yet. Add some transactions!</p></div>';
+    return;
+  }
+  const map = {};
+  allTransactions.forEach(t => {
+    if (!map[t.category]) map[t.category] = { income: 0, expense: 0, count: 0 };
+    map[t.category][t.type] += t.amount;
+    map[t.category].count++;
+  });
+  const maxTotal = Math.max(...Object.values(map).map(v => v.income + v.expense));
+  container.innerHTML = '';
+  Object.entries(map).sort((a, b) => (b[1].income + b[1].expense) - (a[1].income + a[1].expense)).forEach(([cat, vals]) => {
+    const pct = maxTotal > 0 ? ((vals.income + vals.expense) / maxTotal * 100) : 0;
+    const card = document.createElement('div');
+    card.className = 'cat-card';
+    card.innerHTML = `
+      <div class="cat-header">
+        <span class="cat-name">${getCategoryIcon(cat)} ${cat}</span>
+        <span class="cat-count">${vals.count} transaction${vals.count !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="cat-bar-wrap">
+        <div class="cat-bar" style="width:${pct.toFixed(1)}%;background:linear-gradient(90deg,var(--accent-purple),var(--accent-green))"></div>
+      </div>
+      <div class="cat-totals">
+        <span class="cat-income-val">+${formatCurrency(vals.income)}</span>
+        <span class="cat-expense-val">-${formatCurrency(vals.expense)}</span>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// ─── Toast ─────────────────────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type}`;
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), 3000);
+}
+
+// ─── Keyboard shortcuts ────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closeDeleteModal(); }
+});
