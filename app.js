@@ -12,12 +12,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDWWFXtMN8foAlJUZSRPbwsqTxjsMpiPBo",
+  authDomain: "expenses-f1216.firebaseapp.com",
+  projectId: "expenses-f1216",
+  storageBucket: "expenses-f1216.firebasestorage.app",
+  messagingSenderId: "139875989789",
+  appId: "1:139875989789:web:1d5ff13fdb4156114d49f4"
 };
 
 const app = initializeApp(firebaseConfig);
