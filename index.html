@@ -7,6 +7,10 @@
   <title>ExpenseFlow — Personal Finance Tracker</title>
   <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="apple-touch-icon" href="favicon.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0d0f1a" id="theme-color-meta" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
@@ -234,6 +238,25 @@
         </div>
       </section>
     </main>
+
+    <!-- Bottom Nav (Mobile Only) -->
+    <nav class="bottom-nav">
+      <a href="#" class="nav-item active" data-page="dashboard" onclick="haptic(); navigateTo('dashboard', this)">
+        <span class="nav-icon">📊</span><span class="nav-text">Dash</span>
+      </a>
+      <a href="#" class="nav-item" data-page="transactions" onclick="haptic(); navigateTo('transactions', this)">
+        <span class="nav-icon">📋</span><span class="nav-text">All</span>
+      </a>
+      <a href="#" class="nav-item" data-page="categories" onclick="haptic(); navigateTo('categories', this)">
+        <span class="nav-icon">🏷️</span><span class="nav-text">Cats</span>
+      </a>
+      <a href="#" class="nav-item" data-page="budgets" onclick="haptic(); navigateTo('budgets', this)">
+        <span class="nav-icon">🎯</span><span class="nav-text">Budget</span>
+      </a>
+      <a href="#" class="nav-item" data-page="settings" onclick="haptic(); navigateTo('settings', this)">
+        <span class="nav-icon">⚙️</span><span class="nav-text">Settings</span>
+      </a>
+    </nav>
   </div>
 
   <!-- Add/Edit Transaction Modal -->

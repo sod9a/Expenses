@@ -177,10 +177,13 @@ function subscribeToData() {
 
 // ─── Settings ──────────────────────────────────────────────────────────────
 function applySettings() {
+  const metaTheme = document.getElementById('theme-color-meta');
   if (userSettings.theme === 'light') {
     document.documentElement.classList.add('light-theme');
+    if(metaTheme) metaTheme.setAttribute('content', '#f4f7fe');
   } else {
     document.documentElement.classList.remove('light-theme');
+    if(metaTheme) metaTheme.setAttribute('content', '#0d0f1a');
   }
   document.querySelectorAll('.dynamic-currency').forEach(el => el.textContent = userSettings.currency);
   
@@ -442,27 +445,30 @@ function updateSummaryCards() {
 }
 
 function buildTransactionItem(tx) {
-  const div = document.createElement('div');
-  div.className = 'transaction-item';
-  div.innerHTML = `
-    <div class="tx-icon ${tx.type}">${getCategoryIcon(tx.category)}</div>
-    <div class="tx-info">
-      <div class="tx-desc">${tx.description}</div>
-      <div class="tx-meta">
-        <span class="tx-cat">${tx.category}</span>
-        <span class="tx-date">${formatDate(tx.date)}</span>
-        ${tx.notes ? `<span class="tx-cat">${tx.notes}</span>` : ''}
+  const wrapper = document.createElement('div');
+  wrapper.className = 'transaction-wrapper';
+  
+  wrapper.innerHTML = `
+    <div class="transaction-item" ontouchstart="handleSwipeStart(event)" ontouchmove="handleSwipeMove(event)" ontouchend="handleSwipeEnd(event)">
+      <div class="tx-icon ${tx.type}">${getCategoryIcon(tx.category)}</div>
+      <div class="tx-info">
+        <div class="tx-desc">${tx.description}</div>
+        <div class="tx-meta">
+          <span class="tx-cat">${tx.category}</span>
+          <span class="tx-date">${formatDate(tx.date)}</span>
+          ${tx.notes ? `<span class="tx-cat">${tx.notes}</span>` : ''}
+        </div>
+      </div>
+      <div class="tx-right">
+        <span class="tx-amount ${tx.type}">${tx.type === 'income' ? '+' : '-'}${formatCurrency(tx.amount)}</span>
       </div>
     </div>
-    <div class="tx-right">
-      <span class="tx-amount ${tx.type}">${tx.type === 'income' ? '+' : '-'}${formatCurrency(tx.amount)}</span>
-      <div class="tx-actions">
-        <button class="tx-btn edit" onclick="openModal('${tx.id}')">Edit</button>
-        <button class="tx-btn del" onclick="promptDelete('${tx.id}')">Delete</button>
-      </div>
+    <div class="swipe-actions">
+      <button class="tx-btn edit" onclick="haptic(); openModal('${tx.id}')">Edit</button>
+      <button class="tx-btn del" onclick="haptic(); promptDelete('${tx.id}')">Delete</button>
     </div>
   `;
-  return div;
+  return wrapper;
 }
 
 function renderRecentTransactions() {
@@ -604,6 +610,49 @@ function showToast(msg, type = 'success') {
   t.classList.remove('hidden');
   setTimeout(() => t.classList.add('hidden'), 3000);
 }
+
+// ─── Swipe & Haptics ───────────────────────────────────────────────────────
+window.haptic = function() {
+  if (navigator.vibrate) navigator.vibrate(30);
+};
+
+let touchStartX = 0;
+let touchCurrentX = 0;
+let swipingElement = null;
+
+window.handleSwipeStart = function(e) {
+  if (e.touches.length > 1) return;
+  touchStartX = e.touches[0].clientX;
+  swipingElement = e.currentTarget;
+  swipingElement.style.transition = 'none';
+};
+
+window.handleSwipeMove = function(e) {
+  if (!swipingElement) return;
+  touchCurrentX = e.touches[0].clientX;
+  const diffX = touchStartX - touchCurrentX;
+  
+  if (diffX > 5) { // Swiping left
+    const move = Math.min(diffX, 140);
+    swipingElement.style.transform = `translateX(-${move}px)`;
+  } else if (diffX < -5) {
+    swipingElement.style.transform = `translateX(0px)`;
+  }
+};
+
+window.handleSwipeEnd = function(e) {
+  if (!swipingElement) return;
+  const diffX = touchStartX - touchCurrentX;
+  swipingElement.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+  
+  if (diffX > 60) {
+    swipingElement.style.transform = `translateX(-140px)`;
+    haptic();
+  } else {
+    swipingElement.style.transform = `translateX(0px)`;
+  }
+  swipingElement = null;
+};
 
 // ─── Keyboard shortcuts ────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
