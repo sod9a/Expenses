@@ -37,6 +37,7 @@
         </div>
         <button id="btn-login" class="btn-primary">Sign In</button>
         <p class="auth-switch">Don't have an account? <span onclick="switchAuth('register')">Sign Up</span></p>
+        <p class="auth-switch" style="margin-top:0.25rem">Forgot password? <span onclick="switchAuth('forgot')">Reset it</span></p>
         <div id="login-error" class="auth-error"></div>
       </div>
       <div id="register-form" class="auth-form">
@@ -71,6 +72,19 @@
         <button id="btn-resend-verify" class="btn-secondary" style="margin-top:0.75rem;width:100%" onclick="resendVerification()">Resend Email</button>
         <button class="btn-text" style="width:100%;margin-top:1rem;color:var(--accent-red)" onclick="logoutUser()">Sign Out</button>
         <div id="verify-error" class="auth-error"></div>
+      </div>
+      <div id="forgot-form" class="auth-form">
+        <h2>Reset Password</h2>
+        <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.25rem;line-height:1.5">
+          Enter your email address and we'll send you a reset link.
+        </p>
+        <div class="input-group">
+          <label for="forgot-email">Email</label>
+          <input type="email" id="forgot-email" placeholder="you@example.com" />
+        </div>
+        <button id="btn-forgot" class="btn-primary">Send Reset Link</button>
+        <p class="auth-switch" style="margin-top:0.75rem">Remember it? <span onclick="switchAuth('login')">Sign In</span></p>
+        <div id="forgot-error" class="auth-error"></div>
       </div>
     </div>
   </div>

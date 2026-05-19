@@ -4,7 +4,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, onAuthStateChanged, updateProfile, sendEmailVerification
+  signOut, onAuthStateChanged, updateProfile, sendEmailVerification,
+  sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc,
@@ -205,6 +206,20 @@ window.logoutUser = async function () {
   await signOut(auth);
   showToast('Signed out successfully.', 'success');
 };
+
+document.getElementById('btn-forgot').addEventListener('click', async () => {
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) return showAuthError('forgot-error', 'Please enter your email address.');
+  const btn = document.getElementById('btn-forgot');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    await sendPasswordResetEmail(auth, email);
+    showAuthError('forgot-error', '✅ Reset link sent! Check your inbox.');
+    document.getElementById('forgot-error').style.borderLeftColor = 'var(--accent-green)';
+  } catch (e) {
+    showAuthError('forgot-error', friendlyAuthError(e.code));
+  } finally { btn.disabled = false; btn.textContent = 'Send Reset Link'; }
+});
 
 function friendlyAuthError(code) {
   const map = {
