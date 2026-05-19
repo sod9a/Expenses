@@ -205,32 +205,44 @@ window.logoutUser = async function () {
 };
 
 // ─── Face ID / Touch ID (Credential Management API) ───────────────────────
+const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+const hasCMA = !!window.PasswordCredential; // Chrome/Android only
+
 function showFaceIdButton() {
-  if (window.PasswordCredential) {
+  // Show on iOS Safari OR on Chrome/Android with Credential Management support
+  if (isIOS || hasCMA) {
     document.getElementById('btn-face-id').classList.remove('hidden');
     document.getElementById('face-id-or').classList.remove('hidden');
   }
 }
 
 async function storeCredential(id, password) {
-  if (!window.PasswordCredential) return;
+  if (!hasCMA) return;
   try {
     const cred = new PasswordCredential({ id, password });
     await navigator.credentials.store(cred);
-  } catch (e) { /* Silent — user may dismiss the prompt */ }
+  } catch (e) { /* Silent — user may dismiss */ }
 }
 
 window.faceIdLogin = async function () {
-  if (!window.PasswordCredential) return;
+  if (isIOS) {
+    // iOS Safari: focus the password field — this triggers the native
+    // iCloud Keychain / Face ID autofill bar at the bottom of the screen
+    const pw = document.getElementById('login-password');
+    pw.focus();
+    return;
+  }
+  // Chrome / Android: use the Credential Management API
+  if (!hasCMA) return;
   try {
-    const cred = await navigator.credentials.get({ password: true, mediation: 'required' });
+    const cred = await navigator.credentials.get({ password: true, mediation: 'optional' });
     if (!cred) return;
     const btn = document.getElementById('btn-face-id');
-    btn.disabled = true; btn.textContent = 'Signing in…';
+    btn.disabled = true; btn.textContent = 'Signing in\u2026';
     const email = await resolveLoginEmail(cred.id);
     if (!email) {
       showAuthError('login-error', 'No account found. Please sign in with password first.');
-      btn.disabled = false; btn.innerHTML = '<span class="face-id-icon">🔒</span> Sign in with Face ID / Touch ID';
+      btn.disabled = false; btn.innerHTML = '<span class="face-id-icon">\ud83d\udd12</span> Sign in with Face ID / Touch ID';
       return;
     }
     await signInWithEmailAndPassword(auth, email, cred.password);
@@ -239,7 +251,7 @@ window.faceIdLogin = async function () {
       showAuthError('login-error', 'Biometric login failed. Please use your password.');
     }
     const btn = document.getElementById('btn-face-id');
-    btn.disabled = false; btn.innerHTML = '<span class="face-id-icon">🔒</span> Sign in with Face ID / Touch ID';
+    btn.disabled = false; btn.innerHTML = '<span class="face-id-icon">\ud83d\udd12</span> Sign in with Face ID / Touch ID';
   }
 };
 
