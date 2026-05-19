@@ -49,6 +49,7 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
+  touch-action: manipulation; /* Prevents double-tap to zoom on mobile */
 }
 
 /* ─── AUTH ─── */
@@ -99,7 +100,7 @@ body {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  color: var(--text-primary); font-family: inherit; font-size: 0.95rem;
+  color: var(--text-primary); font-family: inherit; font-size: 16px; /* Must be at least 16px to prevent iOS auto-zoom */
   transition: border-color var(--transition), box-shadow var(--transition);
   outline: none;
 }
@@ -355,7 +356,7 @@ body {
   flex: 1; min-width: 200px;
   padding: 0.65rem 1.2rem; border-radius: 25px;
   border: 1px solid var(--border); background: var(--bg-secondary);
-  color: var(--text-primary); font-family: inherit; font-size: 0.9rem;
+  color: var(--text-primary); font-family: inherit; font-size: 16px; /* Must be 16px for iOS */
   outline: none; transition: all var(--transition);
 }
 .search-input:focus { border-color: var(--accent-purple); box-shadow: 0 0 0 3px rgba(124,92,252,0.15); }
