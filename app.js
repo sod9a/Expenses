@@ -44,15 +44,8 @@ onAuthStateChanged(auth, (user) => {
   if (isRegistering) return; // Skip during active registration to avoid race conditions
   if (user) {
     currentUser = user;
-    if (!user.emailVerified) {
-      // Block access, show verify screen
-      hideApp();
-      document.getElementById('verify-email-display').textContent = user.email;
-      switchAuth('verify');
-    } else {
-      showApp(user);
-      subscribeToData();
-    }
+    showApp(user);
+    subscribeToData();
   } else {
     currentUser = null;
     hideApp();
@@ -157,13 +150,10 @@ document.getElementById('btn-register').addEventListener('click', async () => {
       console.error('Failed to save username to Firestore:', fsErr.message);
       showAuthError('register-error', '⚠️ Account created but username could not be saved. Please check Firestore rules.');
     }
-    // 4. Send verification email
-    await sendEmailVerification(cred.user);
+    // 4. Log in immediately
     currentUser = cred.user;
-    // 5. Show verify screen manually (safe since listener is paused)
-    hideApp();
-    document.getElementById('verify-email-display').textContent = email;
-    switchAuth('verify');
+    showApp(currentUser);
+    subscribeToData();
   } catch (e) {
     showAuthError('register-error', friendlyAuthError(e.code));
   } finally {
