@@ -221,7 +221,7 @@ window.navigateTo = function (page, el) {
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   if (el) {
-    if (!el.classList.contains('filter-btn')) el.classList.add('active');
+    el.classList.add('active');
   } else {
     document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
   }
@@ -511,6 +511,10 @@ window.filterTransactions = function (type, el) {
   activeFilter = type;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
+  renderAllTransactions();
+};
+
+window.searchTransactions = function () {
   renderAllTransactions();
 };
 
