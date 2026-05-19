@@ -73,6 +73,12 @@
         <a href="#" class="nav-item" data-page="categories" onclick="navigateTo('categories',this)">
           <span class="nav-icon">🏷️</span> Categories
         </a>
+        <a href="#" class="nav-item" data-page="budgets" onclick="navigateTo('budgets',this)">
+          <span class="nav-icon">🎯</span> Budgets
+        </a>
+        <a href="#" class="nav-item" data-page="settings" onclick="navigateTo('settings',this)">
+          <span class="nav-icon">⚙️</span> Settings
+        </a>
       </nav>
       <div class="sidebar-footer">
         <div class="user-info">
@@ -153,10 +159,13 @@
           <button class="btn-add-tx" onclick="openModal()">+ Add Transaction</button>
         </div>
         <div class="filter-bar">
-          <button class="filter-btn active" onclick="filterTransactions('all',this)">All</button>
-          <button class="filter-btn" onclick="filterTransactions('income',this)">Income</button>
-          <button class="filter-btn" onclick="filterTransactions('expense',this)">Expense</button>
-          <input type="month" id="filter-month" class="filter-month" onchange="filterByMonth()" />
+          <input type="text" id="search-tx" class="search-input" placeholder="Search transactions..." oninput="filterTransactions(activeFilter, this)" />
+          <div class="filter-buttons">
+            <button class="filter-btn active" onclick="filterTransactions('all',this)">All</button>
+            <button class="filter-btn" onclick="filterTransactions('income',this)">Income</button>
+            <button class="filter-btn" onclick="filterTransactions('expense',this)">Expense</button>
+            <input type="month" id="filter-month" class="filter-month" onchange="filterByMonth()" />
+          </div>
         </div>
         <div id="all-transactions-list" class="transaction-list">
           <div class="empty-state"><span>🗂️</span><p>No transactions found.</p></div>
@@ -173,6 +182,55 @@
         </div>
         <div id="categories-content" class="categories-grid">
           <div class="empty-state"><span>🏷️</span><p>No data yet. Add some transactions!</p></div>
+        </div>
+      </section>
+
+      <!-- Budgets -->
+      <section id="page-budgets" class="page">
+        <div class="page-header">
+          <div>
+            <h1>Budgets</h1>
+            <p class="page-subtitle">Manage monthly spending limits</p>
+          </div>
+          <button class="btn-add-tx" onclick="openBudgetModal()">+ Set Budget</button>
+        </div>
+        <div id="budgets-list" class="categories-grid">
+          <div class="empty-state"><span>🎯</span><p>No budgets set. Create one to start tracking!</p></div>
+        </div>
+      </section>
+
+      <!-- Settings -->
+      <section id="page-settings" class="page">
+        <div class="page-header">
+          <div>
+            <h1>Settings</h1>
+            <p class="page-subtitle">Customize your experience</p>
+          </div>
+        </div>
+        <div class="section-card" style="max-width: 500px; margin: 0 auto;">
+          <div class="modal-body">
+            <div class="input-group">
+              <label for="setting-currency">Currency Symbol</label>
+              <select id="setting-currency" onchange="saveSettings()">
+                <option value="$">USD ($)</option>
+                <option value="RM">MYR (RM)</option>
+                <option value="€">EUR (€)</option>
+                <option value="£">GBP (£)</option>
+                <option value="Rp">IDR (Rp)</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="setting-theme">Theme</label>
+              <select id="setting-theme" onchange="saveSettings()">
+                <option value="dark">Dark Mode</option>
+                <option value="light">Light Mode</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="setting-avatar-url">Profile Picture URL (optional)</label>
+              <input type="url" id="setting-avatar-url" placeholder="https://..." onchange="saveSettings()" />
+            </div>
+          </div>
         </div>
       </section>
     </main>
@@ -197,7 +255,7 @@
         <div class="input-group">
           <label for="tx-amount">Amount</label>
           <div class="amount-input-wrap">
-            <span class="currency-symbol">$</span>
+            <span class="currency-symbol dynamic-currency">$</span>
             <input type="number" id="tx-amount" placeholder="0.00" min="0" step="0.01" />
           </div>
         </div>
@@ -230,6 +288,40 @@
         </div>
         <div id="modal-error" class="auth-error"></div>
         <button id="btn-save-tx" class="btn-primary" onclick="saveTransaction()">Save Transaction</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Budget Modal -->
+  <div id="budget-modal-overlay" class="modal-overlay hidden" onclick="closeBudgetModalOnOverlay(event)">
+    <div class="modal small-modal">
+      <div class="modal-header">
+        <h2>Set Budget</h2>
+        <button class="modal-close" onclick="closeBudgetModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group">
+          <label for="budget-category">Category</label>
+          <select id="budget-category">
+            <option value="Food & Dining">🍔 Food &amp; Dining</option>
+            <option value="Housing">🏠 Housing</option>
+            <option value="Transport">🚗 Transport</option>
+            <option value="Shopping">🛍️ Shopping</option>
+            <option value="Entertainment">🎬 Entertainment</option>
+            <option value="Health">💊 Health</option>
+            <option value="Education">📚 Education</option>
+            <option value="General">💡 General</option>
+            <option value="Other">✨ Other</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label for="budget-limit">Monthly Limit</label>
+          <div class="amount-input-wrap">
+            <span class="currency-symbol dynamic-currency">$</span>
+            <input type="number" id="budget-limit" placeholder="0.00" min="0" step="0.01" />
+          </div>
+        </div>
+        <button id="btn-save-budget" class="btn-primary" onclick="saveBudget()">Save Budget</button>
       </div>
     </div>
   </div>

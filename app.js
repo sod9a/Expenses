@@ -8,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc,
-  doc, query, where, orderBy, onSnapshot, serverTimestamp
+  doc, query, where, orderBy, onSnapshot, serverTimestamp, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -27,23 +27,30 @@ const db = getFirestore(app);
 // ─── State ────────────────────────────────────────────────────────────────
 let currentUser = null;
 let allTransactions = [];
+let allBudgets = [];
+let userSettings = { currency: '$', theme: 'dark', avatarUrl: '' };
 let activeFilter = 'all';
 let editingTxId = null;
 let pendingDeleteId = null;
 let txType = 'income';
 let unsubscribeListener = null;
+let unsubscribeBudgets = null;
+let unsubscribeSettings = null;
 
 // ─── Auth State ───────────────────────────────────────────────────────────
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
     showApp(user);
-    subscribeToTransactions();
+    subscribeToData();
   } else {
     currentUser = null;
     hideApp();
     if (unsubscribeListener) { unsubscribeListener(); unsubscribeListener = null; }
+    if (unsubscribeBudgets) { unsubscribeBudgets(); unsubscribeBudgets = null; }
+    if (unsubscribeSettings) { unsubscribeSettings(); unsubscribeSettings = null; }
     allTransactions = [];
+    allBudgets = [];
   }
 });
 
@@ -132,9 +139,11 @@ function friendlyAuthError(code) {
   return map[code] || 'An error occurred. Please try again.';
 }
 
-// ─── Firestore Subscription ───────────────────────────────────────────────
-function subscribeToTransactions() {
+// ─── Firestore Subscriptions ──────────────────────────────────────────────
+function subscribeToData() {
   if (!currentUser) return;
+  
+  // 1. Transactions
   const q = query(
     collection(db, 'transactions'),
     where('uid', '==', currentUser.uid),
@@ -149,17 +158,76 @@ function subscribeToTransactions() {
       showToast('Please create a Firestore index. Check console for link.', 'error');
     }
   });
+
+  // 2. Budgets
+  const bq = query(collection(db, 'budgets'), where('uid', '==', currentUser.uid));
+  unsubscribeBudgets = onSnapshot(bq, snap => {
+    allBudgets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
+  });
+
+  // 3. Settings
+  unsubscribeSettings = onSnapshot(doc(db, 'settings', currentUser.uid), docSnap => {
+    if (docSnap.exists()) {
+      userSettings = { ...userSettings, ...docSnap.data() };
+      applySettings();
+    }
+  });
 }
+
+// ─── Settings ──────────────────────────────────────────────────────────────
+function applySettings() {
+  if (userSettings.theme === 'light') {
+    document.documentElement.classList.add('light-theme');
+  } else {
+    document.documentElement.classList.remove('light-theme');
+  }
+  document.querySelectorAll('.dynamic-currency').forEach(el => el.textContent = userSettings.currency);
+  
+  const avatarEl = document.getElementById('user-avatar');
+  if (userSettings.avatarUrl) {
+    avatarEl.innerHTML = `<img src="${userSettings.avatarUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    avatarEl.style.background = 'transparent';
+  } else {
+    avatarEl.innerHTML = '';
+    avatarEl.textContent = (currentUser.displayName || currentUser.email)[0].toUpperCase();
+    avatarEl.style.background = 'linear-gradient(135deg, var(--accent-purple), var(--accent-green))';
+  }
+  
+  document.getElementById('setting-currency').value = userSettings.currency;
+  document.getElementById('setting-theme').value = userSettings.theme;
+  document.getElementById('setting-avatar-url').value = userSettings.avatarUrl || '';
+  
+  renderAll(); // Re-render to update currency formats
+}
+
+window.saveSettings = async function () {
+  const currency = document.getElementById('setting-currency').value;
+  const theme = document.getElementById('setting-theme').value;
+  const avatarUrl = document.getElementById('setting-avatar-url').value.trim();
+  
+  try {
+    await setDoc(doc(db, 'settings', currentUser.uid), { currency, theme, avatarUrl }, { merge: true });
+    showToast('Settings saved!', 'success');
+  } catch(e) {
+    console.error(e);
+    showToast('Failed to save settings', 'error');
+  }
+};
 
 // ─── Navigation ────────────────────────────────────────────────────────────
 window.navigateTo = function (page, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  if (el) el.classList.add('active');
-  else document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+  if (el) {
+    if (!el.classList.contains('filter-btn')) el.classList.add('active');
+  } else {
+    document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+  }
   closeSidebar();
   if (page === 'categories') renderCategories();
+  if (page === 'budgets') renderBudgets();
   if (page === 'transactions') renderAllTransactions();
 };
 
@@ -286,16 +354,66 @@ window.closeDeleteModal = function () {
   pendingDeleteId = null;
 };
 
+// ─── Budget Modal & Logic ──────────────────────────────────────────────────
+window.openBudgetModal = function () {
+  document.getElementById('budget-modal-overlay').classList.remove('hidden');
+  document.getElementById('budget-limit').value = '';
+};
+
+window.closeBudgetModal = function () {
+  document.getElementById('budget-modal-overlay').classList.add('hidden');
+};
+
+window.closeBudgetModalOnOverlay = function (e) {
+  if (e.target.id === 'budget-modal-overlay') closeBudgetModal();
+};
+
+window.saveBudget = async function () {
+  const category = document.getElementById('budget-category').value;
+  const limit = parseFloat(document.getElementById('budget-limit').value);
+  if (!limit || limit <= 0) return showToast('Please enter a valid limit', 'error');
+  
+  const existing = allBudgets.find(b => b.category === category);
+  const btn = document.getElementById('btn-save-budget');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  
+  try {
+    if (existing) {
+      await updateDoc(doc(db, 'budgets', existing.id), { limit, updatedAt: serverTimestamp() });
+    } else {
+      await addDoc(collection(db, 'budgets'), { uid: currentUser.uid, category, limit, createdAt: serverTimestamp() });
+    }
+    showToast('Budget saved!', 'success');
+    closeBudgetModal();
+  } catch (e) {
+    console.error(e);
+    showToast('Failed to save budget', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save Budget';
+  }
+};
+
+window.deleteBudget = async function (id) {
+  if (confirm('Are you sure you want to delete this budget?')) {
+    try {
+      await deleteDoc(doc(db, 'budgets', id));
+      showToast('Budget deleted', 'success');
+    } catch(e) { showToast('Error deleting budget', 'error'); }
+  }
+};
+
 // ─── Render Functions ──────────────────────────────────────────────────────
 function renderAll() {
   updateSummaryCards();
   renderRecentTransactions();
   if (document.getElementById('page-transactions').classList.contains('active')) renderAllTransactions();
   if (document.getElementById('page-categories').classList.contains('active')) renderCategories();
+  if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
 }
 
 function formatCurrency(n) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+  const formatted = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  return userSettings.currency + formatted;
 }
 
 function formatDate(dateStr) {
@@ -363,6 +481,18 @@ function getFilteredTransactions() {
   if (activeFilter !== 'all') list = list.filter(t => t.type === activeFilter);
   const monthVal = document.getElementById('filter-month').value;
   if (monthVal) list = list.filter(t => t.date && t.date.startsWith(monthVal));
+  
+  const searchInput = document.getElementById('search-tx');
+  if (searchInput) {
+    const search = searchInput.value.toLowerCase().trim();
+    if (search) {
+      list = list.filter(t => 
+        t.description.toLowerCase().includes(search) || 
+        t.category.toLowerCase().includes(search) ||
+        (t.notes && t.notes.toLowerCase().includes(search))
+      );
+    }
+  }
   return list;
 }
 
@@ -418,6 +548,47 @@ function renderCategories() {
       </div>
     `;
     container.appendChild(card);
+  });
+}
+
+function renderBudgets() {
+  const container = document.getElementById('budgets-list');
+  if (!allBudgets.length) {
+    container.innerHTML = '<div class="empty-state"><span>🎯</span><p>No budgets set. Create one to start tracking!</p></div>';
+    return;
+  }
+  
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}`;
+  
+  container.innerHTML = '';
+  allBudgets.forEach(b => {
+    const spent = allTransactions
+      .filter(t => t.type === 'expense' && t.category === b.category && t.date.startsWith(currentMonthStr))
+      .reduce((sum, t) => sum + t.amount, 0);
+      
+    const pct = Math.min((spent / b.limit) * 100, 100);
+    let statusClass = 'safe';
+    let statusText = 'Looking good!';
+    if (pct >= 100) { statusClass = 'danger'; statusText = 'Over budget!'; }
+    else if (pct >= 80) { statusClass = 'warn'; statusText = 'Nearing limit'; }
+    
+    const div = document.createElement('div');
+    div.className = 'budget-card';
+    div.innerHTML = `
+      <div class="budget-header">
+        <span class="budget-cat">${getCategoryIcon(b.category)} ${b.category}</span>
+        <button class="btn-del-budget" onclick="deleteBudget('${b.id}')">✕</button>
+      </div>
+      <div class="budget-amounts">
+        <strong>${formatCurrency(spent)}</strong> spent of ${formatCurrency(b.limit)}
+      </div>
+      <div class="budget-progress-wrap" style="margin-top:0.8rem">
+        <div class="budget-progress ${statusClass}" style="width:${pct}%"></div>
+      </div>
+      <div class="budget-status ${statusClass}">${statusText} (${pct.toFixed(0)}%)</div>
+    `;
+    container.appendChild(div);
   });
 }
 

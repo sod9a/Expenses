@@ -24,6 +24,21 @@
   --transition: 0.2s ease;
 }
 
+:root.light-theme {
+  --bg-primary: #f4f7fe;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8faff;
+  --bg-sidebar: #ffffff;
+  --text-primary: #1b254b;
+  --text-secondary: #707eae;
+  --text-muted: #a3aed1;
+  --border: #e9edf7;
+  --border-light: #f4f7fe;
+  --shadow: 0 8px 32px rgba(112, 126, 174, 0.15);
+  --shadow-card: 0 4px 20px rgba(112, 126, 174, 0.08);
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { scroll-behavior: smooth; }
@@ -331,11 +346,20 @@ body {
 .empty-state span { font-size: 2.5rem; display: block; margin-bottom: 0.75rem; }
 .empty-state p { font-size: 0.9rem; }
 
-/* ─── FILTER BAR ─── */
+/* ─── FILTER BAR & SEARCH ─── */
 .filter-bar {
-  display: flex; gap: 0.5rem; margin-bottom: 1rem;
-  flex-wrap: wrap; align-items: center;
+  display: flex; gap: 1rem; margin-bottom: 1.5rem;
+  flex-wrap: wrap; align-items: center; justify-content: space-between;
 }
+.search-input {
+  flex: 1; min-width: 200px;
+  padding: 0.65rem 1.2rem; border-radius: 25px;
+  border: 1px solid var(--border); background: var(--bg-secondary);
+  color: var(--text-primary); font-family: inherit; font-size: 0.9rem;
+  outline: none; transition: all var(--transition);
+}
+.search-input:focus { border-color: var(--accent-purple); box-shadow: 0 0 0 3px rgba(124,92,252,0.15); }
+.filter-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
 .filter-btn {
   padding: 0.5rem 1rem; border-radius: 20px;
   border: 1px solid var(--border); background: transparent;
@@ -348,7 +372,6 @@ body {
   padding: 0.5rem 0.75rem; border-radius: var(--radius-xs);
   border: 1px solid var(--border); background: var(--bg-secondary);
   color: var(--text-primary); font-family: inherit; font-size: 0.875rem; cursor: pointer;
-  margin-left: auto;
 }
 .filter-month:focus { outline: none; border-color: var(--accent-purple); }
 
@@ -371,6 +394,32 @@ body {
 .cat-totals { display: flex; justify-content: space-between; }
 .cat-income-val { font-size: 0.85rem; color: var(--accent-green); font-weight: 600; }
 .cat-expense-val { font-size: 0.85rem; color: var(--accent-red); font-weight: 600; }
+
+/* ─── BUDGETS ─── */
+.budget-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.5rem;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.budget-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+.budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+.budget-cat { font-weight: 700; font-size: 1.05rem; }
+.budget-amounts { font-size: 0.9rem; color: var(--text-secondary); }
+.budget-progress-wrap { height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; margin-bottom: 0.5rem; }
+.budget-progress { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+.budget-progress.safe { background: linear-gradient(90deg, var(--accent-green), #16b98d); }
+.budget-progress.warn { background: linear-gradient(90deg, var(--accent-gold), #fda642); }
+.budget-progress.danger { background: linear-gradient(90deg, var(--accent-red), #e83a50); }
+.budget-status { font-size: 0.8rem; font-weight: 600; }
+.budget-status.safe { color: var(--accent-green); }
+.budget-status.warn { color: var(--accent-gold); }
+.budget-status.danger { color: var(--accent-red); }
+.btn-del-budget {
+  background: rgba(241,86,106,0.1); border: none; color: var(--accent-red);
+  width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+}
+.btn-del-budget:hover { background: var(--accent-red); color: white; }
 
 /* ─── MODAL ─── */
 .modal-overlay {
