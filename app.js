@@ -204,6 +204,11 @@ window.resendVerification = async function () {
 
 window.logoutUser = async function () {
   await signOut(auth);
+  // Clear all login/register fields
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+  // Always redirect to login page
+  switchAuth('login');
   showToast('Signed out successfully.', 'success');
 };
 
