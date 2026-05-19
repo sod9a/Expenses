@@ -404,8 +404,6 @@ input[type="date"]::-webkit-date-and-time-value {
 .cat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
 .cat-name { font-weight: 700; font-size: 0.95rem; }
 .cat-count { font-size: 0.75rem; color: var(--text-muted); }
-.cat-bar-wrap { height: 6px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden; margin-bottom: 0.75rem; }
-.cat-bar { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
 .cat-totals { display: flex; justify-content: space-between; }
 .cat-income-val { font-size: 0.85rem; color: var(--accent-green); font-weight: 600; }
 .cat-expense-val { font-size: 0.85rem; color: var(--accent-red); font-weight: 600; }

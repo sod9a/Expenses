@@ -657,9 +657,6 @@ function renderCategories() {
         <span class="cat-name">${getCategoryIcon(cat)} ${cat}</span>
         <span class="cat-count">${vals.count} transaction${vals.count !== 1 ? 's' : ''}</span>
       </div>
-      <div class="cat-bar-wrap">
-        <div class="cat-bar" style="width:${pct.toFixed(1)}%;background:linear-gradient(90deg,var(--accent-purple),var(--accent-green))"></div>
-      </div>
       <div class="cat-totals">
         <span class="cat-income-val">+${formatCurrency(vals.income)}</span>
         <span class="cat-expense-val">-${formatCurrency(vals.expense)}</span>
