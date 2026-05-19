@@ -210,9 +210,9 @@ window.logoutUser = async function () {
 // ─── Face ID / Touch ID (Credential Management API) ───────────────────────
 const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 const hasCMA = !!window.PasswordCredential; // Chrome/Android only
+const hasCreds = !!navigator.credentials;   // Available on iOS Safari too
 
 function showFaceIdButton() {
-  // Show on iOS Safari OR on Chrome/Android with Credential Management support
   if (isIOS || hasCMA) {
     document.getElementById('btn-face-id').classList.remove('hidden');
     document.getElementById('face-id-or').classList.remove('hidden');
@@ -224,42 +224,66 @@ async function storeCredential(id, password) {
   try {
     const cred = new PasswordCredential({ id, password });
     await navigator.credentials.store(cred);
-  } catch (e) { /* Silent — user may dismiss */ }
+  } catch (e) { /* Silent */ }
 }
 
-window.faceIdLogin = async function () {
-  if (isIOS) {
-    // iOS Safari: focus the password field — this triggers the native
-    // iCloud Keychain / Face ID autofill bar at the bottom of the screen
-    const pw = document.getElementById('login-password');
-    pw.focus();
-    return;
-  }
-  // Chrome / Android: use the Credential Management API
-  if (!hasCMA) return;
+// Shared login-with-credential function used by both auto-sign-in and button
+async function loginWithCredential(cred) {
+  if (!cred || !cred.id || !cred.password) return false;
   try {
-    const cred = await navigator.credentials.get({ password: true, mediation: 'optional' });
-    if (!cred) return;
-    const btn = document.getElementById('btn-face-id');
-    btn.disabled = true; btn.textContent = 'Signing in\u2026';
     const email = await resolveLoginEmail(cred.id);
-    if (!email) {
-      showAuthError('login-error', 'No account found. Please sign in with password first.');
-      btn.disabled = false; btn.innerHTML = '<span class="face-id-icon">\ud83d\udd12</span> Sign in with Face ID / Touch ID';
+    if (!email) return false;
+    await signInWithEmailAndPassword(auth, email, cred.password);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// On page load: silently try to log in if credentials are already saved
+async function tryAutoSignIn() {
+  if (!hasCreds) return;
+  try {
+    // mediation: 'silent' = no prompt, return saved creds if any
+    const cred = await navigator.credentials.get({ password: true, mediation: 'silent' });
+    if (cred) await loginWithCredential(cred);
+  } catch (e) { /* No saved credentials or not supported */ }
+}
+
+// Face ID / Touch ID button tap: prompt the user to pick a credential with biometrics
+window.faceIdLogin = async function () {
+  if (!hasCreds) return;
+  const btn = document.getElementById('btn-face-id');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="face-id-icon">🔒</span> Scanning…';
+  try {
+    // mediation: 'required' = always shows the credential picker (Face ID on iOS)
+    const cred = await navigator.credentials.get({ password: true, mediation: 'required' });
+    if (!cred) {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="face-id-icon">🔒</span> Sign in with Face ID / Touch ID';
       return;
     }
-    await signInWithEmailAndPassword(auth, email, cred.password);
+    btn.innerHTML = '<span class="face-id-icon">🔒</span> Signing in…';
+    const ok = await loginWithCredential(cred);
+    if (!ok) {
+      showAuthError('login-error', 'Could not sign in. Please log in with your password first.');
+      btn.disabled = false;
+      btn.innerHTML = '<span class="face-id-icon">🔒</span> Sign in with Face ID / Touch ID';
+    }
   } catch (e) {
     if (e.name !== 'NotAllowedError') {
       showAuthError('login-error', 'Biometric login failed. Please use your password.');
     }
-    const btn = document.getElementById('btn-face-id');
-    btn.disabled = false; btn.innerHTML = '<span class="face-id-icon">\ud83d\udd12</span> Sign in with Face ID / Touch ID';
+    btn.disabled = false;
+    btn.innerHTML = '<span class="face-id-icon">🔒</span> Sign in with Face ID / Touch ID';
   }
 };
 
-// Show Face ID button on page load if supported
-document.addEventListener('DOMContentLoaded', showFaceIdButton);
+document.addEventListener('DOMContentLoaded', () => {
+  showFaceIdButton();
+  tryAutoSignIn(); // Attempt silent auto-login on every page load
+});
 
 document.getElementById('btn-forgot').addEventListener('click', async () => {
   const email = document.getElementById('forgot-email').value.trim();
