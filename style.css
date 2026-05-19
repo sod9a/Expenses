@@ -530,7 +530,7 @@ input[type="date"]::-webkit-date-and-time-value {
   .bottom-nav .nav-item.active { background: transparent; color: var(--accent-purple); }
   .bottom-nav .nav-item.active .nav-icon { color: var(--accent-purple); }
   
-  .main-content { padding: 1.5rem 1rem 90px; }
+  .main-content { margin-left: 0; padding: 5rem 1rem 90px; }
   
   .amount-input-wrap input { font-size: 2rem; }
   .amount-input-wrap .currency-symbol { font-size: 1.5rem; }
