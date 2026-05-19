@@ -132,6 +132,13 @@
     <header class="mobile-header">
       <button class="hamburger" onclick="toggleSidebar()">☰</button>
       <span class="mobile-logo">💸 ExpenseFlow</span>
+      <div class="mobile-profile-container">
+        <div class="mobile-avatar" id="mobile-user-avatar" onclick="toggleProfileDropdown()">U</div>
+        <div id="profile-dropdown" class="profile-dropdown hidden">
+          <button class="dropdown-item" onclick="openMobileSettings()">⚙️ Profile & Settings</button>
+          <button class="dropdown-item text-red" onclick="logoutUser()">↩ Sign Out</button>
+        </div>
+      </div>
     </header>
 
     <main class="main-content">
@@ -288,9 +295,6 @@
       </a>
       <a href="#" class="nav-item" data-page="budgets" onclick="haptic(); navigateTo('budgets', this)">
         <span class="nav-icon">🎯</span><span class="nav-text">Budgets</span>
-      </a>
-      <a href="#" class="nav-item" data-page="settings" onclick="haptic(); navigateTo('settings', this)">
-        <span class="nav-icon">⚙️</span><span class="nav-text">Settings</span>
       </a>
     </nav>
   </div>

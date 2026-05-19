@@ -64,6 +64,7 @@ function showApp(user) {
   document.getElementById('user-name-display').textContent = name;
   document.getElementById('user-email-display').textContent = user.email;
   document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+  document.getElementById('mobile-user-avatar').textContent = name[0].toUpperCase();
   setGreeting();
   // Always start on Dashboard after login
   navigateTo('dashboard', document.querySelector('[data-page="dashboard"]'));
@@ -810,4 +811,23 @@ window.handleSwipeEnd = function(e) {
 // ─── Keyboard shortcuts ────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeModal(); closeDeleteModal(); }
+});
+
+// ─── Mobile Profile Dropdown ────────────────────────────────────────────────
+window.toggleProfileDropdown = function() {
+  document.getElementById('profile-dropdown').classList.toggle('hidden');
+};
+
+window.openMobileSettings = function() {
+  document.getElementById('profile-dropdown').classList.add('hidden');
+  navigateTo('settings', document.querySelector('[data-page="settings"]'));
+};
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.mobile-profile-container')) {
+    const dropdown = document.getElementById('profile-dropdown');
+    if (dropdown && !dropdown.classList.contains('hidden')) {
+      dropdown.classList.add('hidden');
+    }
+  }
 });
