@@ -254,29 +254,36 @@ async function tryAutoSignIn() {
 window.faceIdLogin = async function () {
   if (!hasCreds) return;
   const btn = document.getElementById('btn-face-id');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="face-id-icon">🔒</span> Scanning…';
-  try {
-    // mediation: 'required' = always shows the credential picker (Face ID on iOS)
-    const cred = await navigator.credentials.get({ password: true, mediation: 'required' });
-    if (!cred) {
-      btn.disabled = false;
-      btn.innerHTML = '<span class="face-id-icon">🔒</span> Sign in with Face ID / Touch ID';
-      return;
-    }
-    btn.innerHTML = '<span class="face-id-icon">🔒</span> Signing in…';
-    const ok = await loginWithCredential(cred);
-    if (!ok) {
-      showAuthError('login-error', 'Could not sign in. Please log in with your password first.');
-      btn.disabled = false;
-      btn.innerHTML = '<span class="face-id-icon">🔒</span> Sign in with Face ID / Touch ID';
-    }
-  } catch (e) {
-    if (e.name !== 'NotAllowedError') {
-      showAuthError('login-error', 'Biometric login failed. Please use your password.');
-    }
+  const resetBtn = () => {
     btn.disabled = false;
     btn.innerHTML = '<span class="face-id-icon">🔒</span> Sign in with Face ID / Touch ID';
+  };
+  btn.disabled = true;
+  btn.innerHTML = '<span class="face-id-icon">🔒</span> Scanning…';
+
+  // Step 1: Try to get credentials via the credential picker (triggers Face ID on iOS)
+  let cred;
+  try {
+    cred = await navigator.credentials.get({ password: true, mediation: 'required' });
+  } catch (e) {
+    // API not supported or user dismissed → silent reset, no error shown
+    resetBtn(); return;
+  }
+  if (!cred) { resetBtn(); return; }
+
+  // Step 2: Got credentials — try to sign in
+  btn.innerHTML = '<span class="face-id-icon">🔒</span> Signing in…';
+  try {
+    const email = await resolveLoginEmail(cred.id);
+    if (!email) {
+      showAuthError('login-error', 'No account found. Please log in with your password first.');
+      resetBtn(); return;
+    }
+    await signInWithEmailAndPassword(auth, email, cred.password);
+    // Success — onAuthStateChanged handles the rest
+  } catch (e) {
+    showAuthError('login-error', friendlyAuthError(e.code) || 'Login failed. Please try your password.');
+    resetBtn();
   }
 };
 
