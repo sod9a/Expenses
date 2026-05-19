@@ -375,18 +375,45 @@ function applySettings() {
   document.querySelectorAll('.dynamic-currency').forEach(el => el.textContent = userSettings.currency);
   
   const avatarEl = document.getElementById('user-avatar');
+  const mobileAvatarEl = document.getElementById('mobile-user-avatar');
+  const previewImg = document.getElementById('avatar-preview-img');
+  const previewInitials = document.getElementById('avatar-preview-initials');
+  const removeBtn = document.getElementById('btn-remove-avatar');
+  
+  const initial = (currentUser.displayName || currentUser.email)[0].toUpperCase();
+  
   if (userSettings.avatarUrl) {
-    avatarEl.innerHTML = `<img src="${userSettings.avatarUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    const imgHtml = `<img src="${userSettings.avatarUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    avatarEl.innerHTML = imgHtml;
+    mobileAvatarEl.innerHTML = imgHtml;
     avatarEl.style.background = 'transparent';
+    mobileAvatarEl.style.background = 'transparent';
+    
+    if (previewImg) {
+      previewImg.src = userSettings.avatarUrl;
+      previewImg.style.display = 'block';
+      previewInitials.style.display = 'none';
+      removeBtn.style.display = 'inline-flex';
+    }
   } else {
     avatarEl.innerHTML = '';
-    avatarEl.textContent = (currentUser.displayName || currentUser.email)[0].toUpperCase();
+    mobileAvatarEl.innerHTML = '';
+    avatarEl.textContent = initial;
+    mobileAvatarEl.textContent = initial;
     avatarEl.style.background = 'linear-gradient(135deg, var(--accent-purple), var(--accent-green))';
+    mobileAvatarEl.style.background = 'linear-gradient(135deg, var(--accent-purple), var(--accent-green))';
+    
+    if (previewImg) {
+      previewImg.src = '';
+      previewImg.style.display = 'none';
+      previewInitials.textContent = initial;
+      previewInitials.style.display = 'block';
+      removeBtn.style.display = 'none';
+    }
   }
   
   document.getElementById('setting-currency').value = userSettings.currency;
   document.getElementById('setting-theme').value = userSettings.theme;
-  document.getElementById('setting-avatar-url').value = userSettings.avatarUrl || '';
   
   renderAll(); // Re-render to update currency formats
 }
@@ -394,14 +421,59 @@ function applySettings() {
 window.saveSettings = async function () {
   const currency = document.getElementById('setting-currency').value;
   const theme = document.getElementById('setting-theme').value;
-  const avatarUrl = document.getElementById('setting-avatar-url').value.trim();
   
   try {
-    await setDoc(doc(db, 'settings', currentUser.uid), { currency, theme, avatarUrl }, { merge: true });
+    await setDoc(doc(db, 'settings', currentUser.uid), { currency, theme }, { merge: true });
     showToast('Settings saved!', 'success');
   } catch(e) {
     console.error(e);
     showToast('Failed to save settings', 'error');
+  }
+};
+
+window.handleAvatarUpload = async function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) return showToast('Please select an image file', 'error');
+  if (file.size > 2 * 1024 * 1024) return showToast('Image must be less than 2MB', 'error');
+
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const img = new Image();
+    img.onload = async function() {
+      const canvas = document.createElement('canvas');
+      const MAX_SIZE = 200;
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+      } else {
+        if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const base64Avatar = canvas.toDataURL('image/jpeg', 0.8);
+      try {
+        await setDoc(doc(db, 'settings', currentUser.uid), { avatarUrl: base64Avatar }, { merge: true });
+        showToast('Profile picture updated!', 'success');
+      } catch(err) {
+        showToast('Failed to upload image', 'error');
+      }
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.removeAvatar = async function() {
+  try {
+    await setDoc(doc(db, 'settings', currentUser.uid), { avatarUrl: '' }, { merge: true });
+    showToast('Profile picture removed!', 'success');
+  } catch(err) {
+    showToast('Failed to remove image', 'error');
   }
 };
 

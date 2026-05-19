@@ -213,6 +213,21 @@ input[type="date"]::-webkit-date-and-time-value {
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 .sidebar-nav { flex: 1; padding: 1rem 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.modal-body { display: flex; flex-direction: column; gap: 1rem; }
+.modal-footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; }
+
+.avatar-upload-wrap { display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; }
+.avatar-upload-preview {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-green));
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 1.5rem; flex-shrink: 0; overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+.avatar-upload-actions { display: flex; gap: 0.5rem; flex: 1; flex-wrap: wrap; }
+.avatar-preview-initials { user-select: none; }
+
+/* ─── SETTINGS UTILS ─── */
 .nav-item {
   display: flex; align-items: center; gap: 0.75rem;
   padding: 0.75rem 1rem; border-radius: var(--radius-sm);
