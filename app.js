@@ -151,6 +151,13 @@ function subscribeToData() {
   );
   unsubscribeListener = onSnapshot(q, (snap) => {
     allTransactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Local sort: Date descending, then createdAt descending to ensure newest additions are at the top
+    allTransactions.sort((a, b) => {
+      if (a.date !== b.date) return new Date(b.date) - new Date(a.date);
+      const aTime = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : Date.now();
+      const bTime = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : Date.now();
+      return bTime - aTime;
+    });
     renderAll();
   }, (err) => {
     console.error('Firestore error:', err);
