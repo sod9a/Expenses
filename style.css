@@ -104,6 +104,14 @@ body {
   transition: border-color var(--transition), box-shadow var(--transition);
   outline: none;
 }
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: left;
+}
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
 .input-group input:focus,
 .input-group select:focus,
 .input-group textarea:focus {
