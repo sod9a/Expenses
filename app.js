@@ -36,13 +36,15 @@ let txType = 'income';
 let unsubscribeListener = null;
 let unsubscribeBudgets = null;
 let unsubscribeSettings = null;
+let isRegistering = false; // Flag to pause onAuthStateChanged during registration
 
 // ─── Auth State ───────────────────────────────────────────────────────────
 onAuthStateChanged(auth, (user) => {
+  if (isRegistering) return; // Skip during active registration to avoid race conditions
   if (user) {
     currentUser = user;
     if (!user.emailVerified) {
-      // Show the verify screen, block access to app
+      // Block access, show verify screen
       hideApp();
       document.getElementById('verify-email-display').textContent = user.email;
       switchAuth('verify');
@@ -135,26 +137,39 @@ document.getElementById('btn-register').addEventListener('click', async () => {
   if (pw.length < 6) return showAuthError('register-error', 'Password must be at least 6 characters.');
   const btn = document.getElementById('btn-register');
   btn.disabled = true; btn.textContent = 'Creating…';
+  isRegistering = true; // Pause auth state listener to prevent race condition
   try {
-    // Check username availability
+    // 1. Check username availability first
     const existing = await getDocs(query(collection(db, 'usernames'), where('username', '==', username)));
     if (!existing.empty) {
       showAuthError('register-error', 'That username is already taken. Please choose another.');
+      isRegistering = false;
       return;
     }
-    // Create Firebase Auth user
+    // 2. Create Firebase Auth user
     const cred = await createUserWithEmailAndPassword(auth, email, pw);
     await updateProfile(cred.user, { displayName: name });
-    // Save username → email mapping in Firestore
-    await setDoc(doc(db, 'usernames', cred.user.uid), { username, email, displayName: name, uid: cred.user.uid });
-    // Send verification email
+    // 3. Save username → email mapping in Firestore (own try-catch so it's resilient)
+    try {
+      await setDoc(doc(db, 'usernames', cred.user.uid), { username, email, displayName: name, uid: cred.user.uid });
+    } catch (fsErr) {
+      console.error('Failed to save username to Firestore:', fsErr.message);
+      showAuthError('register-error', '⚠️ Account created but username could not be saved. Please check Firestore rules.');
+    }
+    // 4. Send verification email
     await sendEmailVerification(cred.user);
     currentUser = cred.user;
+    // 5. Show verify screen manually (safe since listener is paused)
+    hideApp();
     document.getElementById('verify-email-display').textContent = email;
     switchAuth('verify');
   } catch (e) {
     showAuthError('register-error', friendlyAuthError(e.code));
-  } finally { btn.disabled = false; btn.textContent = 'Create Account'; }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create Account';
+    isRegistering = false; // Resume auth state listener
+  }
 });
 
 // ─── Email Verification Actions ────────────────────────────────────────────
