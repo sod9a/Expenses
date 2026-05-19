@@ -434,10 +434,11 @@ function formatDate(dateStr) {
 
 function getCategoryIcon(cat) {
   const icons = {
-    'Food & Dining': '🍔', 'Housing': '🏠', 'Transport': '🚗',
-    'Shopping': '🛍️', 'Entertainment': '🎬', 'Health': '💊',
-    'Education': '📚', 'Salary': '💼', 'Freelance': '💻',
-    'Investment': '📈', 'Loan': '🏦', 'Other': '✨', 'General': '💡'
+    'Food & Dining': '🍔', 'Housing': '🏠', 'Rent': '🏠', 'Transport': '🚗',
+    'Shopping': '🛍️', 'Groceries': '🛒', 'Bills': '🧾', 
+    'Entertainment': '🎬', 'Health': '💊', 'Education': '📚', 
+    'Salary': '💼', 'Freelance': '💻', 'Investment': '📈', 
+    'Loan': '🏦', 'Other': '✨', 'General': '💡'
   };
   return icons[cat] || '💡';
 }
