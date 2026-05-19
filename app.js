@@ -4,7 +4,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, onAuthStateChanged, updateProfile
+  signOut, onAuthStateChanged, updateProfile, sendEmailVerification
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc,
@@ -41,8 +41,15 @@ let unsubscribeSettings = null;
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
-    showApp(user);
-    subscribeToData();
+    if (!user.emailVerified) {
+      // Show the verify screen, block access to app
+      hideApp();
+      document.getElementById('verify-email-display').textContent = user.email;
+      switchAuth('verify');
+    } else {
+      showApp(user);
+      subscribeToData();
+    }
   } else {
     currentUser = null;
     hideApp();
@@ -91,13 +98,27 @@ function showAuthError(id, msg) {
   el.textContent = msg; el.style.display = 'block';
 }
 
+// Resolve username to email via Firestore lookup
+async function resolveLoginEmail(input) {
+  if (input.includes('@')) return input; // it's already an email
+  // Look up username in 'usernames' collection
+  const snap = await getDocs(query(collection(db, 'usernames'), where('username', '==', input.toLowerCase())));
+  if (snap.empty) return null;
+  return snap.docs[0].data().email;
+}
+
 document.getElementById('btn-login').addEventListener('click', async () => {
-  const email = document.getElementById('login-email').value.trim();
+  const input = document.getElementById('login-email').value.trim();
   const pw = document.getElementById('login-password').value;
-  if (!email || !pw) return showAuthError('login-error', 'Please fill in all fields.');
+  if (!input || !pw) return showAuthError('login-error', 'Please fill in all fields.');
   const btn = document.getElementById('btn-login');
   btn.disabled = true; btn.textContent = 'Signing in…';
   try {
+    const email = await resolveLoginEmail(input);
+    if (!email) {
+      showAuthError('login-error', 'No account found with that username.');
+      return;
+    }
     await signInWithEmailAndPassword(auth, email, pw);
   } catch (e) {
     showAuthError('login-error', friendlyAuthError(e.code));
@@ -106,20 +127,64 @@ document.getElementById('btn-login').addEventListener('click', async () => {
 
 document.getElementById('btn-register').addEventListener('click', async () => {
   const name = document.getElementById('reg-name').value.trim();
+  const username = document.getElementById('reg-username').value.trim().toLowerCase();
   const email = document.getElementById('reg-email').value.trim();
   const pw = document.getElementById('reg-password').value;
-  if (!name || !email || !pw) return showAuthError('register-error', 'Please fill in all fields.');
+  if (!name || !username || !email || !pw) return showAuthError('register-error', 'Please fill in all fields.');
+  if (!/^[a-z0-9_]{3,20}$/.test(username)) return showAuthError('register-error', 'Username must be 3-20 characters (letters, numbers, underscore only).');
   if (pw.length < 6) return showAuthError('register-error', 'Password must be at least 6 characters.');
   const btn = document.getElementById('btn-register');
   btn.disabled = true; btn.textContent = 'Creating…';
   try {
+    // Check username availability
+    const existing = await getDocs(query(collection(db, 'usernames'), where('username', '==', username)));
+    if (!existing.empty) {
+      showAuthError('register-error', 'That username is already taken. Please choose another.');
+      return;
+    }
+    // Create Firebase Auth user
     const cred = await createUserWithEmailAndPassword(auth, email, pw);
     await updateProfile(cred.user, { displayName: name });
+    // Save username → email mapping in Firestore
+    await setDoc(doc(db, 'usernames', cred.user.uid), { username, email, displayName: name, uid: cred.user.uid });
+    // Send verification email
+    await sendEmailVerification(cred.user);
     currentUser = cred.user;
+    document.getElementById('verify-email-display').textContent = email;
+    switchAuth('verify');
   } catch (e) {
     showAuthError('register-error', friendlyAuthError(e.code));
   } finally { btn.disabled = false; btn.textContent = 'Create Account'; }
 });
+
+// ─── Email Verification Actions ────────────────────────────────────────────
+window.checkVerification = async function () {
+  const btn = document.getElementById('btn-check-verify');
+  btn.disabled = true; btn.textContent = 'Checking…';
+  try {
+    await auth.currentUser.reload();
+    if (auth.currentUser.emailVerified) {
+      showApp(auth.currentUser);
+      subscribeToData();
+    } else {
+      showAuthError('verify-error', 'Email not verified yet. Please click the link in your inbox.');
+    }
+  } catch (e) {
+    showAuthError('verify-error', 'Error checking verification. Please try again.');
+  } finally { btn.disabled = false; btn.textContent = "I've Verified"; }
+};
+
+window.resendVerification = async function () {
+  const btn = document.getElementById('btn-resend-verify');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    await sendEmailVerification(auth.currentUser);
+    showAuthError('verify-error', '✅ Verification email re-sent! Check your inbox.');
+    document.getElementById('verify-error').style.borderLeftColor = 'var(--accent-green)';
+  } catch (e) {
+    showAuthError('verify-error', 'Too many requests. Please wait a few minutes.');
+  } finally { btn.disabled = false; btn.textContent = 'Resend Email'; }
+};
 
 window.logoutUser = async function () {
   await signOut(auth);

@@ -28,8 +28,8 @@
       <div id="login-form" class="auth-form active">
         <h2>Welcome back</h2>
         <div class="input-group">
-          <label for="login-email">Email</label>
-          <input type="email" id="login-email" placeholder="you@example.com" />
+          <label for="login-email">Email or Username</label>
+          <input type="text" id="login-email" placeholder="Email or Username" />
         </div>
         <div class="input-group">
           <label for="login-password">Password</label>
@@ -46,6 +46,10 @@
           <input type="text" id="reg-name" placeholder="Your name" />
         </div>
         <div class="input-group">
+          <label for="reg-username">Username</label>
+          <input type="text" id="reg-username" placeholder="unique_username" />
+        </div>
+        <div class="input-group">
           <label for="reg-email">Email</label>
           <input type="email" id="reg-email" placeholder="you@example.com" />
         </div>
@@ -56,6 +60,17 @@
         <button id="btn-register" class="btn-primary">Create Account</button>
         <p class="auth-switch">Already have an account? <span onclick="switchAuth('login')">Sign In</span></p>
         <div id="register-error" class="auth-error"></div>
+      </div>
+      <div id="verify-form" class="auth-form">
+        <h2>Verify your email</h2>
+        <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.5rem;line-height:1.5">
+          We've sent a verification link to <strong id="verify-email-display" style="color:var(--text-primary)"></strong>.<br><br>
+          Please check your inbox (and spam folder) and click the link to activate your account.
+        </p>
+        <button id="btn-check-verify" class="btn-primary" onclick="checkVerification()">I've Verified</button>
+        <button id="btn-resend-verify" class="btn-secondary" style="margin-top:0.75rem;width:100%" onclick="resendVerification()">Resend Email</button>
+        <button class="btn-text" style="width:100%;margin-top:1rem;color:var(--accent-red)" onclick="logoutUser()">Sign Out</button>
+        <div id="verify-error" class="auth-error"></div>
       </div>
     </div>
   </div>
