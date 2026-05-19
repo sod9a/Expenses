@@ -128,7 +128,6 @@
     <header class="mobile-header">
       <button class="hamburger" onclick="toggleSidebar()">☰</button>
       <span class="mobile-logo">💸 ExpenseFlow</span>
-      <button class="btn-logout-mobile" onclick="logoutUser()">↩</button>
     </header>
 
     <main class="main-content">
@@ -262,6 +261,10 @@
             <div class="input-group">
               <label for="setting-avatar-url">Profile Picture URL (optional)</label>
               <input type="url" id="setting-avatar-url" placeholder="https://..." onchange="saveSettings()" />
+            </div>
+            
+            <div class="input-group" style="margin-top: 2rem;">
+              <button class="btn-logout" style="width: 100%; justify-content: center;" onclick="logoutUser()">Sign Out</button>
             </div>
           </div>
         </div>
