@@ -483,9 +483,9 @@ input[type="date"]::-webkit-date-and-time-value {
 .amount-input-wrap { position: relative; }
 .input-group .amount-input-wrap .currency-symbol {
   position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
-  color: var(--text-secondary); font-size: 1.25rem; pointer-events: none;
+  color: var(--text-secondary); font-size: 1.1rem; pointer-events: none;
 }
-.input-group .amount-input-wrap input { padding-left: 3.5rem; font-size: 1.5rem; font-weight: 700; height: 3.5rem; }
+.input-group .amount-input-wrap input { padding-left: 3.2rem; font-size: 1.15rem; font-weight: 500; height: 3.2rem; }
 
 /* ─── TOAST ─── */
 .toast {
@@ -531,9 +531,8 @@ input[type="date"]::-webkit-date-and-time-value {
   .bottom-nav .nav-item.active .nav-icon { color: var(--accent-purple); }
   
   .main-content { margin-left: 0; padding: 5rem 1rem 90px; }
-  
-  .input-group .amount-input-wrap input { font-size: 2rem; padding-left: 4.5rem !important; }
-  .input-group .amount-input-wrap .currency-symbol { font-size: 1.5rem; left: 1.2rem; }
+  .input-group .amount-input-wrap input { padding-left: 3.2rem !important; }
+  .input-group .amount-input-wrap .currency-symbol { left: 1rem; }
   .summary-grid { grid-template-columns: 1fr 1fr; }
   .form-row { flex-direction: column; }
   .page-header { flex-direction: column; align-items: flex-start; }
