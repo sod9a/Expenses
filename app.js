@@ -430,7 +430,7 @@ function getCategoryIcon(cat) {
     'Food & Dining': '🍔', 'Housing': '🏠', 'Transport': '🚗',
     'Shopping': '🛍️', 'Entertainment': '🎬', 'Health': '💊',
     'Education': '📚', 'Salary': '💼', 'Freelance': '💻',
-    'Investment': '📈', 'Other': '✨', 'General': '💡'
+    'Investment': '📈', 'Loan': '🏦', 'Other': '✨', 'General': '💡'
   };
   return icons[cat] || '💡';
 }
