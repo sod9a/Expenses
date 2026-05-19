@@ -27,6 +27,10 @@
       </div>
       <div id="login-form" class="auth-form active">
         <h2>Welcome back</h2>
+        <button id="btn-face-id" class="btn-face-id hidden" onclick="faceIdLogin()">
+          <span class="face-id-icon">🔒</span> Sign in with Face ID / Touch ID
+        </button>
+        <p id="face-id-or" class="face-id-or hidden">or use password</p>
         <div class="input-group">
           <label for="login-email">Email or Username</label>
           <input type="text" id="login-email" placeholder="Email or Username" autocomplete="username" />

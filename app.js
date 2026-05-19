@@ -116,6 +116,8 @@ document.getElementById('btn-login').addEventListener('click', async () => {
       return;
     }
     await signInWithEmailAndPassword(auth, email, pw);
+    // Save to device keychain so Face ID / Touch ID works next time
+    await storeCredential(input, pw);
   } catch (e) {
     showAuthError('login-error', friendlyAuthError(e.code));
   } finally { btn.disabled = false; btn.textContent = 'Sign In'; }
@@ -201,6 +203,48 @@ window.logoutUser = async function () {
   switchAuth('login');
   showToast('Signed out successfully.', 'success');
 };
+
+// ─── Face ID / Touch ID (Credential Management API) ───────────────────────
+function showFaceIdButton() {
+  if (window.PasswordCredential) {
+    document.getElementById('btn-face-id').classList.remove('hidden');
+    document.getElementById('face-id-or').classList.remove('hidden');
+  }
+}
+
+async function storeCredential(id, password) {
+  if (!window.PasswordCredential) return;
+  try {
+    const cred = new PasswordCredential({ id, password });
+    await navigator.credentials.store(cred);
+  } catch (e) { /* Silent — user may dismiss the prompt */ }
+}
+
+window.faceIdLogin = async function () {
+  if (!window.PasswordCredential) return;
+  try {
+    const cred = await navigator.credentials.get({ password: true, mediation: 'required' });
+    if (!cred) return;
+    const btn = document.getElementById('btn-face-id');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    const email = await resolveLoginEmail(cred.id);
+    if (!email) {
+      showAuthError('login-error', 'No account found. Please sign in with password first.');
+      btn.disabled = false; btn.innerHTML = '<span class="face-id-icon">🔒</span> Sign in with Face ID / Touch ID';
+      return;
+    }
+    await signInWithEmailAndPassword(auth, email, cred.password);
+  } catch (e) {
+    if (e.name !== 'NotAllowedError') {
+      showAuthError('login-error', 'Biometric login failed. Please use your password.');
+    }
+    const btn = document.getElementById('btn-face-id');
+    btn.disabled = false; btn.innerHTML = '<span class="face-id-icon">🔒</span> Sign in with Face ID / Touch ID';
+  }
+};
+
+// Show Face ID button on page load if supported
+document.addEventListener('DOMContentLoaded', showFaceIdButton);
 
 document.getElementById('btn-forgot').addEventListener('click', async () => {
   const email = document.getElementById('forgot-email').value.trim();

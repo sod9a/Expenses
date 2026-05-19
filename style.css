@@ -166,6 +166,30 @@ input[type="date"]::-webkit-date-and-time-value {
 }
 .auth-error.visible { display: block; }
 
+.btn-face-id {
+  display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+  width: 100%; padding: 0.85rem;
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--accent-purple);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary); font-family: inherit; font-size: 1rem; font-weight: 600;
+  cursor: pointer; margin-bottom: 0.25rem;
+  transition: background var(--transition), box-shadow var(--transition);
+}
+.btn-face-id:hover { background: rgba(124,92,252,0.12); box-shadow: 0 0 0 3px rgba(124,92,252,0.2); }
+.btn-face-id .face-id-icon { font-size: 1.2rem; }
+
+.face-id-or {
+  text-align: center; font-size: 0.8rem; color: var(--text-muted);
+  margin: 0.5rem 0 0.75rem; position: relative;
+}
+.face-id-or::before, .face-id-or::after {
+  content: ''; position: absolute; top: 50%; width: 38%; height: 1px;
+  background: var(--border);
+}
+.face-id-or::before { left: 0; }
+.face-id-or::after { right: 0; }
+
 /* ─── LAYOUT ─── */
 .hidden { display: none !important; }
 .app { display: flex; min-height: 100vh; }
