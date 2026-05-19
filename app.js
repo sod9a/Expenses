@@ -487,9 +487,9 @@ function getFilteredTransactions() {
     const search = searchInput.value.toLowerCase().trim();
     if (search) {
       list = list.filter(t => 
-        t.description.toLowerCase().includes(search) || 
-        t.category.toLowerCase().includes(search) ||
-        (t.notes && t.notes.toLowerCase().includes(search))
+        (t.description || '').toLowerCase().includes(search) || 
+        (t.category || '').toLowerCase().includes(search) ||
+        (t.notes || '').toLowerCase().includes(search)
       );
     }
   }
