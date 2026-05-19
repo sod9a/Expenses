@@ -65,6 +65,8 @@ function showApp(user) {
   document.getElementById('user-email-display').textContent = user.email;
   document.getElementById('user-avatar').textContent = name[0].toUpperCase();
   setGreeting();
+  // Always start on Dashboard after login
+  navigateTo('dashboard', document.querySelector('[data-page="dashboard"]'));
 }
 
 function hideApp() {
