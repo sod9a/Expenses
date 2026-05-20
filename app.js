@@ -251,8 +251,10 @@ const hasCreds = !!navigator.credentials;   // Available on iOS Safari too
 
 function showFaceIdButton() {
   if (isIOS || hasCMA) {
-    document.getElementById('btn-face-id').classList.remove('hidden');
-    document.getElementById('face-id-or').classList.remove('hidden');
+    const btn = document.getElementById('btn-face-id');
+    const orText = document.getElementById('face-id-or');
+    if (btn) btn.classList.remove('hidden');
+    if (orText) orText.classList.remove('hidden');
   }
 }
 
