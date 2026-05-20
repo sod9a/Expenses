@@ -38,6 +38,8 @@ let editingTabungId = null;
 let editingLoanId = null;
 let topupTabungId = null;
 let loanPayId = null;
+let activeTabungDetailId = null;
+let activeLoanDetailId = null;
 let pendingDeleteId = null;
 let txType = 'income';
 let loanType = 'owe';
@@ -398,6 +400,7 @@ function subscribeToData() {
   unsubscribeTabung = onSnapshot(tq, snap => {
     allTabung = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (document.getElementById('page-tabung').classList.contains('active')) renderTabung();
+    if (activeTabungDetailId) refreshTabungDetailsModal();
   });
 
   // 5. Loans
@@ -405,6 +408,7 @@ function subscribeToData() {
   unsubscribeLoans = onSnapshot(lq, snap => {
     allLoans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (document.getElementById('page-loans').classList.contains('active')) renderLoans();
+    if (activeLoanDetailId) refreshLoanDetailsModal();
   });
 }
 
@@ -1289,6 +1293,7 @@ function renderTabung() {
 
     const card = document.createElement('div');
     card.className = 'tabung-card';
+    card.setAttribute('onclick', `openTabungDetailsModal('${t.id}', event)`);
     card.innerHTML = `
       <div class="tabung-header">
         <span class="tabung-emoji">${t.emoji || '🎯'}</span>
@@ -1297,8 +1302,8 @@ function renderTabung() {
           ${deadlineHtml}
         </div>
         <div class="tabung-actions">
-          <button class="btn-tabung-edit" onclick="openTabungModal('${t.id}')">✏️</button>
-          <button class="btn-del-budget" onclick="deleteTabung('${t.id}')">✕</button>
+          <button class="btn-tabung-edit" onclick="event.stopPropagation(); openTabungModal('${t.id}')">✏️</button>
+          <button class="btn-del-budget" onclick="event.stopPropagation(); deleteTabung('${t.id}')">✕</button>
         </div>
       </div>
       <div class="tabung-amounts">
@@ -1311,7 +1316,7 @@ function renderTabung() {
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <span class="budget-status ${pct >= 100 ? 'safe' : ''}" style="color:${pct >= 100 ? 'var(--accent-green)' : pct >= 75 ? 'var(--accent-gold)' : 'var(--text-secondary)'}">${statusText}</span>
-        <button class="btn-add-tx" style="padding:0.4rem 0.9rem;font-size:0.8rem;" onclick="openTopupModal('${t.id}')">+ Add</button>
+        <button class="btn-add-tx" style="padding:0.4rem 0.9rem;font-size:0.8rem;" onclick="event.stopPropagation(); openTopupModal('${t.id}')">+ Add</button>
       </div>
     `;
     container.appendChild(card);
@@ -1483,6 +1488,7 @@ function renderLoans() {
 
     const card = document.createElement('div');
     card.className = `loan-card ${isSettled ? 'settled' : ''} ${l.loanType}`;
+    card.setAttribute('onclick', `openLoanDetailsModal('${l.id}', event)`);
     card.innerHTML = `
       <div class="loan-type-badge ${l.loanType}">${l.loanType === 'owe' ? '💸 I Owe' : '💰 I Lent'}</div>
       <div class="loan-header">
@@ -1491,8 +1497,8 @@ function renderLoans() {
           <div class="loan-desc-text">${l.desc || ''}</div>
         </div>
         <div style="display:flex;gap:0.5rem;flex-shrink:0;">
-          <button class="btn-tabung-edit" onclick="openLoanModal('${l.id}')">✏️</button>
-          <button class="btn-del-budget" onclick="deleteLoan('${l.id}')">✕</button>
+          <button class="btn-tabung-edit" onclick="event.stopPropagation(); openLoanModal('${l.id}')">✏️</button>
+          <button class="btn-del-budget" onclick="event.stopPropagation(); deleteLoan('${l.id}')">✕</button>
         </div>
       </div>
       ${dueHtml}
@@ -1508,10 +1514,453 @@ function renderLoans() {
         <span style="font-size:0.8rem;color:${isSettled ? 'var(--accent-green)' : 'var(--text-secondary)'}">
           ${isSettled ? '✅ Settled!' : `${pct.toFixed(0)}% paid`}
         </span>
-        ${!isSettled ? `<button class="btn-add-tx" style="padding:0.4rem 0.9rem;font-size:0.8rem;" onclick="openLoanPayModal('${l.id}')">+ Pay</button>` : ''}
+        ${!isSettled ? `<button class="btn-add-tx" style="padding:0.4rem 0.9rem;font-size:0.8rem;" onclick="event.stopPropagation(); openLoanPayModal('${l.id}')">+ Pay</button>` : ''}
       </div>
     `;
     container.appendChild(card);
   });
 }
+
+// ─── TABUNG (SAVINGS) & LOANS DETAILS MODALS ───
+
+window.openTabungDetailsModal = function(id, event) {
+  activeTabungDetailId = id;
+  const amountInput = document.getElementById('detail-tabung-amount');
+  const dateInput = document.getElementById('detail-tabung-date');
+  const errEl = document.getElementById('detail-tabung-error');
+  
+  if (amountInput) amountInput.value = '';
+  if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+  if (errEl) errEl.textContent = '';
+  
+  refreshTabungDetailsModal();
+  const overlay = document.getElementById('tabung-details-overlay');
+  if (overlay) overlay.classList.remove('hidden');
+};
+
+window.closeTabungDetailsModal = function() {
+  const overlay = document.getElementById('tabung-details-overlay');
+  if (overlay) overlay.classList.add('hidden');
+  activeTabungDetailId = null;
+};
+
+window.closeTabungDetailsOnOverlay = function(e) {
+  if (e.target.id === 'tabung-details-overlay') {
+    closeTabungDetailsModal();
+  }
+};
+
+window.refreshTabungDetailsModal = function() {
+  if (!activeTabungDetailId) return;
+  const t = allTabung.find(x => x.id === activeTabungDetailId);
+  if (!t) {
+    closeTabungDetailsModal();
+    return;
+  }
+  
+  // Update header and meta
+  const emojiEl = document.getElementById('tabung-details-emoji');
+  const nameEl = document.getElementById('tabung-details-name');
+  const deadlineEl = document.getElementById('tabung-details-deadline');
+  
+  if (emojiEl) emojiEl.textContent = t.emoji || '🎯';
+  if (nameEl) nameEl.textContent = t.name;
+  
+  if (deadlineEl) {
+    if (t.deadline) {
+      const d = new Date(t.deadline + 'T00:00:00');
+      const today = new Date(); today.setHours(0,0,0,0);
+      const diff = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+      const label = diff < 0 ? `⚠️ ${Math.abs(diff)} days overdue` : diff === 0 ? '🔔 Due today!' : `📆 ${diff} days left`;
+      deadlineEl.innerHTML = `<span class="tabung-deadline-label" style="font-size:0.8rem;">${label} (Due: ${formatDate(t.deadline)})</span>`;
+    } else {
+      deadlineEl.innerHTML = '<span style="font-size:0.8rem; color:var(--ink-secondary);">No deadline set</span>';
+    }
+  }
+  
+  // Progress calculations
+  const pct = Math.min((t.saved / t.target) * 100, 100);
+  const savedEl = document.getElementById('tabung-details-saved');
+  const targetEl = document.getElementById('tabung-details-target');
+  const barEl = document.getElementById('tabung-details-progress-bar');
+  const statusEl = document.getElementById('tabung-details-status');
+  const remainingEl = document.getElementById('tabung-details-remaining');
+  
+  if (savedEl) savedEl.textContent = formatCurrency(t.saved);
+  if (targetEl) targetEl.textContent = formatCurrency(t.target);
+  
+  if (barEl) {
+    barEl.style.width = `${pct}%`;
+    if (pct >= 100) {
+      barEl.style.background = 'linear-gradient(90deg,var(--accent-green),#16b98d)';
+    } else if (pct >= 75) {
+      barEl.style.background = 'linear-gradient(90deg,var(--accent-gold),#fda642)';
+    } else {
+      barEl.style.background = 'linear-gradient(90deg,var(--accent-purple),var(--accent-purple-light))';
+    }
+  }
+  
+  if (statusEl) {
+    if (pct >= 100) {
+      statusEl.textContent = '🎉 Goal reached!';
+      statusEl.className = 'budget-status safe income-text';
+    } else {
+      statusEl.textContent = `${pct.toFixed(0)}% reached`;
+      statusEl.className = `budget-status ${pct >= 75 ? 'warn' : 'safe'}`;
+    }
+  }
+  
+  if (remainingEl) {
+    const remaining = t.target - t.saved;
+    remainingEl.textContent = remaining > 0 ? `${formatCurrency(remaining)} remaining` : 'Fully funded';
+  }
+  
+  // History loading and rendering
+  let history = t.history || [];
+  let displayHistory = [...history];
+  
+  if (displayHistory.length === 0 && t.saved > 0) {
+    // Generate mock backward-compatible history item using document timestamp
+    const mockDate = t.createdAt?.toDate ? t.createdAt.toDate() : new Date();
+    const dateString = mockDate.toISOString().split('T')[0];
+    displayHistory = [{
+      amount: t.saved,
+      date: dateString,
+      createdAt: t.createdAt || new Date(),
+      isMock: true
+    }];
+  }
+  
+  // Sort chronologically (newest first)
+  displayHistory.sort((a, b) => {
+    const dateA = a.date || '';
+    const dateB = b.date || '';
+    if (dateA !== dateB) {
+      return dateB.localeCompare(dateA);
+    }
+    const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt instanceof Date ? a.createdAt.getTime() : 0);
+    const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt instanceof Date ? b.createdAt.getTime() : 0);
+    return timeB - timeA;
+  });
+  
+  const historyList = document.getElementById('tabung-history-list');
+  if (historyList) {
+    if (displayHistory.length === 0) {
+      historyList.innerHTML = '<div class="empty-state" style="padding:1rem 0;"><p style="font-size:0.8rem;">No savings contributions recorded yet.</p></div>';
+    } else {
+      historyList.innerHTML = displayHistory.map(item => {
+        return `
+          <div class="history-item">
+            <div style="display:flex; flex-direction:column; align-items:flex-start;">
+              <span class="history-date">${formatDate(item.date)}</span>
+              ${item.isMock ? '<span style="font-size:0.7rem; color:var(--ink-secondary); font-style:italic;">Initial contribution</span>' : ''}
+            </div>
+            <span class="history-amount tabung-add">+${formatCurrency(item.amount)}</span>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+};
+
+window.addTabungSavingsFromDetail = async function() {
+  const amountInput = document.getElementById('detail-tabung-amount');
+  const dateInput = document.getElementById('detail-tabung-date');
+  const errEl = document.getElementById('detail-tabung-error');
+  
+  if (!amountInput || !dateInput || !errEl) return;
+  
+  errEl.textContent = '';
+  const amount = parseFloat(amountInput.value);
+  const dateStr = dateInput.value;
+  
+  if (!amount || amount <= 0) {
+    errEl.textContent = 'Please enter a valid amount.';
+    return;
+  }
+  if (!dateStr) {
+    errEl.textContent = 'Please select a transaction date.';
+    return;
+  }
+  
+  const t = allTabung.find(x => x.id === activeTabungDetailId);
+  if (!t) return;
+  
+  const remaining = t.target - t.saved;
+  if (remaining <= 0) {
+    errEl.textContent = 'This savings goal is already fully funded!';
+    return;
+  }
+  
+  const finalAmount = Math.min(amount, remaining);
+  const newSaved = t.saved + finalAmount;
+  
+  let history = t.history || [];
+  if (history.length === 0 && t.saved > 0) {
+    const mockDate = t.createdAt?.toDate ? t.createdAt.toDate() : new Date();
+    const dateString = mockDate.toISOString().split('T')[0];
+    history.push({
+      amount: t.saved,
+      date: dateString,
+      createdAt: t.createdAt || new Date()
+    });
+  }
+  
+  // Push new transaction to local history array
+  history.push({
+    amount: finalAmount,
+    date: dateStr,
+    createdAt: new Date()
+  });
+  
+  const submitBtn = document.querySelector('#tabung-details-overlay .btn-primary');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Adding…';
+  }
+  
+  try {
+    await updateDoc(doc(db, 'tabung', activeTabungDetailId), {
+      saved: newSaved,
+      history: history,
+      updatedAt: serverTimestamp()
+    });
+    
+    showToast(`Saved ${formatCurrency(finalAmount)} to "${t.name}"!`, 'success');
+    amountInput.value = '';
+    dateInput.value = new Date().toISOString().split('T')[0];
+  } catch(e) {
+    console.error(e);
+    errEl.textContent = 'Failed to record transaction. Please try again.';
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Add to Savings';
+    }
+  }
+};
+
+window.openLoanDetailsModal = function(id, event) {
+  activeLoanDetailId = id;
+  const amountInput = document.getElementById('detail-loan-amount');
+  const dateInput = document.getElementById('detail-loan-date');
+  const errEl = document.getElementById('detail-loan-error');
+  
+  if (amountInput) amountInput.value = '';
+  if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+  if (errEl) errEl.textContent = '';
+  
+  refreshLoanDetailsModal();
+  const overlay = document.getElementById('loan-details-overlay');
+  if (overlay) overlay.classList.remove('hidden');
+};
+
+window.closeLoanDetailsModal = function() {
+  const overlay = document.getElementById('loan-details-overlay');
+  if (overlay) overlay.classList.add('hidden');
+  activeLoanDetailId = null;
+};
+
+window.closeLoanDetailsOnOverlay = function(e) {
+  if (e.target.id === 'loan-details-overlay') {
+    closeLoanDetailsModal();
+  }
+};
+
+window.refreshLoanDetailsModal = function() {
+  if (!activeLoanDetailId) return;
+  const l = allLoans.find(x => x.id === activeLoanDetailId);
+  if (!l) {
+    closeLoanDetailsModal();
+    return;
+  }
+  
+  const remaining = l.total - l.paid;
+  const isSettled = remaining <= 0;
+  
+  // Set basic detail texts
+  const personEl = document.getElementById('loan-details-person');
+  const descEl = document.getElementById('loan-details-desc');
+  const badgeEl = document.getElementById('loan-details-badge');
+  const dueEl = document.getElementById('loan-details-due');
+  
+  if (personEl) personEl.textContent = l.person;
+  if (descEl) descEl.textContent = l.desc || 'No description';
+  
+  if (badgeEl) {
+    if (l.loanType === 'owe') {
+      badgeEl.textContent = '💸 I Owe';
+      badgeEl.className = 'loan-type-badge owe';
+    } else {
+      badgeEl.textContent = '💰 I Lent';
+      badgeEl.className = 'loan-type-badge lent';
+    }
+  }
+  
+  if (dueEl) {
+    if (l.due && !isSettled) {
+      const d = new Date(l.due + 'T00:00:00');
+      const today = new Date(); today.setHours(0,0,0,0);
+      const diff = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+      const label = diff < 0 ? `⚠️ ${Math.abs(diff)} days overdue` : diff === 0 ? '🔔 Due today!' : `📆 ${diff} days left`;
+      dueEl.innerHTML = `<span class="tabung-deadline-label ${diff < 0 ? 'overdue' : ''}" style="font-size:0.8rem;">${label} (Due: ${formatDate(l.due)})</span>`;
+    } else if (isSettled) {
+      dueEl.innerHTML = '<span class="tabung-deadline-label" style="background:var(--accent-green-bg); color:var(--accent-green); font-size:0.8rem; border-color:transparent; padding:0.25rem 0.6rem;">✅ Fully Settled</span>';
+    } else {
+      dueEl.innerHTML = '<span style="font-size:0.8rem; color:var(--ink-secondary);">No due date set</span>';
+    }
+  }
+  
+  // Hide form if settled
+  const payBox = document.getElementById('loan-details-pay-box');
+  if (payBox) {
+    payBox.style.display = isSettled ? 'none' : 'block';
+  }
+  
+  // Amounts
+  const paidEl = document.getElementById('loan-details-paid');
+  const remainingValEl = document.getElementById('loan-details-remaining-val');
+  const totalEl = document.getElementById('loan-details-total');
+  
+  if (paidEl) paidEl.textContent = formatCurrency(l.paid);
+  if (remainingValEl) remainingValEl.textContent = formatCurrency(remaining);
+  if (totalEl) totalEl.textContent = formatCurrency(l.total);
+  
+  // Progress Bar & Status Text
+  const pct = Math.min((l.paid / l.total) * 100, 100);
+  const barEl = document.getElementById('loan-details-progress-bar');
+  const statusEl = document.getElementById('loan-details-status');
+  
+  if (barEl) {
+    barEl.style.width = `${pct}%`;
+    barEl.style.background = isSettled ? 'linear-gradient(90deg,var(--accent-green),#16b98d)' : 'linear-gradient(90deg,var(--accent-purple),var(--accent-purple-light))';
+  }
+  
+  if (statusEl) {
+    statusEl.textContent = isSettled ? '✅ Settled!' : `${pct.toFixed(0)}% paid`;
+    statusEl.style.color = isSettled ? 'var(--accent-green)' : 'var(--text-secondary)';
+  }
+  
+  // Repayment History List
+  let history = l.history || [];
+  let displayHistory = [...history];
+  
+  if (displayHistory.length === 0 && l.paid > 0) {
+    const mockDate = l.createdAt?.toDate ? l.createdAt.toDate() : new Date();
+    const dateString = mockDate.toISOString().split('T')[0];
+    displayHistory = [{
+      amount: l.paid,
+      date: dateString,
+      createdAt: l.createdAt || new Date(),
+      isMock: true
+    }];
+  }
+  
+  // Sort chronologically (newest first)
+  displayHistory.sort((a, b) => {
+    const dateA = a.date || '';
+    const dateB = b.date || '';
+    if (dateA !== dateB) {
+      return dateB.localeCompare(dateA);
+    }
+    const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt instanceof Date ? a.createdAt.getTime() : 0);
+    const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt instanceof Date ? b.createdAt.getTime() : 0);
+    return timeB - timeA;
+  });
+  
+  const historyList = document.getElementById('loan-history-list');
+  if (historyList) {
+    if (displayHistory.length === 0) {
+      historyList.innerHTML = '<div class="empty-state" style="padding:1rem 0;"><p style="font-size:0.8rem;">No payment records found.</p></div>';
+    } else {
+      historyList.innerHTML = displayHistory.map(item => {
+        return `
+          <div class="history-item">
+            <div style="display:flex; flex-direction:column; align-items:flex-start;">
+              <span class="history-date">${formatDate(item.date)}</span>
+              ${item.isMock ? '<span style="font-size:0.7rem; color:var(--ink-secondary); font-style:italic;">Initial payment</span>' : ''}
+            </div>
+            <span class="history-amount loan-add">+${formatCurrency(item.amount)}</span>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+};
+
+window.addLoanPaymentFromDetail = async function() {
+  const amountInput = document.getElementById('detail-loan-amount');
+  const dateInput = document.getElementById('detail-loan-date');
+  const errEl = document.getElementById('detail-loan-error');
+  
+  if (!amountInput || !dateInput || !errEl) return;
+  
+  errEl.textContent = '';
+  const amount = parseFloat(amountInput.value);
+  const dateStr = dateInput.value;
+  
+  if (!amount || amount <= 0) {
+    errEl.textContent = 'Please enter a valid amount.';
+    return;
+  }
+  if (!dateStr) {
+    errEl.textContent = 'Please select a date.';
+    return;
+  }
+  
+  const l = allLoans.find(x => x.id === activeLoanDetailId);
+  if (!l) return;
+  
+  const remaining = l.total - l.paid;
+  if (remaining <= 0) {
+    errEl.textContent = 'This loan is already fully settled!';
+    return;
+  }
+  
+  const finalAmount = Math.min(amount, remaining);
+  const newPaid = l.paid + finalAmount;
+  
+  let history = l.history || [];
+  if (history.length === 0 && l.paid > 0) {
+    const mockDate = l.createdAt?.toDate ? l.createdAt.toDate() : new Date();
+    const dateString = mockDate.toISOString().split('T')[0];
+    history.push({
+      amount: l.paid,
+      date: dateString,
+      createdAt: l.createdAt || new Date()
+    });
+  }
+  
+  history.push({
+    amount: finalAmount,
+    date: dateStr,
+    createdAt: new Date()
+  });
+  
+  const submitBtn = document.querySelector('#loan-details-overlay .btn-primary');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Recording…';
+  }
+  
+  try {
+    await updateDoc(doc(db, 'loans', activeLoanDetailId), {
+      paid: newPaid,
+      history: history,
+      updatedAt: serverTimestamp()
+    });
+    
+    showToast(`Recorded payment of ${formatCurrency(finalAmount)}!`, 'success');
+    amountInput.value = '';
+    dateInput.value = new Date().toISOString().split('T')[0];
+  } catch(e) {
+    console.error(e);
+    errEl.textContent = 'Failed to record payment. Please try again.';
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Record Payment';
+    }
+  }
+};
 

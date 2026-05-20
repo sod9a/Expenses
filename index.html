@@ -611,6 +611,115 @@
     </div>
   </div>
 
+  <!-- Tabung Details Modal (Popup) -->
+  <div id="tabung-details-overlay" class="modal-overlay hidden" onclick="closeTabungDetailsOnOverlay(event)">
+    <div class="modal small-modal">
+      <div class="modal-header">
+        <h2 id="tabung-details-title">Tabung Details</h2>
+        <button class="modal-close" onclick="closeTabungDetailsModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tabung-details-hero" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+          <span id="tabung-details-emoji" class="tabung-emoji" style="font-size:2.5rem;">🎯</span>
+          <div class="tabung-details-meta">
+            <h3 id="tabung-details-name" style="font-family:'Sora',sans-serif; font-weight:700; font-size:1.15rem; margin-bottom:0.25rem;">Savings Goal</h3>
+            <div id="tabung-details-deadline"></div>
+          </div>
+        </div>
+
+        <div class="tabung-details-progress-section" style="margin-top:1.25rem;">
+          <div class="tabung-amounts" style="margin-bottom:0.5rem; display:flex; justify-content:space-between; width:100%;">
+            <span>Saved: <strong id="tabung-details-saved" style="color:var(--neon-violet2); font-size:1.2rem;">$0.00</strong></span>
+            <span>Target: <strong id="tabung-details-target" style="color:var(--ink-secondary);">$0.00</strong></span>
+          </div>
+          <div class="budget-progress-wrap" style="height:10px; margin-bottom:0.5rem;">
+            <div id="tabung-details-progress-bar" class="budget-progress safe" style="width:0%"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <span id="tabung-details-status" class="budget-status safe">0% reached</span>
+            <span id="tabung-details-remaining" style="font-size:0.8rem; color:var(--ink-secondary);"></span>
+          </div>
+        </div>
+
+        <!-- Savings Contribution Form inside modal -->
+        <div class="detail-add-form-box" style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--r-md); padding:1rem; margin-bottom:1.5rem;">
+          <h4 style="font-size:0.8rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--ink-secondary); margin-bottom:0.75rem;">+ Add Savings Contribution</h4>
+          <div style="display:flex; gap:0.5rem; flex-direction:column;">
+            <div class="amount-input-wrap">
+              <span class="currency-symbol dynamic-currency">$</span>
+              <input type="number" id="detail-tabung-amount" placeholder="Amount to add" min="0" step="0.01" style="height:3rem; padding-left:2.5rem; font-size:1.1rem;" />
+            </div>
+            <div class="input-group" style="margin:0;">
+              <input type="date" id="detail-tabung-date" style="padding:0.6rem; font-size:0.9rem;" />
+            </div>
+            <button class="btn-primary" onclick="addTabungSavingsFromDetail()" style="margin-top:0.25rem; padding:0.7rem;">Add to Savings</button>
+          </div>
+          <div id="detail-tabung-error" class="auth-error" style="margin-top:0.5rem;"></div>
+        </div>
+
+        <div class="history-section">
+          <h4 style="font-size:0.8rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--ink-secondary); margin-bottom:0.75rem; border-bottom:1px solid var(--border-subtle); padding-bottom:0.4rem;">Contribution History</h4>
+          <div id="tabung-history-list" class="history-list scrollable-history" style="max-height:180px; overflow-y:auto; display:flex; flex-direction:column; gap:0.5rem;">
+            <div class="empty-state" style="padding:1rem 0;"><p style="font-size:0.8rem;">No savings contributions recorded yet.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loan Details Modal (Popup) -->
+  <div id="loan-details-overlay" class="modal-overlay hidden" onclick="closeLoanDetailsOnOverlay(event)">
+    <div class="modal small-modal">
+      <div class="modal-header">
+        <h2 id="loan-details-title">Loan Details</h2>
+        <button class="modal-close" onclick="closeLoanDetailsModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="loan-details-hero" style="margin-bottom:1rem;">
+          <div id="loan-details-badge" class="loan-type-badge owe" style="margin-bottom:0.5rem;">💸 I Owe</div>
+          <h3 id="loan-details-person" style="font-family:'Sora',sans-serif; font-weight:700; font-size:1.2rem; margin-bottom:0.25rem;">Person / Institution</h3>
+          <p id="loan-details-desc" style="font-size:0.85rem; color:var(--ink-secondary); margin-bottom:0.25rem;"></p>
+          <div id="loan-details-due"></div>
+        </div>
+
+        <div class="loan-details-progress-section" style="margin-top:1.25rem;">
+          <div class="loan-amounts" style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:0.5rem; flex-wrap:wrap; gap:0.5rem;">
+            <span>Paid: <strong id="loan-details-paid" style="color:var(--accent-green)">$0.00</strong></span>
+            <span>Remaining: <strong id="loan-details-remaining-val" style="color:var(--accent-red)">$0.00</strong></span>
+            <span>Total: <strong id="loan-details-total" style="color:var(--ink-primary)">$0.00</strong></span>
+          </div>
+          <div class="budget-progress-wrap" style="height:10px; margin-bottom:0.5rem;">
+            <div id="loan-details-progress-bar" class="budget-progress safe" style="width:0%"></div>
+          </div>
+          <div id="loan-details-status" style="font-size:0.8rem; color:var(--ink-secondary); margin-bottom:1.5rem;">0% paid</div>
+        </div>
+
+        <!-- Add Payment Form inside modal -->
+        <div id="loan-details-pay-box" class="detail-add-form-box" style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--r-md); padding:1rem; margin-bottom:1.5rem;">
+          <h4 style="font-size:0.8rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--ink-secondary); margin-bottom:0.75rem;">+ Record Installment Payment</h4>
+          <div style="display:flex; gap:0.5rem; flex-direction:column;">
+            <div class="amount-input-wrap">
+              <span class="currency-symbol dynamic-currency">$</span>
+              <input type="number" id="detail-loan-amount" placeholder="Amount paid" min="0" step="0.01" style="height:3rem; padding-left:2.5rem; font-size:1.1rem;" />
+            </div>
+            <div class="input-group" style="margin:0;">
+              <input type="date" id="detail-loan-date" style="padding:0.6rem; font-size:0.9rem;" />
+            </div>
+            <button class="btn-primary" onclick="addLoanPaymentFromDetail()" style="margin-top:0.25rem; padding:0.7rem;">Record Payment</button>
+          </div>
+          <div id="detail-loan-error" class="auth-error" style="margin-top:0.5rem;"></div>
+        </div>
+
+        <div class="history-section">
+          <h4 style="font-size:0.8rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--ink-secondary); margin-bottom:0.75rem; border-bottom:1px solid var(--border-subtle); padding-bottom:0.4rem;">Repayment History</h4>
+          <div id="loan-history-list" class="history-list scrollable-history" style="max-height:180px; overflow-y:auto; display:flex; flex-direction:column; gap:0.5rem;">
+            <div class="empty-state" style="padding:1rem 0;"><p style="font-size:0.8rem;">No payment records found.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Loan Modal -->
   <div id="loan-modal-overlay" class="modal-overlay hidden" onclick="closeLoanModalOnOverlay(event)">
     <div class="modal small-modal">
