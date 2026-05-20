@@ -1109,18 +1109,12 @@ function renderMonthly() {
         </div>
         <div class="mth-cat-card-name">${cat}</div>
         <div class="mth-cat-card-details">
-          ${data.income > 0 ? `
-            <div class="mth-cat-card-detail-item">
-              <span class="mth-cat-card-detail-label">Income</span>
-              <span class="mth-cat-card-detail-val income">+${formatCurrency(data.income)}</span>
-            </div>
-          ` : ''}
+          <span class="mth-cat-card-detail-val income">+${formatCurrency(data.income)}</span>
           ${data.expense > 0 ? `
-            <div class="mth-cat-card-detail-item">
-              <span class="mth-cat-card-detail-label">Expense</span>
-              <span class="mth-cat-card-detail-val expense">-${formatCurrency(data.expense)}</span>
-            </div>
-          ` : ''}
+            <span class="mth-cat-card-detail-val expense">-${formatCurrency(data.expense)}</span>
+          ` : `
+            <span class="mth-cat-card-detail-val zero">${formatCurrency(data.expense)}</span>
+          `}
         </div>
       </div>
     `).join('');

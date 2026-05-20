@@ -330,12 +330,11 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 .mth-cat-card-icon{font-size:1.5rem;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15))}
 .mth-cat-card-count{font-size:.72rem;color:var(--ink-muted);background:var(--bg-card);padding:.2rem .6rem;border-radius:20px;font-weight:600;letter-spacing:.01em}
 .mth-cat-card-name{font-family:'Sora',sans-serif;font-weight:700;font-size:.95rem;color:var(--ink-primary);margin-top:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
-.mth-cat-card-details{display:flex;flex-direction:column;gap:.45rem;width:100%;border-top:1px solid var(--border-subtle);padding-top:.75rem;margin-top:auto}
-.mth-cat-card-detail-item{display:flex;justify-content:space-between;align-items:center;font-size:.8rem}
-.mth-cat-card-detail-label{color:var(--ink-secondary);font-weight:500}
-.mth-cat-card-detail-val{font-family:'Sora',sans-serif;font-weight:700}
+.mth-cat-card-details{display:flex;flex-direction:column;gap:.45rem;width:100%;border-top:1px solid var(--border-subtle);padding-top:.75rem;margin-top:auto;align-items:center}
+.mth-cat-card-detail-val{font-family:'Sora',sans-serif;font-weight:700;font-size:.85rem}
 .mth-cat-card-detail-val.income{color:var(--neon-teal)}
 .mth-cat-card-detail-val.expense{color:var(--neon-coral)}
+.mth-cat-card-detail-val.zero{color:var(--ink-muted)}
 
 /* Responsive Grid Adapters for category breakdown */
 @media(max-width:900px){.mth-cat-list{grid-template-columns:repeat(2,1fr)}}
