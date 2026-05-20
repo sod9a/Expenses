@@ -518,8 +518,6 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 
   /* ─── SETTINGS ─── */
   #page-settings .section-card{max-width:100%!important}
-  .input-group .amount-input-wrap input{padding-left:2.8rem!important}
-  .input-group .amount-input-wrap .currency-symbol{left:1rem}
 
   /* ─── TOAST ─── */
   .toast{bottom:calc(80px + env(safe-area-inset-bottom) + 8px);font-size:.82rem;border-radius:22px;padding:.75rem 1.25rem}
