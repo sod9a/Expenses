@@ -29,15 +29,24 @@ const db = getFirestore(app);
 let currentUser = null;
 let allTransactions = [];
 let allBudgets = [];
+let allTabung = [];
+let allLoans = [];
 let userSettings = { currency: '$', theme: 'dark', avatarUrl: '' };
 let activeFilter = 'all';
 let editingTxId = null;
+let editingTabungId = null;
+let editingLoanId = null;
+let topupTabungId = null;
+let loanPayId = null;
 let pendingDeleteId = null;
 let txType = 'income';
+let loanType = 'owe';
 let unsubscribeListener = null;
 let unsubscribeBudgets = null;
 let unsubscribeSettings = null;
-let isRegistering = false; // Flag to pause onAuthStateChanged during registration
+let unsubscribeTabung = null;
+let unsubscribeLoans = null;
+let isRegistering = false;
 
 // ─── Auth State ───────────────────────────────────────────────────────────
 onAuthStateChanged(auth, (user) => {
@@ -52,8 +61,12 @@ onAuthStateChanged(auth, (user) => {
     if (unsubscribeListener) { unsubscribeListener(); unsubscribeListener = null; }
     if (unsubscribeBudgets) { unsubscribeBudgets(); unsubscribeBudgets = null; }
     if (unsubscribeSettings) { unsubscribeSettings(); unsubscribeSettings = null; }
+    if (unsubscribeTabung) { unsubscribeTabung(); unsubscribeTabung = null; }
+    if (unsubscribeLoans) { unsubscribeLoans(); unsubscribeLoans = null; }
     allTransactions = [];
     allBudgets = [];
+    allTabung = [];
+    allLoans = [];
   }
 });
 
@@ -64,8 +77,9 @@ function showApp(user) {
   document.getElementById('user-name-display').textContent = name;
   document.getElementById('user-email-display').textContent = user.email;
   document.getElementById('user-avatar').textContent = name[0].toUpperCase();
-  document.getElementById('mobile-user-avatar').textContent = name[0].toUpperCase();
+  updateMobileAvatar(name[0].toUpperCase());
   setGreeting();
+  setHeroDate();
   // Always start on Dashboard after login
   navigateTo('dashboard', document.querySelector('[data-page="dashboard"]'));
 }
@@ -79,6 +93,24 @@ function setGreeting() {
   const h = new Date().getHours();
   const greet = h < 12 ? 'Good morning! 👋' : h < 17 ? 'Good afternoon! ☀️' : 'Good evening! 🌙';
   document.getElementById('greeting').textContent = greet;
+}
+
+function setHeroDate() {
+  const el = document.getElementById('mob-hero-date');
+  if (!el) return;
+  const now = new Date();
+  el.textContent = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+function updateMobileAvatar(initial) {
+  const el = document.getElementById('mobile-user-avatar');
+  if (!el) return;
+  if (userSettings && userSettings.avatarUrl) {
+    el.innerHTML = `<img src="${userSettings.avatarUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+  } else {
+    el.innerHTML = '';
+    el.textContent = initial;
+  }
 }
 
 // ─── Auth Actions ──────────────────────────────────────────────────────────
@@ -360,6 +392,20 @@ function subscribeToData() {
       applySettings();
     }
   });
+
+  // 4. Tabung (savings)
+  const tq = query(collection(db, 'tabung'), where('uid', '==', currentUser.uid));
+  unsubscribeTabung = onSnapshot(tq, snap => {
+    allTabung = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (document.getElementById('page-tabung').classList.contains('active')) renderTabung();
+  });
+
+  // 5. Loans
+  const lq = query(collection(db, 'loans'), where('uid', '==', currentUser.uid));
+  unsubscribeLoans = onSnapshot(lq, snap => {
+    allLoans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (document.getElementById('page-loans').classList.contains('active')) renderLoans();
+  });
 }
 
 // ─── Settings ──────────────────────────────────────────────────────────────
@@ -375,7 +421,6 @@ function applySettings() {
   document.querySelectorAll('.dynamic-currency').forEach(el => el.textContent = userSettings.currency);
   
   const avatarEl = document.getElementById('user-avatar');
-  const mobileAvatarEl = document.getElementById('mobile-user-avatar');
   const previewImg = document.getElementById('avatar-preview-img');
   const previewInitials = document.getElementById('avatar-preview-initials');
   const removeBtn = document.getElementById('btn-remove-avatar');
@@ -385,9 +430,8 @@ function applySettings() {
   if (userSettings.avatarUrl) {
     const imgHtml = `<img src="${userSettings.avatarUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
     avatarEl.innerHTML = imgHtml;
-    mobileAvatarEl.innerHTML = imgHtml;
     avatarEl.style.background = 'transparent';
-    mobileAvatarEl.style.background = 'transparent';
+    updateMobileAvatar(initial); // uses avatarUrl from userSettings
     
     if (previewImg) {
       previewImg.src = userSettings.avatarUrl;
@@ -397,11 +441,9 @@ function applySettings() {
     }
   } else {
     avatarEl.innerHTML = '';
-    mobileAvatarEl.innerHTML = '';
     avatarEl.textContent = initial;
-    mobileAvatarEl.textContent = initial;
     avatarEl.style.background = 'linear-gradient(135deg, var(--accent-purple), var(--accent-green))';
-    mobileAvatarEl.style.background = 'linear-gradient(135deg, var(--accent-purple), var(--accent-green))';
+    updateMobileAvatar(initial);
     
     if (previewImg) {
       previewImg.src = '';
@@ -478,6 +520,17 @@ window.removeAvatar = async function() {
 };
 
 // ─── Navigation ────────────────────────────────────────────────────────────
+const MOB_PAGE_TITLES = {
+  dashboard: 'ExpenseFlow',
+  transactions: 'Transactions',
+  categories: 'Categories',
+  budgets: 'Budgets',
+  monthly: 'Monthly Report',
+  tabung: 'Savings',
+  loans: 'Loans',
+  settings: 'Settings'
+};
+
 window.navigateTo = function (page, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
@@ -487,10 +540,16 @@ window.navigateTo = function (page, el) {
   } else {
     document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
   }
+  // Update mobile header title
+  const titleEl = document.getElementById('mob-page-title');
+  if (titleEl) titleEl.textContent = MOB_PAGE_TITLES[page] || 'ExpenseFlow';
   closeSidebar();
   if (page === 'categories') renderCategories();
   if (page === 'budgets') renderBudgets();
   if (page === 'transactions') renderAllTransactions();
+  if (page === 'monthly') renderMonthly();
+  if (page === 'tabung') renderTabung();
+  if (page === 'loans') renderLoans();
 };
 
 window.toggleSidebar = function () {
@@ -510,7 +569,48 @@ function closeSidebar() {
   document.getElementById('sidebar-overlay')?.classList.remove('visible');
 }
 
+// ─── Mobile Profile Dropdown ────────────────────────────────────────────────
+window.toggleProfileDropdown = function (e) {
+  if (e && e.stopPropagation) e.stopPropagation();
+  const dd = document.getElementById('profile-dropdown');
+  if (!dd) return;
+  dd.classList.toggle('show');
+};
+
+window.openMobileSettings = function (e) {
+  if (e && e.stopPropagation) e.stopPropagation();
+  const dd = document.getElementById('profile-dropdown');
+  if (dd) dd.classList.remove('show');
+  navigateTo('settings', document.querySelector('[data-page="settings"]'));
+};
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function (e) {
+  const dd = document.getElementById('profile-dropdown');
+  const avatar = document.getElementById('mobile-user-avatar');
+  if (dd && dd.classList.contains('show')) {
+    if (!dd.contains(e.target) && e.target !== avatar && !avatar?.contains(e.target)) {
+      dd.classList.remove('show');
+    }
+  }
+});
+
 // ─── Modal ─────────────────────────────────────────────────────────────────
+window.handleSmartFabClick = function () {
+  // Determine which page is currently active
+  const activePage = document.querySelector('.page.active');
+  const pageId = activePage ? activePage.id : 'page-dashboard';
+
+  if (pageId === 'page-tabung') {
+    if (typeof openTabungModal === 'function') openTabungModal();
+  } else if (pageId === 'page-loans') {
+    if (typeof openLoanModal === 'function') openLoanModal();
+  } else {
+    // Default fallback is the transaction modal (Home, History, Stats, Budget)
+    if (typeof openModal === 'function') openModal();
+  }
+};
+
 window.openModal = function (txId = null) {
   editingTxId = txId;
   const modal = document.getElementById('modal-overlay');
@@ -698,10 +798,19 @@ function getCategoryIcon(cat) {
 function updateSummaryCards() {
   const income = allTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expense = allTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const balance = income - expense;
+  // Desktop summary cards
   document.getElementById('total-income').textContent = formatCurrency(income);
   document.getElementById('total-expense').textContent = formatCurrency(expense);
-  document.getElementById('total-balance').textContent = formatCurrency(income - expense);
+  document.getElementById('total-balance').textContent = formatCurrency(balance);
   document.getElementById('tx-count').textContent = allTransactions.length;
+  // Mobile hero card
+  const mobBal = document.getElementById('mob-hero-balance');
+  const mobInc = document.getElementById('mob-total-income');
+  const mobExp = document.getElementById('mob-total-expense');
+  if (mobBal) mobBal.textContent = formatCurrency(balance);
+  if (mobInc) mobInc.textContent = formatCurrency(income);
+  if (mobExp) mobExp.textContent = formatCurrency(expense);
 }
 
 function buildTransactionItem(tx) {
@@ -739,7 +848,12 @@ function renderRecentTransactions() {
     container.innerHTML = '<div class="empty-state"><span>🗂️</span><p>No transactions yet. Add your first one!</p></div>';
     return;
   }
-  recent.forEach(tx => container.appendChild(buildTransactionItem(tx)));
+  recent.forEach((tx, i) => {
+    const item = buildTransactionItem(tx);
+    item.classList.add('tx-animate');
+    item.style.animationDelay = `${i * 0.06}s`;
+    container.appendChild(item);
+  });
 }
 
 function getFilteredTransactions() {
@@ -916,21 +1030,455 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeModal(); closeDeleteModal(); }
 });
 
-// ─── Mobile Profile Dropdown ────────────────────────────────────────────────
-window.toggleProfileDropdown = function() {
-  document.getElementById('profile-dropdown').classList.toggle('hidden');
-};
+// ─── Mobile Profile Dropdown (duplicate removed — see line 572) ───────────
 
-window.openMobileSettings = function() {
-  document.getElementById('profile-dropdown').classList.add('hidden');
-  navigateTo('settings', document.querySelector('[data-page="settings"]'));
-};
+// ─── MONTHLY REPORT ───────────────────────────────────────────────────────
 
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.mobile-profile-container')) {
-    const dropdown = document.getElementById('profile-dropdown');
-    if (dropdown && !dropdown.classList.contains('hidden')) {
-      dropdown.classList.add('hidden');
-    }
+function renderMonthly() {
+  const now = new Date();
+  const yearSel = document.getElementById('monthly-year-select');
+
+  // Populate years from transactions
+  const years = [...new Set(allTransactions.map(t => t.date?.substring(0, 4)).filter(Boolean))];
+  if (!years.includes(String(now.getFullYear()))) years.push(String(now.getFullYear()));
+  years.sort((a, b) => b - a);
+  const selectedYear = yearSel.value || String(now.getFullYear());
+  yearSel.innerHTML = years.map(y => `<option value="${y}" ${y === selectedYear ? 'selected' : ''}>${y}</option>`).join('');
+
+  const txInYear = allTransactions.filter(t => t.date && t.date.startsWith(selectedYear));
+
+  const totalIncome = txInYear.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const totalExpense = txInYear.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const netSaving = totalIncome - totalExpense;
+
+  const summaryEl = document.getElementById('monthly-summary-cards');
+  summaryEl.innerHTML = `
+    <div class="summary-card income">
+      <div class="card-icon">📈</div>
+      <div class="card-info">
+        <span class="card-label">Total Income ${selectedYear}</span>
+        <span class="card-value">${formatCurrency(totalIncome)}</span>
+      </div>
+    </div>
+    <div class="summary-card expense">
+      <div class="card-icon">📉</div>
+      <div class="card-info">
+        <span class="card-label">Total Expenses ${selectedYear}</span>
+        <span class="card-value">${formatCurrency(totalExpense)}</span>
+      </div>
+    </div>
+    <div class="summary-card ${netSaving >= 0 ? 'balance' : 'expense'}">
+      <div class="card-icon">${netSaving >= 0 ? '💰' : '⚠️'}</div>
+      <div class="card-info">
+        <span class="card-label">Net Savings ${selectedYear}</span>
+        <span class="card-value">${formatCurrency(netSaving)}</span>
+      </div>
+    </div>
+  `;
+
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const breakdown = document.getElementById('monthly-breakdown');
+  breakdown.innerHTML = '';
+
+  let hasData = false;
+  months.forEach((mName, i) => {
+    const mKey = `${selectedYear}-${String(i + 1).padStart(2, '0')}`;
+    const mTx = txInYear.filter(t => t.date && t.date.startsWith(mKey));
+    if (!mTx.length) return;
+    hasData = true;
+    const inc = mTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const exp = mTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const net = inc - exp;
+    const maxBar = Math.max(inc, exp, 1);
+    const div = document.createElement('div');
+    div.className = 'monthly-row';
+    div.innerHTML = `
+      <div class="monthly-month-header">
+        <span class="monthly-month-name">${mName}</span>
+        <span class="monthly-net ${net >= 0 ? 'income' : 'expense'}">${net >= 0 ? '+' : ''}${formatCurrency(net)}</span>
+      </div>
+      <div class="monthly-bars">
+        <div class="monthly-bar-row">
+          <span class="monthly-bar-label">Income</span>
+          <div class="monthly-bar-track">
+            <div class="monthly-bar income" style="width:${(inc/maxBar*100).toFixed(1)}%"></div>
+          </div>
+          <span class="monthly-bar-val income">${formatCurrency(inc)}</span>
+        </div>
+        <div class="monthly-bar-row">
+          <span class="monthly-bar-label">Expense</span>
+          <div class="monthly-bar-track">
+            <div class="monthly-bar expense" style="width:${(exp/maxBar*100).toFixed(1)}%"></div>
+          </div>
+          <span class="monthly-bar-val expense">${formatCurrency(exp)}</span>
+        </div>
+      </div>
+      <div class="monthly-tx-count">${mTx.length} transaction${mTx.length !== 1 ? 's' : ''}</div>
+    `;
+    breakdown.appendChild(div);
+  });
+
+  if (!hasData) {
+    breakdown.innerHTML = `<div class="empty-state"><span>📅</span><p>No transactions in ${selectedYear}.</p></div>`;
   }
-});
+}
+
+// ─── TABUNG (SAVINGS) ─────────────────────────────────────────────────────
+
+window.openTabungModal = function(tabungId = null) {
+  editingTabungId = tabungId;
+  document.getElementById('tabung-modal-title').textContent = tabungId ? 'Edit Tabung' : 'New Tabung';
+  document.getElementById('tabung-modal-error').style.display = 'none';
+
+  if (tabungId) {
+    const t = allTabung.find(x => x.id === tabungId);
+    if (t) {
+      document.getElementById('tabung-name').value = t.name;
+      document.getElementById('tabung-target').value = t.target;
+      document.getElementById('tabung-saved').value = t.saved;
+      document.getElementById('tabung-emoji').value = t.emoji || '🎯';
+      document.getElementById('tabung-deadline').value = t.deadline || '';
+    }
+  } else {
+    document.getElementById('tabung-name').value = '';
+    document.getElementById('tabung-target').value = '';
+    document.getElementById('tabung-saved').value = '0';
+    document.getElementById('tabung-emoji').value = '🎯';
+    document.getElementById('tabung-deadline').value = '';
+  }
+  document.getElementById('tabung-modal-overlay').classList.remove('hidden');
+};
+
+window.closeTabungModal = function() {
+  document.getElementById('tabung-modal-overlay').classList.add('hidden');
+  editingTabungId = null;
+};
+
+window.closeTabungModalOnOverlay = function(e) {
+  if (e.target.id === 'tabung-modal-overlay') closeTabungModal();
+};
+
+window.saveTabung = async function() {
+  const name = document.getElementById('tabung-name').value.trim();
+  const target = parseFloat(document.getElementById('tabung-target').value);
+  const saved = parseFloat(document.getElementById('tabung-saved').value) || 0;
+  const emoji = document.getElementById('tabung-emoji').value.trim() || '🎯';
+  const deadline = document.getElementById('tabung-deadline').value;
+  const errEl = document.getElementById('tabung-modal-error');
+
+  if (!name) { errEl.textContent = 'Please enter a name.'; errEl.style.display = 'block'; return; }
+  if (!target || target <= 0) { errEl.textContent = 'Please enter a valid target amount.'; errEl.style.display = 'block'; return; }
+  if (saved > target) { errEl.textContent = 'Amount saved cannot exceed target.'; errEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('btn-save-tabung');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const data = { uid: currentUser.uid, name, target, saved, emoji, deadline, updatedAt: serverTimestamp() };
+
+  try {
+    if (editingTabungId) {
+      await updateDoc(doc(db, 'tabung', editingTabungId), data);
+      showToast('Tabung updated!', 'success');
+    } else {
+      data.createdAt = serverTimestamp();
+      await addDoc(collection(db, 'tabung'), data);
+      showToast('Tabung created!', 'success');
+    }
+    closeTabungModal();
+  } catch(e) {
+    errEl.textContent = 'Failed to save.'; errEl.style.display = 'block'; console.error(e);
+  } finally { btn.disabled = false; btn.textContent = 'Save Tabung'; }
+};
+
+window.deleteTabung = async function(id) {
+  if (confirm('Delete this tabung?')) {
+    try { await deleteDoc(doc(db, 'tabung', id)); showToast('Tabung deleted', 'success'); }
+    catch(e) { showToast('Error deleting tabung', 'error'); }
+  }
+};
+
+window.openTopupModal = function(id) {
+  topupTabungId = id;
+  const t = allTabung.find(x => x.id === id);
+  document.getElementById('topup-tabung-name').textContent = `${t.emoji || '🎯'} ${t.name}`;
+  document.getElementById('topup-amount').value = '';
+  document.getElementById('tabung-topup-overlay').classList.remove('hidden');
+};
+
+window.closeTopupModal = function() {
+  document.getElementById('tabung-topup-overlay').classList.add('hidden');
+  topupTabungId = null;
+};
+
+window.closeTopupModalOnOverlay = function(e) {
+  if (e.target.id === 'tabung-topup-overlay') closeTopupModal();
+};
+
+window.topupTabung = async function() {
+  const amount = parseFloat(document.getElementById('topup-amount').value);
+  if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
+  const t = allTabung.find(x => x.id === topupTabungId);
+  if (!t) return;
+  const newSaved = Math.min(t.saved + amount, t.target);
+  try {
+    await updateDoc(doc(db, 'tabung', topupTabungId), { saved: newSaved, updatedAt: serverTimestamp() });
+    showToast(`Added ${formatCurrency(amount)} to ${t.name}!`, 'success');
+    closeTopupModal();
+  } catch(e) { showToast('Failed to update', 'error'); }
+};
+
+function renderTabung() {
+  const container = document.getElementById('tabung-list');
+  if (!allTabung.length) {
+    container.innerHTML = '<div class="empty-state"><span>🪙</span><p>No tabung yet. Create your first savings goal!</p></div>';
+    return;
+  }
+  container.innerHTML = '';
+  allTabung.sort((a, b) => {
+    const aT = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+    const bT = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+    return bT - aT;
+  });
+  allTabung.forEach(t => {
+    const pct = Math.min((t.saved / t.target) * 100, 100);
+    let statusClass = 'safe', statusText = `${pct.toFixed(0)}% reached`;
+    if (pct >= 100) { statusClass = 'income-text'; statusText = '🎉 Goal reached!'; }
+    else if (pct >= 75) { statusClass = 'warn'; }
+
+    let deadlineHtml = '';
+    if (t.deadline) {
+      const d = new Date(t.deadline + 'T00:00:00');
+      const today = new Date(); today.setHours(0,0,0,0);
+      const diff = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+      const label = diff < 0 ? `⚠️ ${Math.abs(diff)} days overdue` : diff === 0 ? '🔔 Due today!' : `📆 ${diff} days left`;
+      deadlineHtml = `<span class="tabung-deadline-label">${label}</span>`;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'tabung-card';
+    card.innerHTML = `
+      <div class="tabung-header">
+        <span class="tabung-emoji">${t.emoji || '🎯'}</span>
+        <div class="tabung-title-wrap">
+          <span class="tabung-name">${t.name}</span>
+          ${deadlineHtml}
+        </div>
+        <div class="tabung-actions">
+          <button class="btn-tabung-edit" onclick="openTabungModal('${t.id}')">✏️</button>
+          <button class="btn-del-budget" onclick="deleteTabung('${t.id}')">✕</button>
+        </div>
+      </div>
+      <div class="tabung-amounts">
+        <span class="tabung-saved">${formatCurrency(t.saved)}</span>
+        <span class="tabung-sep"> / </span>
+        <span class="tabung-target-val">${formatCurrency(t.target)}</span>
+      </div>
+      <div class="budget-progress-wrap" style="margin:0.75rem 0;">
+        <div class="budget-progress ${pct >= 100 ? 'safe' : pct >= 75 ? 'warn' : 'safe'}" style="width:${pct}%;background:${pct >= 100 ? 'linear-gradient(90deg,var(--accent-green),#16b98d)' : pct >= 75 ? 'linear-gradient(90deg,var(--accent-gold),#fda642)' : 'linear-gradient(90deg,var(--accent-purple),var(--accent-purple-light))'}"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="budget-status ${pct >= 100 ? 'safe' : ''}" style="color:${pct >= 100 ? 'var(--accent-green)' : pct >= 75 ? 'var(--accent-gold)' : 'var(--text-secondary)'}">${statusText}</span>
+        <button class="btn-add-tx" style="padding:0.4rem 0.9rem;font-size:0.8rem;" onclick="openTopupModal('${t.id}')">+ Add</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// ─── LOANS / HUTANG ──────────────────────────────────────────────────────
+
+window.setLoanType = function(type) {
+  loanType = type;
+  document.getElementById('loan-type-owe').classList.toggle('active', type === 'owe');
+  document.getElementById('loan-type-lent').classList.toggle('active', type === 'lent');
+};
+
+window.openLoanModal = function(loanId = null) {
+  editingLoanId = loanId;
+  document.getElementById('loan-modal-title').textContent = loanId ? 'Edit Loan' : 'Add Loan / Hutang';
+  document.getElementById('loan-modal-error').style.display = 'none';
+
+  if (loanId) {
+    const l = allLoans.find(x => x.id === loanId);
+    if (l) {
+      setLoanType(l.loanType || 'owe');
+      document.getElementById('loan-person').value = l.person;
+      document.getElementById('loan-desc').value = l.desc;
+      document.getElementById('loan-total').value = l.total;
+      document.getElementById('loan-paid').value = l.paid;
+      document.getElementById('loan-due').value = l.due || '';
+    }
+  } else {
+    setLoanType('owe');
+    document.getElementById('loan-person').value = '';
+    document.getElementById('loan-desc').value = '';
+    document.getElementById('loan-total').value = '';
+    document.getElementById('loan-paid').value = '0';
+    document.getElementById('loan-due').value = '';
+  }
+  document.getElementById('loan-modal-overlay').classList.remove('hidden');
+};
+
+window.closeLoanModal = function() {
+  document.getElementById('loan-modal-overlay').classList.add('hidden');
+  editingLoanId = null;
+};
+
+window.closeLoanModalOnOverlay = function(e) {
+  if (e.target.id === 'loan-modal-overlay') closeLoanModal();
+};
+
+window.saveLoan = async function() {
+  const person = document.getElementById('loan-person').value.trim();
+  const desc = document.getElementById('loan-desc').value.trim();
+  const total = parseFloat(document.getElementById('loan-total').value);
+  const paid = parseFloat(document.getElementById('loan-paid').value) || 0;
+  const due = document.getElementById('loan-due').value;
+  const errEl = document.getElementById('loan-modal-error');
+
+  if (!person) { errEl.textContent = 'Please enter a person/institution.'; errEl.style.display = 'block'; return; }
+  if (!total || total <= 0) { errEl.textContent = 'Please enter a valid amount.'; errEl.style.display = 'block'; return; }
+  if (paid > total) { errEl.textContent = 'Paid cannot exceed total.'; errEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('btn-save-loan');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const data = { uid: currentUser.uid, loanType, person, desc, total, paid, due, updatedAt: serverTimestamp() };
+
+  try {
+    if (editingLoanId) {
+      await updateDoc(doc(db, 'loans', editingLoanId), data);
+      showToast('Loan updated!', 'success');
+    } else {
+      data.createdAt = serverTimestamp();
+      await addDoc(collection(db, 'loans'), data);
+      showToast('Loan added!', 'success');
+    }
+    closeLoanModal();
+  } catch(e) {
+    errEl.textContent = 'Failed to save.'; errEl.style.display = 'block'; console.error(e);
+  } finally { btn.disabled = false; btn.textContent = 'Save'; }
+};
+
+window.deleteLoan = async function(id) {
+  if (confirm('Delete this loan record?')) {
+    try { await deleteDoc(doc(db, 'loans', id)); showToast('Loan deleted', 'success'); }
+    catch(e) { showToast('Error deleting', 'error'); }
+  }
+};
+
+window.openLoanPayModal = function(id) {
+  loanPayId = id;
+  const l = allLoans.find(x => x.id === id);
+  const remaining = l.total - l.paid;
+  document.getElementById('loan-pay-desc').textContent = `${l.loanType === 'owe' ? '💸 I owe' : '💰 Lent to'} ${l.person} — ${formatCurrency(remaining)} remaining`;
+  document.getElementById('loan-pay-amount').value = '';
+  document.getElementById('loan-pay-overlay').classList.remove('hidden');
+};
+
+window.closeLoanPayModal = function() {
+  document.getElementById('loan-pay-overlay').classList.add('hidden');
+  loanPayId = null;
+};
+
+window.closeLoanPayOnOverlay = function(e) {
+  if (e.target.id === 'loan-pay-overlay') closeLoanPayModal();
+};
+
+window.recordLoanPayment = async function() {
+  const amount = parseFloat(document.getElementById('loan-pay-amount').value);
+  if (!amount || amount <= 0) { showToast('Enter valid amount', 'error'); return; }
+  const l = allLoans.find(x => x.id === loanPayId);
+  if (!l) return;
+  const newPaid = Math.min(l.paid + amount, l.total);
+  try {
+    await updateDoc(doc(db, 'loans', loanPayId), { paid: newPaid, updatedAt: serverTimestamp() });
+    showToast(`Payment of ${formatCurrency(amount)} recorded!`, 'success');
+    closeLoanPayModal();
+  } catch(e) { showToast('Failed to update', 'error'); }
+};
+
+function renderLoans() {
+  const container = document.getElementById('loan-list');
+  const summaryEl = document.getElementById('loan-summary-cards');
+
+  const totalOwe = allLoans.filter(l => l.loanType === 'owe').reduce((s, l) => s + (l.total - l.paid), 0);
+  const totalLent = allLoans.filter(l => l.loanType === 'lent').reduce((s, l) => s + (l.total - l.paid), 0);
+
+  summaryEl.innerHTML = `
+    <div class="summary-card expense">
+      <div class="card-icon">💸</div>
+      <div class="card-info">
+        <span class="card-label">Total I Owe</span>
+        <span class="card-value">${formatCurrency(totalOwe)}</span>
+      </div>
+    </div>
+    <div class="summary-card income">
+      <div class="card-icon">💰</div>
+      <div class="card-info">
+        <span class="card-label">Total Lent Out</span>
+        <span class="card-value">${formatCurrency(totalLent)}</span>
+      </div>
+    </div>
+  `;
+
+  if (!allLoans.length) {
+    container.innerHTML = '<div class="empty-state"><span>🏦</span><p>No loans recorded. Add one to start tracking!</p></div>';
+    return;
+  }
+
+  container.innerHTML = '';
+  allLoans.sort((a, b) => {
+    const aT = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+    const bT = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+    return bT - aT;
+  });
+
+  allLoans.forEach(l => {
+    const remaining = l.total - l.paid;
+    const pct = Math.min((l.paid / l.total) * 100, 100);
+    const isSettled = remaining <= 0;
+
+    let dueHtml = '';
+    if (l.due && !isSettled) {
+      const d = new Date(l.due + 'T00:00:00');
+      const today = new Date(); today.setHours(0,0,0,0);
+      const diff = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+      const label = diff < 0 ? `⚠️ ${Math.abs(diff)} days overdue` : diff === 0 ? '🔔 Due today!' : `📆 ${diff} days left`;
+      dueHtml = `<span class="tabung-deadline-label ${diff < 0 ? 'overdue' : ''}">${label}</span>`;
+    }
+
+    const card = document.createElement('div');
+    card.className = `loan-card ${isSettled ? 'settled' : ''} ${l.loanType}`;
+    card.innerHTML = `
+      <div class="loan-type-badge ${l.loanType}">${l.loanType === 'owe' ? '💸 I Owe' : '💰 I Lent'}</div>
+      <div class="loan-header">
+        <div>
+          <div class="loan-person">${l.person}</div>
+          <div class="loan-desc-text">${l.desc || ''}</div>
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-shrink:0;">
+          <button class="btn-tabung-edit" onclick="openLoanModal('${l.id}')">✏️</button>
+          <button class="btn-del-budget" onclick="deleteLoan('${l.id}')">✕</button>
+        </div>
+      </div>
+      ${dueHtml}
+      <div class="loan-amounts">
+        <span>Paid: <strong style="color:var(--accent-green)">${formatCurrency(l.paid)}</strong></span>
+        <span>Remaining: <strong style="color:${isSettled ? 'var(--accent-green)' : 'var(--accent-red)'}">${formatCurrency(remaining)}</strong></span>
+        <span>Total: <strong>${formatCurrency(l.total)}</strong></span>
+      </div>
+      <div class="budget-progress-wrap" style="margin:0.75rem 0;">
+        <div class="budget-progress safe" style="width:${pct}%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:0.8rem;color:${isSettled ? 'var(--accent-green)' : 'var(--text-secondary)'}">
+          ${isSettled ? '✅ Settled!' : `${pct.toFixed(0)}% paid`}
+        </span>
+        ${!isSettled ? `<button class="btn-add-tx" style="padding:0.4rem 0.9rem;font-size:0.8rem;" onclick="openLoanPayModal('${l.id}')">+ Pay</button>` : ''}
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
