@@ -1088,13 +1088,25 @@ function renderMonthly() {
     const catEntries = Object.entries(catMap).sort((a, b) => (b[1].expense + b[1].income) - (a[1].expense + a[1].income));
 
     const catRowsHtml = catEntries.map(([cat, data]) => `
-      <div class="mth-cat-row">
-        <span class="mth-cat-icon">${getCategoryIcon(cat)}</span>
-        <span class="mth-cat-name">${cat}</span>
-        <span class="mth-cat-count">${data.txs.length}</span>
-        <div class="mth-cat-amounts">
-          ${data.income > 0 ? `<span class="mth-cat-inc">+${formatCurrency(data.income)}</span>` : ''}
-          ${data.expense > 0 ? `<span class="mth-cat-exp">-${formatCurrency(data.expense)}</span>` : ''}
+      <div class="mth-cat-card">
+        <div class="mth-cat-card-header">
+          <span class="mth-cat-card-icon">${getCategoryIcon(cat)}</span>
+          <span class="mth-cat-card-count">${data.txs.length}</span>
+        </div>
+        <div class="mth-cat-card-name">${cat}</div>
+        <div class="mth-cat-card-details">
+          ${data.income > 0 ? `
+            <div class="mth-cat-card-detail-item">
+              <span class="mth-cat-card-detail-label">Income</span>
+              <span class="mth-cat-card-detail-val income">+${formatCurrency(data.income)}</span>
+            </div>
+          ` : ''}
+          ${data.expense > 0 ? `
+            <div class="mth-cat-card-detail-item">
+              <span class="mth-cat-card-detail-label">Expense</span>
+              <span class="mth-cat-card-detail-val expense">-${formatCurrency(data.expense)}</span>
+            </div>
+          ` : ''}
         </div>
       </div>
     `).join('');
