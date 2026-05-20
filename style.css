@@ -626,6 +626,9 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 .history-amount.tabung-add {
   color: var(--neon-violet2);
 }
+.history-amount.tabung-withdraw {
+  color: var(--neon-coral);
+}
 .history-amount.loan-add {
   color: var(--neon-teal);
 }

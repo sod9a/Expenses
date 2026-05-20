@@ -40,6 +40,7 @@ let topupTabungId = null;
 let loanPayId = null;
 let activeTabungDetailId = null;
 let activeLoanDetailId = null;
+let tabungActionType = 'add';
 let pendingDeleteId = null;
 let txType = 'income';
 let loanType = 'owe';
@@ -1533,6 +1534,7 @@ window.openTabungDetailsModal = function(id, event) {
   if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
   if (errEl) errEl.textContent = '';
   
+  setTabungActionType('add');
   refreshTabungDetailsModal();
   const overlay = document.getElementById('tabung-details-overlay');
   if (overlay) overlay.classList.remove('hidden');
@@ -1547,6 +1549,37 @@ window.closeTabungDetailsModal = function() {
 window.closeTabungDetailsOnOverlay = function(e) {
   if (e.target.id === 'tabung-details-overlay') {
     closeTabungDetailsModal();
+  }
+};
+
+window.setTabungActionType = function(type) {
+  tabungActionType = type;
+  
+  const addBtn = document.getElementById('tabung-action-add');
+  const withdrawBtn = document.getElementById('tabung-action-withdraw');
+  const titleEl = document.getElementById('tabung-action-title');
+  const amountInput = document.getElementById('detail-tabung-amount');
+  const submitBtn = document.getElementById('btn-tabung-action-submit');
+  
+  if (addBtn) addBtn.classList.toggle('active', type === 'add');
+  if (withdrawBtn) withdrawBtn.classList.toggle('active', type === 'withdraw');
+  
+  if (titleEl) {
+    titleEl.textContent = type === 'add' ? '+ Add Savings Contribution' : '- Withdraw Savings';
+  }
+  if (amountInput) {
+    amountInput.placeholder = type === 'add' ? 'Amount to deposit' : 'Amount to withdraw';
+  }
+  if (submitBtn) {
+    if (type === 'add') {
+      submitBtn.textContent = 'Add to Savings';
+      submitBtn.style.background = 'linear-gradient(135deg,var(--neon-violet),var(--neon-violet2))';
+      submitBtn.style.boxShadow = '0 6px 20px rgba(124,92,252,.45)';
+    } else {
+      submitBtn.textContent = 'Withdraw from Savings';
+      submitBtn.style.background = 'linear-gradient(135deg,var(--neon-coral),var(--neon-coral2))';
+      submitBtn.style.boxShadow = '0 6px 20px rgba(255,77,106,.35)';
+    }
   }
 };
 
@@ -1627,7 +1660,8 @@ window.refreshTabungDetailsModal = function() {
       amount: t.saved,
       date: dateString,
       createdAt: t.createdAt || new Date(),
-      isMock: true
+      isMock: true,
+      type: 'deposit'
     }];
   }
   
@@ -1649,13 +1683,18 @@ window.refreshTabungDetailsModal = function() {
       historyList.innerHTML = '<div class="empty-state" style="padding:1rem 0;"><p style="font-size:0.8rem;">No savings contributions recorded yet.</p></div>';
     } else {
       historyList.innerHTML = displayHistory.map(item => {
+        const isWithdraw = item.type === 'withdraw';
+        const prefix = isWithdraw ? '-' : '+';
+        const amountClass = isWithdraw ? 'tabung-withdraw' : 'tabung-add';
+        const subText = item.isMock ? 'Initial contribution' : (isWithdraw ? 'Withdrawal' : 'Deposit');
+        
         return `
           <div class="history-item">
             <div style="display:flex; flex-direction:column; align-items:flex-start;">
               <span class="history-date">${formatDate(item.date)}</span>
-              ${item.isMock ? '<span style="font-size:0.7rem; color:var(--ink-secondary); font-style:italic;">Initial contribution</span>' : ''}
+              <span style="font-size:0.7rem; color:var(--ink-secondary); font-style:italic;">${subText}</span>
             </div>
-            <span class="history-amount tabung-add">+${formatCurrency(item.amount)}</span>
+            <span class="history-amount ${amountClass}">${prefix}${formatCurrency(item.amount)}</span>
           </div>
         `;
       }).join('');
@@ -1686,14 +1725,30 @@ window.addTabungSavingsFromDetail = async function() {
   const t = allTabung.find(x => x.id === activeTabungDetailId);
   if (!t) return;
   
-  const remaining = t.target - t.saved;
-  if (remaining <= 0) {
-    errEl.textContent = 'This savings goal is already fully funded!';
-    return;
-  }
+  let newSaved = t.saved;
+  let finalAmount = amount;
   
-  const finalAmount = Math.min(amount, remaining);
-  const newSaved = t.saved + finalAmount;
+  if (tabungActionType === 'add') {
+    const remaining = t.target - t.saved;
+    if (remaining <= 0) {
+      errEl.textContent = 'This savings goal is already fully funded!';
+      return;
+    }
+    finalAmount = Math.min(amount, remaining);
+    newSaved = t.saved + finalAmount;
+  } else {
+    // Withdraw mode
+    if (t.saved <= 0) {
+      errEl.textContent = 'You do not have any savings to withdraw from!';
+      return;
+    }
+    if (amount > t.saved) {
+      errEl.textContent = `You cannot withdraw more than your current savings of ${formatCurrency(t.saved)}.`;
+      return;
+    }
+    finalAmount = amount;
+    newSaved = t.saved - finalAmount;
+  }
   
   let history = t.history || [];
   if (history.length === 0 && t.saved > 0) {
@@ -1702,21 +1757,23 @@ window.addTabungSavingsFromDetail = async function() {
     history.push({
       amount: t.saved,
       date: dateString,
-      createdAt: t.createdAt || new Date()
+      createdAt: t.createdAt || new Date(),
+      type: 'deposit'
     });
   }
   
-  // Push new transaction to local history array
+  // Push transaction to local history array
   history.push({
     amount: finalAmount,
     date: dateStr,
-    createdAt: new Date()
+    createdAt: new Date(),
+    type: tabungActionType === 'add' ? 'deposit' : 'withdraw'
   });
   
-  const submitBtn = document.querySelector('#tabung-details-overlay .btn-primary');
+  const submitBtn = document.getElementById('btn-tabung-action-submit');
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Adding…';
+    submitBtn.textContent = tabungActionType === 'add' ? 'Adding…' : 'Withdrawing…';
   }
   
   try {
@@ -1726,7 +1783,11 @@ window.addTabungSavingsFromDetail = async function() {
       updatedAt: serverTimestamp()
     });
     
-    showToast(`Saved ${formatCurrency(finalAmount)} to "${t.name}"!`, 'success');
+    if (tabungActionType === 'add') {
+      showToast(`Saved ${formatCurrency(finalAmount)} to "${t.name}"!`, 'success');
+    } else {
+      showToast(`Withdrew ${formatCurrency(finalAmount)} from "${t.name}"!`, 'success');
+    }
     amountInput.value = '';
     dateInput.value = new Date().toISOString().split('T')[0];
   } catch(e) {
@@ -1735,7 +1796,7 @@ window.addTabungSavingsFromDetail = async function() {
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Add to Savings';
+      submitBtn.textContent = tabungActionType === 'add' ? 'Add to Savings' : 'Withdraw from Savings';
     }
   }
 };

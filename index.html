@@ -643,16 +643,20 @@
 
         <!-- Savings Contribution Form inside modal -->
         <div class="detail-add-form-box" style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--r-md); padding:1rem; margin-bottom:1.5rem;">
-          <h4 style="font-size:0.8rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--ink-secondary); margin-bottom:0.75rem;">+ Add Savings Contribution</h4>
+          <div class="type-toggle" style="margin-bottom:1rem; display:flex; gap:0.5rem;">
+            <button id="tabung-action-add" class="type-btn income active" onclick="setTabungActionType('add')">💰 Deposit</button>
+            <button id="tabung-action-withdraw" class="type-btn expense" onclick="setTabungActionType('withdraw')">💸 Withdraw</button>
+          </div>
+          <h4 id="tabung-action-title" style="font-size:0.8rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--ink-secondary); margin-bottom:0.75rem;">+ Add Savings Contribution</h4>
           <div style="display:flex; gap:0.5rem; flex-direction:column;">
             <div class="amount-input-wrap">
               <span class="currency-symbol dynamic-currency">$</span>
-              <input type="number" id="detail-tabung-amount" placeholder="Amount to add" min="0" step="0.01" style="height:3rem; padding-left:2.5rem; font-size:1.1rem;" />
+              <input type="number" id="detail-tabung-amount" placeholder="Amount to deposit" min="0" step="0.01" style="height:3rem; padding-left:2.5rem; font-size:1.1rem;" />
             </div>
             <div class="input-group" style="margin:0;">
               <input type="date" id="detail-tabung-date" style="padding:0.6rem; font-size:0.9rem;" />
             </div>
-            <button class="btn-primary" onclick="addTabungSavingsFromDetail()" style="margin-top:0.25rem; padding:0.7rem;">Add to Savings</button>
+            <button id="btn-tabung-action-submit" class="btn-primary" onclick="addTabungSavingsFromDetail()" style="margin-top:0.25rem; padding:0.7rem;">Add to Savings</button>
           </div>
           <div id="detail-tabung-error" class="auth-error" style="margin-top:0.5rem;"></div>
         </div>
