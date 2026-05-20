@@ -9,6 +9,7 @@
   <link rel="apple-touch-icon" href="favicon.png" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0d0f1a" id="theme-color-meta" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -314,11 +315,8 @@
             <select id="monthly-year-select" class="filter-month" onchange="renderMonthly()"></select>
           </div>
         </div>
-        <div id="monthly-summary-cards" class="summary-grid" style="margin-bottom:1.5rem;"></div>
-        <div class="section-card">
-          <div class="section-header"><h2>Month-by-Month Breakdown</h2></div>
-          <div id="monthly-breakdown" style="padding:1.25rem;"></div>
-        </div>
+        <div id="monthly-summary-cards" style="margin-bottom:0;"></div>
+        <div id="monthly-breakdown"></div>
       </section>
 
       <!-- Tabung (Savings) -->

@@ -1189,6 +1189,7 @@ window.toggleMonthDetail = function(rowId) {
   detail.style.display = isOpen ? 'none' : 'block';
   if (chev) chev.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
   if (!isOpen) haptic();
+};
 
 // ─── TABUNG (SAVINGS) ─────────────────────────────────────────────────────
 
