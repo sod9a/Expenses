@@ -294,60 +294,88 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 .sidebar-overlay{display:none;position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
 .sidebar-overlay.visible{display:block}
 
-/* MONTHLY */
-.monthly-row{padding:1.25rem 0;border-bottom:1px solid var(--border-subtle)}
-.monthly-row:last-child{border-bottom:none}
-.monthly-month-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.85rem}
-.mth-clickable{cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;border-radius:var(--r-sm);transition:background var(--t);padding:.2rem .1rem}
-.mth-clickable:hover{background:var(--bg-glass-light)}
-.mth-header-left{display:flex;flex-direction:column;gap:.2rem}
-.mth-header-right{display:flex;align-items:center;gap:.6rem}
-.mth-chevron{font-size:.85rem;color:var(--ink-muted);transition:transform .2s;flex-shrink:0}
-.monthly-month-name{font-family:'Sora',sans-serif;font-weight:700;font-size:.95rem}
+/* ═══════════════════════════════════════════════════
+   MONTHLY REPORT — Premium Design
+═══════════════════════════════════════════════════ */
+
+/* Year summary strip */
+.mth-year-summary{display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--r-lg);padding:1rem 1.25rem;margin-bottom:1.25rem;gap:0}
+.mth-year-stat{flex:1;display:flex;flex-direction:column;align-items:center;gap:.25rem}
+.mth-year-label{font-size:.62rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-muted)}
+.mth-year-val{font-family:'Sora',sans-serif;font-size:.95rem;font-weight:800;letter-spacing:-.02em}
+.mth-year-val.income{color:var(--neon-teal)}
+.mth-year-val.expense{color:var(--neon-coral)}
+.mth-year-divider{width:1px;height:36px;background:var(--border-subtle);flex-shrink:0}
+
+/* Month row card */
+.monthly-row{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--r-lg);padding:1.1rem 1rem .9rem;margin-bottom:.75rem;transition:border-color .18s,box-shadow .18s}
+.monthly-row:hover{border-color:rgba(124,92,252,.2);box-shadow:0 4px 20px rgba(0,0,0,.16)}
+
+/* Month header — clickable */
+.monthly-month-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.95rem;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
+.mth-header-left{display:flex;flex-direction:column;gap:.18rem}
+.mth-header-right{display:flex;align-items:center;gap:.45rem;flex-shrink:0}
+.monthly-month-name{font-family:'Sora',sans-serif;font-weight:800;font-size:1.05rem;color:var(--ink-primary)}
+.monthly-tx-count{font-size:.7rem;font-weight:500;color:var(--ink-muted)}
 .monthly-net{font-family:'Sora',sans-serif;font-weight:800;font-size:1rem;letter-spacing:-.02em}
 .monthly-net.income{color:var(--neon-teal)}
 .monthly-net.expense{color:var(--neon-coral)}
-.monthly-bars{display:flex;flex-direction:column;gap:.6rem}
-.monthly-bar-row{display:flex;align-items:center;gap:.75rem}
-.monthly-bar-label{font-size:.72rem;color:var(--ink-secondary);width:52px;flex-shrink:0;font-weight:600;letter-spacing:.02em;text-transform:uppercase}
-.monthly-bar-track{flex:1;height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden}
-.monthly-bar{height:100%;border-radius:4px;transition:width .6s var(--ease);min-width:3px}
-.monthly-bar.income{background:linear-gradient(90deg,var(--neon-teal),var(--neon-teal2))}
-.monthly-bar.expense{background:linear-gradient(90deg,var(--neon-coral),var(--neon-coral2))}
-.monthly-bar-val{font-family:'Sora',sans-serif;font-size:.78rem;font-weight:700;width:88px;text-align:right;flex-shrink:0}
+.mth-chevron-svg{width:18px;height:18px;color:var(--ink-muted);transition:transform .25s cubic-bezier(.4,0,.2,1);flex-shrink:0}
+
+/* Income / Expense bars */
+.monthly-bars{display:flex;flex-direction:column;gap:.6rem;margin-bottom:.1rem}
+.monthly-bar-row{display:flex;align-items:center;gap:.65rem}
+.monthly-bar-label{font-size:.63rem;font-weight:800;letter-spacing:.08em;color:var(--ink-muted);width:56px;flex-shrink:0;text-transform:uppercase}
+.monthly-bar-track{flex:1;height:10px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden}
+.monthly-bar{height:100%;border-radius:5px;transition:width .7s cubic-bezier(.4,0,.2,1);min-width:4px}
+.monthly-bar.income{background:linear-gradient(90deg,#00e5b4,#00b896)}
+.monthly-bar.expense{background:linear-gradient(90deg,#ff4d6a,#e02d4f)}
+.monthly-bar-val{font-family:'Sora',sans-serif;font-size:.78rem;font-weight:700;width:80px;text-align:right;flex-shrink:0;letter-spacing:-.01em}
 .monthly-bar-val.income{color:var(--neon-teal)}
 .monthly-bar-val.expense{color:var(--neon-coral)}
-.monthly-tx-count{font-size:.72rem;color:var(--ink-muted);margin-top:.5rem}
 
-/* Monthly detail expand */
-.mth-detail{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle)}
-.mth-section-title{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:.6rem}
-/* MONTHLY BY CATEGORY 3X3 GRID BOXES */
-.mth-cat-list{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
-.mth-cat-card{background:var(--bg-card2);border:1px solid var(--border-subtle);border-radius:var(--r-md);padding:1.1rem;display:flex;flex-direction:column;align-items:flex-start;gap:.75rem;position:relative;transition:transform var(--t) var(--ease),border-color var(--t),box-shadow var(--t);overflow:hidden}
-.mth-cat-card:hover{transform:translateY(-3px) scale(1.02);border-color:rgba(124,92,252,0.25);box-shadow:var(--shadow-card)}
-.mth-cat-card-header{display:flex;justify-content:space-between;align-items:center;width:100%}
-.mth-cat-card-icon{font-size:1.5rem;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15))}
-.mth-cat-card-count{font-size:.72rem;color:var(--ink-muted);background:var(--bg-card);padding:.2rem .6rem;border-radius:20px;font-weight:600;letter-spacing:.01em}
-.mth-cat-card-name{font-family:'Sora',sans-serif;font-weight:700;font-size:.95rem;color:var(--ink-primary);margin-top:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
-.mth-cat-card-details{display:flex;flex-direction:column;gap:.45rem;width:100%;border-top:1px solid var(--border-subtle);padding-top:.75rem;margin-top:auto;align-items:center}
-.mth-cat-card-detail-val{font-family:'Sora',sans-serif;font-weight:700;font-size:.85rem}
-.mth-cat-card-detail-val.income{color:var(--neon-teal)}
-.mth-cat-card-detail-val.expense{color:var(--neon-coral)}
-.mth-cat-card-detail-val.zero{color:var(--ink-muted)}
+/* Expanded detail panel */
+.mth-detail{padding-top:1rem;margin-top:1rem;border-top:1px solid var(--border-subtle)}
+.mth-section-title{font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:.8rem}
 
-/* Responsive Grid Adapters for category breakdown */
-@media(max-width:900px){.mth-cat-list{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:600px){.mth-cat-list{grid-template-columns:1fr}}
-.mth-tx-list{display:flex;flex-direction:column;gap:.3rem}
-.mth-tx-item{display:flex;align-items:center;gap:.65rem;padding:.55rem .6rem;background:var(--bg-elevated);border-radius:var(--r-sm)}
-.mth-tx-icon{font-size:1.1rem;flex-shrink:0;width:22px;text-align:center}
+/* Category grid — always 3 columns */
+.mth-cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:.25rem}
+.mth-cat-card{background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:13px;padding:.8rem .65rem .75rem;display:flex;flex-direction:column;gap:.4rem;transition:transform .16s,border-color .16s,box-shadow .16s}
+.mth-cat-card:hover{transform:translateY(-2px);border-color:rgba(124,92,252,.22);box-shadow:0 5px 18px rgba(0,0,0,.2)}
+.mth-cat-card-header{display:flex;justify-content:space-between;align-items:flex-start}
+.mth-cat-card-icon-wrap{font-size:1.4rem;line-height:1.1}
+.mth-cat-card-count{font-size:.6rem;font-weight:700;color:var(--ink-muted);background:rgba(255,255,255,.08);padding:.12rem .38rem;border-radius:20px;line-height:1.5}
+.mth-cat-card-name{font-family:'Sora',sans-serif;font-weight:700;font-size:.78rem;color:var(--ink-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.mth-cat-card-amounts{display:flex;flex-direction:column;gap:.15rem;padding-top:.42rem;border-top:1px solid var(--border-subtle)}
+.mth-cat-card-val{font-family:'Sora',sans-serif;font-size:.73rem;font-weight:700;letter-spacing:-.01em}
+.mth-cat-card-val.income{color:var(--neon-teal)}
+.mth-cat-card-val.expense{color:var(--neon-coral)}
+
+/* Transaction list */
+.mth-tx-list{display:flex;flex-direction:column;gap:.35rem}
+.mth-tx-item{display:flex;align-items:center;gap:.7rem;padding:.6rem .65rem;background:var(--bg-elevated);border-radius:11px;transition:background .15s}
+.mth-tx-item:hover{background:rgba(255,255,255,.05)}
+.mth-tx-icon-wrap{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0}
+.mth-tx-icon-wrap.income{background:rgba(0,229,180,.12)}
+.mth-tx-icon-wrap.expense{background:rgba(255,77,106,.1)}
 .mth-tx-info{flex:1;min-width:0}
-.mth-tx-desc{font-size:.83rem;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mth-tx-meta{font-size:.7rem;color:var(--ink-muted);display:block;margin-top:1px}
-.mth-tx-amount{font-family:'Sora',sans-serif;font-size:.83rem;font-weight:700;flex-shrink:0;white-space:nowrap}
+.mth-tx-desc{font-size:.83rem;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-primary)}
+.mth-tx-meta{font-size:.68rem;color:var(--ink-muted);display:block;margin-top:1px}
+.mth-tx-amount{font-family:'Sora',sans-serif;font-size:.82rem;font-weight:700;flex-shrink:0;white-space:nowrap}
 .mth-tx-amount.income{color:var(--neon-teal)}
 .mth-tx-amount.expense{color:var(--neon-coral)}
+
+/* Small screen: keep 3-col but tighten */
+@media(max-width:400px){
+  .mth-cat-grid{gap:.35rem}
+  .mth-cat-card{padding:.65rem .45rem .6rem}
+  .mth-cat-card-icon-wrap{font-size:1.2rem}
+  .mth-cat-card-name{font-size:.68rem}
+  .mth-cat-card-val{font-size:.65rem}
+  .mth-cat-card-count{font-size:.55rem;padding:.1rem .3rem}
+  .monthly-bar-val{width:66px;font-size:.7rem}
+  .monthly-bar-label{width:50px;font-size:.6rem}
+}
 
 /* TABUNG */
 .tabung-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--r-xl);padding:1.5rem;transition:transform var(--t) var(--ease),box-shadow var(--t),border-color var(--t)}

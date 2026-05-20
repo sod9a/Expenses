@@ -1070,9 +1070,22 @@ function renderMonthly() {
 
   const summaryEl = document.getElementById('monthly-summary-cards');
   summaryEl.innerHTML = `
-    <div class="summary-card income"><div class="card-icon">📈</div><div class="card-info"><span class="card-label">Income ${selectedYear}</span><span class="card-value">${formatCurrency(totalIncome)}</span></div></div>
-    <div class="summary-card expense"><div class="card-icon">📉</div><div class="card-info"><span class="card-label">Expenses ${selectedYear}</span><span class="card-value">${formatCurrency(totalExpense)}</span></div></div>
-    <div class="summary-card ${netSaving >= 0 ? 'balance' : 'expense'}"><div class="card-icon">${netSaving >= 0 ? '💰' : '⚠️'}</div><div class="card-info"><span class="card-label">Net Savings ${selectedYear}</span><span class="card-value">${formatCurrency(netSaving)}</span></div></div>
+    <div class="mth-year-summary">
+      <div class="mth-year-stat">
+        <span class="mth-year-label">Total Income</span>
+        <span class="mth-year-val income">${formatCurrency(totalIncome)}</span>
+      </div>
+      <div class="mth-year-divider"></div>
+      <div class="mth-year-stat">
+        <span class="mth-year-label">Total Expenses</span>
+        <span class="mth-year-val expense">${formatCurrency(totalExpense)}</span>
+      </div>
+      <div class="mth-year-divider"></div>
+      <div class="mth-year-stat">
+        <span class="mth-year-label">Net Savings</span>
+        <span class="mth-year-val ${netSaving >= 0 ? 'income' : 'expense'}">${netSaving >= 0 ? '+' : ''}${formatCurrency(netSaving)}</span>
+      </div>
+    </div>
   `;
 
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1091,37 +1104,34 @@ function renderMonthly() {
     const net = inc - exp;
     const maxBar = Math.max(inc, exp, 1);
 
-    // Build category breakdown
+    // Category grid
     const catMap = {};
     mTx.forEach(t => {
       const c = t.category || 'General';
-      if (!catMap[c]) catMap[c] = { income: 0, expense: 0, txs: [] };
+      if (!catMap[c]) catMap[c] = { income: 0, expense: 0, count: 0 };
       catMap[c][t.type] += t.amount;
-      catMap[c].txs.push(t);
+      catMap[c].count++;
     });
     const catEntries = Object.entries(catMap).sort((a, b) => (b[1].expense + b[1].income) - (a[1].expense + a[1].income));
 
-    const catRowsHtml = catEntries.map(([cat, data]) => `
+    const catCardsHtml = catEntries.map(([cat, data]) => `
       <div class="mth-cat-card">
         <div class="mth-cat-card-header">
-          <span class="mth-cat-card-icon">${getCategoryIcon(cat)}</span>
-          <span class="mth-cat-card-count">${data.txs.length}</span>
+          <div class="mth-cat-card-icon-wrap">${getCategoryIcon(cat)}</div>
+          <span class="mth-cat-card-count">${data.count}</span>
         </div>
         <div class="mth-cat-card-name">${cat}</div>
-        <div class="mth-cat-card-details">
-          <span class="mth-cat-card-detail-val income">+${formatCurrency(data.income)}</span>
-          ${data.expense > 0 ? `
-            <span class="mth-cat-card-detail-val expense">-${formatCurrency(data.expense)}</span>
-          ` : `
-            <span class="mth-cat-card-detail-val zero">${formatCurrency(data.expense)}</span>
-          `}
+        <div class="mth-cat-card-amounts">
+          <span class="mth-cat-card-val income">+${formatCurrency(data.income)}</span>
+          <span class="mth-cat-card-val expense">-${formatCurrency(data.expense)}</span>
         </div>
       </div>
     `).join('');
 
+    // Transaction list
     const txListHtml = mTx.map(t => `
       <div class="mth-tx-item">
-        <span class="mth-tx-icon">${getCategoryIcon(t.category)}</span>
+        <div class="mth-tx-icon-wrap ${t.type}">${getCategoryIcon(t.category)}</div>
         <div class="mth-tx-info">
           <span class="mth-tx-desc">${t.description}</span>
           <span class="mth-tx-meta">${t.category} · ${formatDate(t.date)}</span>
@@ -1141,25 +1151,25 @@ function renderMonthly() {
         </div>
         <div class="mth-header-right">
           <span class="monthly-net ${net >= 0 ? 'income' : 'expense'}">${net >= 0 ? '+' : ''}${formatCurrency(net)}</span>
-          <span class="mth-chevron" id="chev-${rowId}">▸</span>
+          <svg class="mth-chevron-svg" id="chev-${rowId}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
       </div>
       <div class="monthly-bars">
         <div class="monthly-bar-row">
-          <span class="monthly-bar-label">Income</span>
+          <span class="monthly-bar-label">INCOME</span>
           <div class="monthly-bar-track"><div class="monthly-bar income" style="width:${(inc/maxBar*100).toFixed(1)}%"></div></div>
           <span class="monthly-bar-val income">${formatCurrency(inc)}</span>
         </div>
         <div class="monthly-bar-row">
-          <span class="monthly-bar-label">Expense</span>
+          <span class="monthly-bar-label">EXPENSE</span>
           <div class="monthly-bar-track"><div class="monthly-bar expense" style="width:${(exp/maxBar*100).toFixed(1)}%"></div></div>
           <span class="monthly-bar-val expense">${formatCurrency(exp)}</span>
         </div>
       </div>
       <div class="mth-detail" id="${rowId}" style="display:none">
-        <div class="mth-section-title">By Category</div>
-        <div class="mth-cat-list">${catRowsHtml}</div>
-        <div class="mth-section-title" style="margin-top:1rem">Transactions</div>
+        <div class="mth-section-title">BY CATEGORY BREAKDOWN</div>
+        <div class="mth-cat-grid">${catCardsHtml}</div>
+        <div class="mth-section-title" style="margin-top:1.5rem">ALL TRANSACTIONS</div>
         <div class="mth-tx-list">${txListHtml}</div>
       </div>
     `;
@@ -1177,9 +1187,8 @@ window.toggleMonthDetail = function(rowId) {
   if (!detail) return;
   const isOpen = detail.style.display !== 'none';
   detail.style.display = isOpen ? 'none' : 'block';
-  if (chev) chev.textContent = isOpen ? '▸' : '▾';
+  if (chev) chev.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
   if (!isOpen) haptic();
-};
 
 // ─── TABUNG (SAVINGS) ─────────────────────────────────────────────────────
 
