@@ -1038,7 +1038,6 @@ function renderMonthly() {
   const now = new Date();
   const yearSel = document.getElementById('monthly-year-select');
 
-  // Populate years from transactions
   const years = [...new Set(allTransactions.map(t => t.date?.substring(0, 4)).filter(Boolean))];
   if (!years.includes(String(now.getFullYear()))) years.push(String(now.getFullYear()));
   years.sort((a, b) => b - a);
@@ -1046,34 +1045,15 @@ function renderMonthly() {
   yearSel.innerHTML = years.map(y => `<option value="${y}" ${y === selectedYear ? 'selected' : ''}>${y}</option>`).join('');
 
   const txInYear = allTransactions.filter(t => t.date && t.date.startsWith(selectedYear));
-
   const totalIncome = txInYear.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpense = txInYear.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const netSaving = totalIncome - totalExpense;
 
   const summaryEl = document.getElementById('monthly-summary-cards');
   summaryEl.innerHTML = `
-    <div class="summary-card income">
-      <div class="card-icon">📈</div>
-      <div class="card-info">
-        <span class="card-label">Total Income ${selectedYear}</span>
-        <span class="card-value">${formatCurrency(totalIncome)}</span>
-      </div>
-    </div>
-    <div class="summary-card expense">
-      <div class="card-icon">📉</div>
-      <div class="card-info">
-        <span class="card-label">Total Expenses ${selectedYear}</span>
-        <span class="card-value">${formatCurrency(totalExpense)}</span>
-      </div>
-    </div>
-    <div class="summary-card ${netSaving >= 0 ? 'balance' : 'expense'}">
-      <div class="card-icon">${netSaving >= 0 ? '💰' : '⚠️'}</div>
-      <div class="card-info">
-        <span class="card-label">Net Savings ${selectedYear}</span>
-        <span class="card-value">${formatCurrency(netSaving)}</span>
-      </div>
-    </div>
+    <div class="summary-card income"><div class="card-icon">📈</div><div class="card-info"><span class="card-label">Income ${selectedYear}</span><span class="card-value">${formatCurrency(totalIncome)}</span></div></div>
+    <div class="summary-card expense"><div class="card-icon">📉</div><div class="card-info"><span class="card-label">Expenses ${selectedYear}</span><span class="card-value">${formatCurrency(totalExpense)}</span></div></div>
+    <div class="summary-card ${netSaving >= 0 ? 'balance' : 'expense'}"><div class="card-icon">${netSaving >= 0 ? '💰' : '⚠️'}</div><div class="card-info"><span class="card-label">Net Savings ${selectedYear}</span><span class="card-value">${formatCurrency(netSaving)}</span></div></div>
   `;
 
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1081,39 +1061,82 @@ function renderMonthly() {
   breakdown.innerHTML = '';
 
   let hasData = false;
-  months.forEach((mName, i) => {
-    const mKey = `${selectedYear}-${String(i + 1).padStart(2, '0')}`;
+  months.forEach((mName, idx) => {
+    const mKey = `${selectedYear}-${String(idx + 1).padStart(2, '0')}`;
     const mTx = txInYear.filter(t => t.date && t.date.startsWith(mKey));
     if (!mTx.length) return;
     hasData = true;
+
     const inc = mTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const exp = mTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     const net = inc - exp;
     const maxBar = Math.max(inc, exp, 1);
+
+    // Build category breakdown
+    const catMap = {};
+    mTx.forEach(t => {
+      const c = t.category || 'General';
+      if (!catMap[c]) catMap[c] = { income: 0, expense: 0, txs: [] };
+      catMap[c][t.type] += t.amount;
+      catMap[c].txs.push(t);
+    });
+    const catEntries = Object.entries(catMap).sort((a, b) => (b[1].expense + b[1].income) - (a[1].expense + a[1].income));
+
+    const catRowsHtml = catEntries.map(([cat, data]) => `
+      <div class="mth-cat-row">
+        <span class="mth-cat-icon">${getCategoryIcon(cat)}</span>
+        <span class="mth-cat-name">${cat}</span>
+        <span class="mth-cat-count">${data.txs.length}</span>
+        <div class="mth-cat-amounts">
+          ${data.income > 0 ? `<span class="mth-cat-inc">+${formatCurrency(data.income)}</span>` : ''}
+          ${data.expense > 0 ? `<span class="mth-cat-exp">-${formatCurrency(data.expense)}</span>` : ''}
+        </div>
+      </div>
+    `).join('');
+
+    const txListHtml = mTx.map(t => `
+      <div class="mth-tx-item">
+        <span class="mth-tx-icon">${getCategoryIcon(t.category)}</span>
+        <div class="mth-tx-info">
+          <span class="mth-tx-desc">${t.description}</span>
+          <span class="mth-tx-meta">${t.category} · ${formatDate(t.date)}</span>
+        </div>
+        <span class="mth-tx-amount ${t.type}">${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}</span>
+      </div>
+    `).join('');
+
+    const rowId = `mrow-${mKey}`;
     const div = document.createElement('div');
     div.className = 'monthly-row';
     div.innerHTML = `
-      <div class="monthly-month-header">
-        <span class="monthly-month-name">${mName}</span>
-        <span class="monthly-net ${net >= 0 ? 'income' : 'expense'}">${net >= 0 ? '+' : ''}${formatCurrency(net)}</span>
+      <div class="monthly-month-header mth-clickable" onclick="toggleMonthDetail('${rowId}')">
+        <div class="mth-header-left">
+          <span class="monthly-month-name">${mName}</span>
+          <span class="monthly-tx-count">${mTx.length} transaction${mTx.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="mth-header-right">
+          <span class="monthly-net ${net >= 0 ? 'income' : 'expense'}">${net >= 0 ? '+' : ''}${formatCurrency(net)}</span>
+          <span class="mth-chevron" id="chev-${rowId}">▸</span>
+        </div>
       </div>
       <div class="monthly-bars">
         <div class="monthly-bar-row">
           <span class="monthly-bar-label">Income</span>
-          <div class="monthly-bar-track">
-            <div class="monthly-bar income" style="width:${(inc/maxBar*100).toFixed(1)}%"></div>
-          </div>
+          <div class="monthly-bar-track"><div class="monthly-bar income" style="width:${(inc/maxBar*100).toFixed(1)}%"></div></div>
           <span class="monthly-bar-val income">${formatCurrency(inc)}</span>
         </div>
         <div class="monthly-bar-row">
           <span class="monthly-bar-label">Expense</span>
-          <div class="monthly-bar-track">
-            <div class="monthly-bar expense" style="width:${(exp/maxBar*100).toFixed(1)}%"></div>
-          </div>
+          <div class="monthly-bar-track"><div class="monthly-bar expense" style="width:${(exp/maxBar*100).toFixed(1)}%"></div></div>
           <span class="monthly-bar-val expense">${formatCurrency(exp)}</span>
         </div>
       </div>
-      <div class="monthly-tx-count">${mTx.length} transaction${mTx.length !== 1 ? 's' : ''}</div>
+      <div class="mth-detail" id="${rowId}" style="display:none">
+        <div class="mth-section-title">By Category</div>
+        <div class="mth-cat-list">${catRowsHtml}</div>
+        <div class="mth-section-title" style="margin-top:1rem">Transactions</div>
+        <div class="mth-tx-list">${txListHtml}</div>
+      </div>
     `;
     breakdown.appendChild(div);
   });
@@ -1122,6 +1145,16 @@ function renderMonthly() {
     breakdown.innerHTML = `<div class="empty-state"><span>📅</span><p>No transactions in ${selectedYear}.</p></div>`;
   }
 }
+
+window.toggleMonthDetail = function(rowId) {
+  const detail = document.getElementById(rowId);
+  const chev = document.getElementById('chev-' + rowId);
+  if (!detail) return;
+  const isOpen = detail.style.display !== 'none';
+  detail.style.display = isOpen ? 'none' : 'block';
+  if (chev) chev.textContent = isOpen ? '▸' : '▾';
+  if (!isOpen) haptic();
+};
 
 // ─── TABUNG (SAVINGS) ─────────────────────────────────────────────────────
 
