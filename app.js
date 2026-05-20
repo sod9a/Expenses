@@ -157,7 +157,8 @@ document.getElementById('btn-login').addEventListener('click', async () => {
     // Save to device keychain so Face ID / Touch ID works next time
     await storeCredential(input, pw);
   } catch (e) {
-    showAuthError('login-error', friendlyAuthError(e.code));
+    console.error("Login Error details:", e);
+    showAuthError('login-error', friendlyAuthError(e.code || e.message || String(e)));
   } finally { btn.disabled = false; btn.textContent = 'Sign In'; }
 });
 
@@ -195,7 +196,8 @@ document.getElementById('btn-register').addEventListener('click', async () => {
     showApp(currentUser);
     subscribeToData();
   } catch (e) {
-    showAuthError('register-error', friendlyAuthError(e.code));
+    console.error("Registration Error details:", e);
+    showAuthError('register-error', friendlyAuthError(e.code || e.message || String(e)));
   } finally {
     btn.disabled = false;
     btn.textContent = 'Create Account';
@@ -317,7 +319,8 @@ window.faceIdLogin = async function () {
     await signInWithEmailAndPassword(auth, email, cred.password);
     // Success — onAuthStateChanged handles the rest
   } catch (e) {
-    showAuthError('login-error', friendlyAuthError(e.code) || 'Login failed. Please try your password.');
+    console.error("Face ID Login failure:", e);
+    showAuthError('login-error', friendlyAuthError(e.code || e.message || String(e)));
     resetBtn();
   }
 };
@@ -337,7 +340,8 @@ document.getElementById('btn-forgot').addEventListener('click', async () => {
     showAuthError('forgot-error', '✅ Reset link sent! Check your inbox.');
     document.getElementById('forgot-error').style.borderLeftColor = 'var(--accent-green)';
   } catch (e) {
-    showAuthError('forgot-error', friendlyAuthError(e.code));
+    console.error("Forgot Password Error details:", e);
+    showAuthError('forgot-error', friendlyAuthError(e.code || e.message || String(e)));
   } finally { btn.disabled = false; btn.textContent = 'Send Reset Link'; }
 });
 
@@ -349,9 +353,19 @@ function friendlyAuthError(code) {
     'auth/invalid-email': 'Invalid email address.',
     'auth/weak-password': 'Password is too weak.',
     'auth/invalid-credential': 'Invalid email or password.',
-    'auth/too-many-requests': 'Too many attempts. Try again later.'
+    'auth/too-many-requests': 'Too many attempts. Try again later.',
+    'permission-denied': 'Database permission denied. If using a username, please sign in with your email address directly.',
+    'firestore/permission-denied': 'Database permission denied. If using a username, please sign in with your email address directly.'
   };
-  return map[code] || 'An error occurred. Please try again.';
+  
+  if (!code) return 'An error occurred. Please try again.';
+  
+  const cleanCode = String(code).toLowerCase();
+  if (cleanCode.includes('permission-denied') || cleanCode.includes('permission_denied')) {
+    return 'Database permission denied. If using a username, please sign in with your email address directly.';
+  }
+  
+  return map[code] || `An error occurred (${code}). Please try again.`;
 }
 
 // ─── Firestore Subscriptions ──────────────────────────────────────────────
