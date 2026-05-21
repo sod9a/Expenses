@@ -832,9 +832,190 @@ function renderAll() {
   updateSummaryCards();
   renderRecentTransactions();
   renderChecklist();
+  updateFinancialInsights();
   if (document.getElementById('page-transactions').classList.contains('active')) renderAllTransactions();
   if (document.getElementById('page-categories').classList.contains('active')) renderCategories();
   if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
+}
+
+// ─── AI Financial Insights ────────────────────────────────────────────────
+function updateFinancialInsights() {
+  const container = document.getElementById('insights-list');
+  if (!container) return;
+
+  const insights = [];
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const dayOfMonth = now.getDate();
+  const monthName = now.toLocaleDateString('en-US', { month: 'long' });
+
+  // Monthly transactions
+  const monthTx = allTransactions.filter(t => t.date && t.date.startsWith(currentMonthStr));
+  const monthIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const monthExpense = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
+
+  // ── 1. No transactions at all — welcome state
+  if (!allTransactions.length) {
+    insights.push({
+      type: 'info',
+      icon: '👋',
+      title: 'Welcome to ExpenseFlow!',
+      desc: 'Add your first transaction to start receiving personalised financial insights here.'
+    });
+    renderInsights(container, insights);
+    return;
+  }
+
+  // ── 2. No income this month — gentle nudge
+  if (monthIncome === 0 && monthExpense > 0) {
+    insights.push({
+      type: 'warning',
+      icon: '📥',
+      title: 'No income recorded this month',
+      desc: `You've spent ${formatCurrency(monthExpense)} in ${monthName} but haven't logged any income. Add your salary or earnings to keep your balance accurate.`
+    });
+  }
+
+  // ── 3. Budget alerts (per category)
+  if (allBudgets.length > 0) {
+    let overBudgetFound = false;
+    let nearingFound = false;
+    let fastSpendFound = false;
+
+    allBudgets.forEach(b => {
+      const spent = monthTx
+        .filter(t => t.type === 'expense' && t.category === b.category)
+        .reduce((sum, t) => sum + t.amount, 0);
+      const pct = b.limit > 0 ? (spent / b.limit) * 100 : 0;
+
+      if (pct >= 100 && !overBudgetFound) {
+        overBudgetFound = true;
+        insights.push({
+          type: 'danger',
+          icon: '🚨',
+          title: `Over budget — ${b.category}`,
+          desc: `You've spent ${formatCurrency(spent)} on ${b.category}, which is ${Math.round(pct - 100)}% over your ${formatCurrency(b.limit)} limit this month.`
+        });
+      } else if (pct >= 80 && pct < 100 && !nearingFound) {
+        nearingFound = true;
+        insights.push({
+          type: 'warning',
+          icon: '⚠️',
+          title: `Nearing limit — ${b.category}`,
+          desc: `You've used ${Math.round(pct)}% of your ${b.category} budget (${formatCurrency(spent)} of ${formatCurrency(b.limit)}). Slow down to stay on track!`
+        });
+      } else if (pct >= 50 && pct < 80 && dayOfMonth <= 10 && !fastSpendFound) {
+        fastSpendFound = true;
+        insights.push({
+          type: 'warning',
+          icon: '⚡',
+          title: `Fast spending — ${b.category}`,
+          desc: `You've already used ${Math.round(pct)}% of your ${b.category} budget in just ${dayOfMonth} days. At this rate you may exceed your limit by month end.`
+        });
+      }
+    });
+  } else if (monthExpense > 0) {
+    // ── 4. No budgets set — suggest creating one
+    insights.push({
+      type: 'info',
+      icon: '🎯',
+      title: 'Set spending budgets',
+      desc: `You've spent ${formatCurrency(monthExpense)} this month but have no budgets configured. Head to the Budgets page to set limits and get real-time alerts.`
+    });
+  }
+
+  // ── 5. Savings rate insight (only if income exists this month)
+  if (monthIncome > 0) {
+    if (savingsRate >= 20) {
+      insights.push({
+        type: 'success',
+        icon: '🎉',
+        title: `Great savings rate — ${Math.round(savingsRate)}%!`,
+        desc: `You're saving ${formatCurrency(monthIncome - monthExpense)} this month. That's a ${Math.round(savingsRate)}% savings rate. Keep it up! 💪`
+      });
+    } else if (savingsRate < 0) {
+      insights.push({
+        type: 'danger',
+        icon: '📉',
+        title: 'Spending more than you earn',
+        desc: `Your expenses (${formatCurrency(monthExpense)}) exceed your income (${formatCurrency(monthIncome)}) by ${formatCurrency(monthExpense - monthIncome)} this month. Review your spending.`
+      });
+    } else if (savingsRate < 10) {
+      insights.push({
+        type: 'warning',
+        icon: '💡',
+        title: 'Low savings rate this month',
+        desc: `You're only saving ${Math.round(savingsRate)}% of your income (${formatCurrency(monthIncome - monthExpense)}). Try to cut non-essential expenses to boost your savings.`
+      });
+    }
+  }
+
+  // ── 6. Outstanding loan/debt alert
+  const totalOwed = allLoans
+    .filter(l => l.loanType === 'owe')
+    .reduce((s, l) => s + Math.max(0, (l.total || 0) - (l.paid || 0)), 0);
+  if (totalOwed > 0) {
+    insights.push({
+      type: 'warning',
+      icon: '🏦',
+      title: `Outstanding debt: ${formatCurrency(totalOwed)}`,
+      desc: `You have ${allLoans.filter(l => l.loanType === 'owe' && l.total > l.paid).length} active loan(s) totalling ${formatCurrency(totalOwed)}. Consider making a payment to reduce your debt.`
+    });
+  }
+
+  // ── 7. Tabung milestones
+  allTabung.forEach(t => {
+    const pct = t.target > 0 ? (t.saved / t.target) * 100 : 0;
+    if (pct >= 100) {
+      insights.push({
+        type: 'success',
+        icon: '🏆',
+        title: `Goal achieved — ${t.name}!`,
+        desc: `You've fully reached your ${t.name} savings goal of ${formatCurrency(t.target)}. Time to celebrate or set a new goal! 🎊`
+      });
+    } else if (pct >= 75 && pct < 100) {
+      insights.push({
+        type: 'success',
+        icon: '🪙',
+        title: `Almost there — ${t.name}`,
+        desc: `You're ${Math.round(pct)}% of the way to your ${t.name} goal (${formatCurrency(t.saved)} of ${formatCurrency(t.target)}). Just ${formatCurrency(t.target - t.saved)} to go!`
+      });
+    }
+  });
+
+  // ── 8. Checklist unpaid items
+  const unpaidItems = allChecklist.filter(c => !c.checked);
+  const totalUnpaid = unpaidItems.reduce((s, c) => s + (c.amount || 0), 0);
+  if (unpaidItems.length > 0 && allChecklist.length > 0) {
+    const paidCount = allChecklist.length - unpaidItems.length;
+    insights.push({
+      type: 'info',
+      icon: '📋',
+      title: `${unpaidItems.length} checklist item${unpaidItems.length > 1 ? 's' : ''} remaining`,
+      desc: `${paidCount} of ${allChecklist.length} monthly payments done. ${totalUnpaid > 0 ? formatCurrency(totalUnpaid) + ' still to go.' : ''} Check your Monthly Checklist below.`
+    });
+  }
+
+  // ── Cap at 4 insights max to avoid clutter
+  const capped = insights.slice(0, 4);
+  renderInsights(container, capped);
+}
+
+function renderInsights(container, insights) {
+  if (!insights.length) {
+    container.innerHTML = '<div class="insight-empty">✅ Everything looks great! Keep up the good work.</div>';
+    return;
+  }
+  container.innerHTML = insights.map((item, i) => `
+    <div class="insight-item ${item.type}" style="animation-delay:${i * 0.07}s">
+      <div class="insight-badge">${item.icon}</div>
+      <div class="insight-content">
+        <div class="insight-title">${item.title}</div>
+        <div class="insight-desc">${item.desc}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 function formatCurrency(n) {
