@@ -2247,11 +2247,71 @@ window.addChecklistItem = async function() {
   }
 };
 
+function matchCategory(name) {
+  const lowercaseName = name.toLowerCase();
+  if (lowercaseName.includes('rent') || lowercaseName.includes('sewa') || lowercaseName.includes('house') || lowercaseName.includes('bilik')) {
+    return 'Rent';
+  }
+  if (lowercaseName.includes('food') || lowercaseName.includes('makan') || lowercaseName.includes('dinner') || lowercaseName.includes('lunch') || lowercaseName.includes('restoran') || lowercaseName.includes('cafe')) {
+    return 'Food & Dining';
+  }
+  if (lowercaseName.includes('car') || lowercaseName.includes('kereta') || lowercaseName.includes('petrol') || lowercaseName.includes('fuel') || lowercaseName.includes('toll') || lowercaseName.includes('transport') || lowercaseName.includes('mrt') || lowercaseName.includes('grab')) {
+    return 'Transport';
+  }
+  if (lowercaseName.includes('grocery') || lowercaseName.includes('groceries') || lowercaseName.includes('pasar') || lowercaseName.includes('supermarket')) {
+    return 'Groceries';
+  }
+  if (lowercaseName.includes('bill') || lowercaseName.includes('bil') || lowercaseName.includes('electric') || lowercaseName.includes('water') || lowercaseName.includes('phone') || lowercaseName.includes('unifi') || lowercaseName.includes('internet') || lowercaseName.includes('utility') || lowercaseName.includes('utilities')) {
+    return 'Bills';
+  }
+  if (lowercaseName.includes('netflix') || lowercaseName.includes('spotify') || lowercaseName.includes('disney') || lowercaseName.includes('youtube') || lowercaseName.includes('movie') || lowercaseName.includes('cinema') || lowercaseName.includes('game') || lowercaseName.includes('entertainment')) {
+    return 'Entertainment';
+  }
+  if (lowercaseName.includes('health') || lowercaseName.includes('medical') || lowercaseName.includes('doctor') || lowercaseName.includes('clinic') || lowercaseName.includes('pharmacy') || lowercaseName.includes('ubat') || lowercaseName.includes('hospital')) {
+    return 'Health';
+  }
+  if (lowercaseName.includes('education') || lowercaseName.includes('school') || lowercaseName.includes('book') || lowercaseName.includes('yuran') || lowercaseName.includes('class')) {
+    return 'Education';
+  }
+  if (lowercaseName.includes('loan') || lowercaseName.includes('hutang') || lowercaseName.includes('bank') || lowercaseName.includes('installment') || lowercaseName.includes('bayar')) {
+    return 'Loan';
+  }
+  return 'General';
+}
+
 window.toggleChecklistItem = async function(id, currentPaid) {
   if (window.haptic) window.haptic();
+  
+  const isMarkingPaid = !currentPaid;
+  const item = allChecklist.find(i => i.id === id);
+  
+  let recordTransaction = false;
+  if (isMarkingPaid && item && item.amount > 0) {
+    recordTransaction = confirm(`Would you like to automatically record this payment of ${formatCurrency(item.amount)} as an Expense transaction?`);
+  }
+  
   try {
-    // Update the individual budget document with isChecklist flag
-    await updateDoc(doc(db, 'budgets', id), { paid: !currentPaid });
+    // 1. Update checklist item status
+    await updateDoc(doc(db, 'budgets', id), { paid: isMarkingPaid });
+    
+    // 2. If user confirmed, create corresponding transaction
+    if (recordTransaction && item) {
+      const matchedCat = matchCategory(item.name);
+      const todayStr = new Date().toISOString().split('T')[0];
+      const txData = {
+        uid: currentUser.uid,
+        type: 'expense',
+        description: item.name,
+        amount: item.amount,
+        category: matchedCat,
+        date: todayStr,
+        notes: 'Auto-recorded from checklist',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      await addDoc(collection(db, 'transactions'), txData);
+      showToast(`Recorded expense of ${formatCurrency(item.amount)} under "${matchedCat}"!`, 'success');
+    }
   } catch(e) {
     console.error('Error toggling checklist item:', e);
     showToast('Failed to update item status.', 'error');
