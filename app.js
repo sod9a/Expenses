@@ -2141,20 +2141,32 @@ window.renderChecklist = function() {
   const listEl = document.getElementById('checklist-list');
   const barEl = document.getElementById('checklist-progress-bar');
   const subtitleEl = document.getElementById('checklist-subtitle');
-  const totalAmountEl = document.getElementById('checklist-total-amount');
+  const percentageEl = document.getElementById('checklist-percentage');
+  const titleEl = document.getElementById('checklist-title');
   
-  if (!listEl || !barEl || !subtitleEl || !totalAmountEl) return;
+  if (titleEl) {
+    const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+    titleEl.textContent = `Monthly Checklist - ${currentMonth}`;
+  }
+  
+  if (!listEl || !barEl || !subtitleEl || !percentageEl) return;
   
   // Totals & Progress
   const totalItems = allChecklist.length;
   const paidItems = allChecklist.filter(item => item.paid).length;
   const pct = totalItems > 0 ? (paidItems / totalItems) * 100 : 0;
+  const pctRound = Math.round(pct);
   
   barEl.style.width = `${pct}%`;
   subtitleEl.textContent = `${paidItems} of ${totalItems} paid`;
+  percentageEl.textContent = `${pctRound}%`;
   
-  const totalAmount = allChecklist.reduce((sum, item) => sum + (item.amount || 0), 0);
-  totalAmountEl.textContent = formatCurrency(totalAmount);
+  // Dynamic color for percentage text
+  if (pctRound === 100) {
+    percentageEl.style.color = 'var(--neon-teal)';
+  } else {
+    percentageEl.style.color = 'var(--neon-violet)';
+  }
   
   if (totalItems === 0) {
     listEl.innerHTML = '<div class="checklist-empty">No items yet. Add your first payment below.</div>';
