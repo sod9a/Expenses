@@ -2259,13 +2259,15 @@ window.toggleChecklistItem = async function(id, currentPaid) {
 
 window.deleteChecklistItem = async function(id) {
   if (window.haptic) window.haptic();
-  try {
-    // Delete the individual budget document
-    await deleteDoc(doc(db, 'budgets', id));
-    showToast('Item removed.', 'success');
-  } catch(e) {
-    console.error('Error deleting checklist item:', e);
-    showToast('Failed to delete item.', 'error');
+  if (confirm('Are you sure you want to remove this?')) {
+    try {
+      // Delete the individual budget document
+      await deleteDoc(doc(db, 'budgets', id));
+      showToast('Item removed.', 'success');
+    } catch(e) {
+      console.error('Error deleting checklist item:', e);
+      showToast('Failed to delete item.', 'error');
+    }
   }
 };
 
