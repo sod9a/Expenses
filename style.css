@@ -6,6 +6,7 @@
   --bg-surface:     #0f1120;
   --bg-card:        rgba(19, 22, 41, 0.48);
   --bg-card2:       rgba(24, 28, 47, 0.65);
+  --bg-card-solid:  #131629;
   --bg-elevated:    rgba(30, 34, 54, 0.8);
   --bg-glass:       rgba(13, 15, 26, 0.82);
   --bg-glass-light: rgba(255, 255, 255, 0.04);
@@ -40,6 +41,7 @@
   --bg-surface:     #ffffff;
   --bg-card:        rgba(255, 255, 255, 0.65);
   --bg-card2:       rgba(247, 248, 254, 0.75);
+  --bg-card-solid:  #ffffff;
   --bg-elevated:    rgba(238, 240, 249, 0.85);
   --bg-glass:       rgba(255,255,255,0.88);
   --bg-glass-light: rgba(0,0,0,0.02);
@@ -228,7 +230,7 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 
 /* TRANSACTIONS */
 .transaction-wrapper{position:relative;overflow:hidden;border-radius:var(--r-lg);border:1px solid var(--border-subtle);background:var(--bg-card);margin-bottom:.65rem;transition:border-color var(--t)}
-.transaction-item{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.1rem;background:var(--bg-card);transition:transform .3s cubic-bezier(.22,1,.36,1),background var(--t);position:relative;z-index:2;border-radius:var(--r-lg);will-change:transform}
+.transaction-item{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.1rem;background:var(--bg-card-solid);transition:transform .3s cubic-bezier(.22,1,.36,1),background var(--t);position:relative;z-index:2;border-radius:var(--r-lg);will-change:transform}
 .transaction-item:active{background:var(--bg-card2)}
 @media(min-width:769px){.transaction-wrapper:hover .transaction-item{transform:translateX(-140px)}.transaction-wrapper:hover{border-color:rgba(124,92,252,.3)}}
 .tx-icon{width:44px;height:44px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:rgba(124,92,252,.1);margin-right:.9rem}
@@ -759,7 +761,6 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 .summary-card,
 .checklist-card,
 .transaction-wrapper,
-.transaction-item,
 .cat-card,
 .budget-card,
 .mth-year-summary,
