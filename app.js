@@ -2203,9 +2203,14 @@ window.addChecklistItem = async function() {
     return;
   }
   
-  const amount = amountVal ? parseFloat(amountVal) : 0;
-  if (isNaN(amount) || amount < 0) {
-    showToast('Please enter a valid amount.', 'error');
+  if (!amountVal) {
+    showToast('Please enter an amount.', 'error');
+    return;
+  }
+  
+  const amount = parseFloat(amountVal);
+  if (isNaN(amount) || amount <= 0) {
+    showToast('Please enter a valid amount greater than 0.', 'error');
     return;
   }
   
