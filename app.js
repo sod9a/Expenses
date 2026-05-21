@@ -411,10 +411,15 @@ function subscribeToData() {
     }
   });
 
-  // 2. Budgets
+  // 2. Budgets — split into regular budgets and checklist items client-side
+  // (avoids composite index requirement for a second where clause)
   const bq = query(collection(db, 'budgets'), where('uid', '==', currentUser.uid));
   unsubscribeBudgets = onSnapshot(bq, snap => {
-    allBudgets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const allDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allBudgets = allDocs.filter(d => !d.isChecklist);
+    allChecklist = allDocs.filter(d => !!d.isChecklist);
+    allChecklist.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    renderChecklist();
     if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
   });
 
@@ -440,20 +445,6 @@ function subscribeToData() {
     allLoans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (document.getElementById('page-loans').classList.contains('active')) renderLoans();
     if (activeLoanDetailId) refreshLoanDetailsModal();
-  });
-
-  // 6. Checklist
-  const cq = query(collection(db, 'checklist'), where('uid', '==', currentUser.uid));
-  unsubscribeChecklist = onSnapshot(cq, snap => {
-    allChecklist = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    allChecklist.sort((a, b) => {
-      const aTime = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
-      const bTime = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
-      return aTime - bTime;
-    });
-    renderChecklist();
-  }, (err) => {
-    console.error('Checklist Firestore error:', err);
   });
 }
 
@@ -2213,12 +2204,15 @@ window.addChecklistItem = async function() {
   }
   
   try {
-    await addDoc(collection(db, 'checklist'), {
+    // Store checklist items as budget documents with isChecklist: true
+    // This works within existing Firestore security rules that allow writes to /budgets
+    await addDoc(collection(db, 'budgets'), {
       uid: currentUser.uid,
+      isChecklist: true,
       name: name,
       amount: amount,
       paid: false,
-      createdAt: serverTimestamp()
+      createdAt: Date.now()
     });
     
     nameInput.value = '';
@@ -2238,9 +2232,8 @@ window.addChecklistItem = async function() {
 window.toggleChecklistItem = async function(id, currentPaid) {
   if (window.haptic) window.haptic();
   try {
-    await updateDoc(doc(db, 'checklist', id), {
-      paid: !currentPaid
-    });
+    // Update the individual budget document with isChecklist flag
+    await updateDoc(doc(db, 'budgets', id), { paid: !currentPaid });
   } catch(e) {
     console.error('Error toggling checklist item:', e);
     showToast('Failed to update item status.', 'error');
@@ -2250,7 +2243,8 @@ window.toggleChecklistItem = async function(id, currentPaid) {
 window.deleteChecklistItem = async function(id) {
   if (window.haptic) window.haptic();
   try {
-    await deleteDoc(doc(db, 'checklist', id));
+    // Delete the individual budget document
+    await deleteDoc(doc(db, 'budgets', id));
     showToast('Item removed.', 'success');
   } catch(e) {
     console.error('Error deleting checklist item:', e);
