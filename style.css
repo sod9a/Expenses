@@ -375,7 +375,8 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 .monthly-bar-val.expense{color:var(--neon-coral)}
 
 /* Expanded detail panel */
-.mth-detail{padding-top:1rem;margin-top:1rem;border-top:1px solid var(--border-subtle)}
+.mth-detail{display:block;max-height:0;overflow:hidden;opacity:0;padding-top:0;margin-top:0;border-top:1px solid transparent;transition:max-height .38s var(--ease),opacity .28s var(--ease),border-top-color .28s var(--ease),padding-top .38s var(--ease),margin-top .38s var(--ease)}
+.mth-detail.open{max-height:2500px;opacity:1;padding-top:1rem;margin-top:1rem;border-top-color:var(--border-subtle)}
 .mth-section-title{font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:.8rem}
 
 /* Category grid — always 3 columns */

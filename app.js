@@ -1235,7 +1235,7 @@ function renderMonthly() {
           <span class="monthly-bar-val expense">${formatCurrency(exp)}</span>
         </div>
       </div>
-      <div class="mth-detail" id="${rowId}" style="display:none">
+      <div class="mth-detail" id="${rowId}">
         <div class="mth-section-title">BY CATEGORY BREAKDOWN</div>
         <div class="mth-cat-grid">${catCardsHtml}</div>
         <div class="mth-section-title" style="margin-top:1.5rem">ALL TRANSACTIONS</div>
@@ -1254,10 +1254,9 @@ window.toggleMonthDetail = function(rowId) {
   const detail = document.getElementById(rowId);
   const chev = document.getElementById('chev-' + rowId);
   if (!detail) return;
-  const isOpen = detail.style.display !== 'none';
-  detail.style.display = isOpen ? 'none' : 'block';
-  if (chev) chev.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
-  if (!isOpen) haptic();
+  const isOpen = detail.classList.toggle('open');
+  if (chev) chev.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+  if (isOpen) haptic();
 };
 
 // ─── TABUNG (SAVINGS) ─────────────────────────────────────────────────────
