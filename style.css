@@ -436,24 +436,33 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
   .dropdown-item:last-child{margin-bottom:0}
 
   /* ─── HERO BALANCE CARD ─── */
-  .mob-hero-card{background:linear-gradient(145deg,#1c0d42 0%,#0e1b3d 48%,#072a1e 100%);border:1px solid rgba(124,92,252,.22);border-radius:24px;padding:1.25rem 1rem 1rem;margin-bottom:1rem;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06)}
-  .mob-hero-card::before{content:'';position:absolute;top:-70px;right:-50px;width:220px;height:220px;background:radial-gradient(circle,rgba(124,92,252,.38) 0%,transparent 70%);pointer-events:none}
-  .mob-hero-card::after{content:'';position:absolute;bottom:-50px;left:-30px;width:180px;height:180px;background:radial-gradient(circle,rgba(0,229,180,.22) 0%,transparent 70%);pointer-events:none}
-  .mob-hero-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;position:relative;z-index:1}
-  .mob-hero-label{font-size:.65rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5)}
-  .mob-hero-date{font-size:.65rem;font-weight:600;color:rgba(255,255,255,.4);background:rgba(255,255,255,.09);padding:.15rem .45rem;border-radius:20px}
-  .mob-hero-balance{font-family:'Sora',sans-serif;font-size:2.1rem;font-weight:800;letter-spacing:-.04em;color:#fff;line-height:1.1;margin-bottom:1rem;position:relative;z-index:1;text-shadow:0 0 40px rgba(124,92,252,.5)}
-  .mob-hero-chips{display:flex;align-items:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:.5rem .65rem;position:relative;z-index:1;width:100%;box-sizing:border-box}
-  .mob-chip{display:flex;align-items:center;gap:.4rem;flex:1;min-width:0}
-  .mob-chip-divider{width:1px;height:28px;background:rgba(255,255,255,.12);margin:0 .5rem;flex-shrink:0}
-  .mob-chip-icon{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;flex-shrink:0}
+  .mob-hero-card{background:linear-gradient(145deg,#1a0c3d 0%,#0d1a38 50%,#061e14 100%);border:1px solid rgba(124,92,252,.25);border-radius:24px;padding:1.2rem 1.1rem 1.05rem;margin-bottom:1rem;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.07)}
+  .mob-hero-card::before{content:'';position:absolute;top:-60px;right:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(124,92,252,.4) 0%,transparent 70%);pointer-events:none}
+  .mob-hero-card::after{content:'';position:absolute;bottom:-40px;left:-20px;width:160px;height:160px;background:radial-gradient(circle,rgba(0,229,180,.18) 0%,transparent 70%);pointer-events:none}
+  /* Top row: greeting + eye */
+  .mob-hero-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem;position:relative;z-index:1}
+  .mob-hero-greeting{font-size:.82rem;font-weight:600;color:rgba(255,255,255,.6);letter-spacing:.01em}
+  .mob-eye-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;color:rgba(255,255,255,.7);transition:background .18s,transform .15s;flex-shrink:0}
+  .mob-eye-btn:active{transform:scale(.9);background:rgba(255,255,255,.16)}
+  /* Main balance — total income */
+  .mob-hero-main{position:relative;z-index:1;margin-bottom:.9rem}
+  .mob-hero-label{font-size:.62rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:.25rem;display:block}
+  .mob-hero-balance{font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:800;letter-spacing:-.03em;color:#fff;line-height:1;text-shadow:0 0 36px rgba(124,92,252,.5)}
+  /* Divider */
+  .mob-hero-divider{height:1px;background:rgba(255,255,255,.1);margin:0 0 .9rem;position:relative;z-index:1}
+  /* Chips row */
+  .mob-hero-chips{display:flex;align-items:center;position:relative;z-index:1;width:100%;box-sizing:border-box}
+  .mob-chip{display:flex;align-items:center;gap:.5rem;flex:1;min-width:0}
+  .mob-chip-divider{width:1px;height:30px;background:rgba(255,255,255,.12);margin:0 .65rem;flex-shrink:0}
+  .mob-chip-icon{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;flex-shrink:0}
   .mob-chip.income .mob-chip-icon{background:rgba(0,229,180,.18);color:var(--neon-teal)}
   .mob-chip.expense .mob-chip-icon{background:rgba(255,77,106,.18);color:var(--neon-coral)}
-  .mob-chip-info{display:flex;flex-direction:column;gap:1px;min-width:0}
-  .mob-chip-label{font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.42)}
-  .mob-chip-val{font-family:'Sora',sans-serif;font-size:.82rem;font-weight:800;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mob-chip-info{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .mob-chip-label{font-size:.58rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.4)}
+  .mob-chip-val{font-family:'Outfit',sans-serif;font-size:.9rem;font-weight:800;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .mob-chip.income .mob-chip-val{color:var(--neon-teal)}
   .mob-chip.expense .mob-chip-val{color:var(--neon-coral)}
+
 
   /* ─── QUICK ACTIONS ─── */
   .mob-quick-actions{display:flex;justify-content:space-around;align-items:center;margin-bottom:1.25rem;padding:0;width:100%;box-sizing:border-box}
@@ -570,6 +579,20 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
   .tx-desc{font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tx-right{flex-shrink:0;min-width:72px;max-width:100px;display:flex;flex-direction:column;align-items:flex-end;gap:.2rem;margin-left:.5rem}
   .tx-amount{font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+
+  /* ─── MORE MENU BOTTOM SHEET ─── */
+  .more-menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:flex-end;justify-content:center;transition:opacity .28s;opacity:0;pointer-events:none}
+  .more-menu-overlay:not(.hidden){pointer-events:all}
+  .more-menu-overlay.open{opacity:1}
+  .more-menu-drawer{width:100%;max-width:480px;background:var(--bg-card);border-radius:28px 28px 0 0;padding:0 1.25rem calc(env(safe-area-inset-bottom) + 2rem);border-top:1px solid var(--border-subtle);box-shadow:0 -8px 40px rgba(0,0,0,.5);transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+  .more-menu-overlay.open .more-menu-drawer{transform:translateY(0)}
+  .more-menu-handle{width:40px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;margin:0.85rem auto 1.1rem}
+  .more-menu-label{font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:1rem;display:block}
+  .more-menu-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.65rem}
+  .more-menu-item{display:flex;flex-direction:column;align-items:center;gap:.5rem;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:16px;padding:1rem .5rem .9rem;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .15s,border-color .15s,background .15s;color:var(--ink-primary)}
+  .more-menu-item:active{transform:scale(.94);background:var(--bg-card2)}
+  .more-menu-icon{font-size:1.6rem;line-height:1}
+  .more-menu-item span{font-size:.65rem;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--ink-secondary)}
 
   /* ─── STAGGERED LIST ANIMATION ─── */
   .tx-animate{animation:txSlideIn .35s var(--ease) both}

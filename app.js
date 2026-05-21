@@ -96,6 +96,8 @@ function setGreeting() {
   const h = new Date().getHours();
   const greet = h < 12 ? 'Good morning! 👋' : h < 17 ? 'Good afternoon! ☀️' : 'Good evening! 🌙';
   document.getElementById('greeting').textContent = greet;
+  const mobGreet = document.getElementById('mob-greeting');
+  if (mobGreet) mobGreet.textContent = greet;
 }
 
 function setHeroDate() {
@@ -605,6 +607,29 @@ window.openMobileSettings = function (e) {
   navigateTo('settings', document.querySelector('[data-page="settings"]'));
 };
 
+// ─── MORE MENU ────────────────────────────────────────────────────────────
+window.toggleMoreMenu = function() {
+  const overlay = document.getElementById('more-menu-overlay');
+  if (!overlay) return;
+  const isHidden = overlay.classList.contains('hidden');
+  if (isHidden) {
+    overlay.classList.remove('hidden');
+    requestAnimationFrame(() => overlay.classList.add('open'));
+  } else {
+    closeMoreMenu();
+  }
+};
+window.closeMoreMenu = function() {
+  const overlay = document.getElementById('more-menu-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  setTimeout(() => overlay.classList.add('hidden'), 280);
+  // Remove active state from More tab
+  document.querySelectorAll('.bottom-nav .nav-item').forEach(i => {
+    if (i.dataset.page === 'more') i.classList.remove('active');
+  });
+};
+
 // Close dropdown when clicking outside
 document.addEventListener('click', function (e) {
   const dd = document.getElementById('profile-dropdown');
@@ -825,14 +850,37 @@ function updateSummaryCards() {
   document.getElementById('total-expense').textContent = formatCurrency(expense);
   document.getElementById('total-balance').textContent = formatCurrency(balance);
   document.getElementById('tx-count').textContent = allTransactions.length;
-  // Mobile hero card
+  // Mobile hero card — total income + remaining after commitments
   const mobBal = document.getElementById('mob-hero-balance');
-  const mobInc = document.getElementById('mob-total-income');
-  const mobExp = document.getElementById('mob-total-expense');
-  if (mobBal) mobBal.textContent = formatCurrency(balance);
-  if (mobInc) mobInc.textContent = formatCurrency(income);
-  if (mobExp) mobExp.textContent = formatCurrency(expense);
+  const mobRem = document.getElementById('mob-remaining');
+  const mobCom = document.getElementById('mob-commitments');
+  if (mobBal) mobBal.dataset.value = formatCurrency(income);
+  if (mobRem) mobRem.dataset.value = formatCurrency(balance);
+  if (mobCom) mobCom.dataset.value = formatCurrency(expense);
+  // Apply current visibility state
+  applyBalanceVisibility();
 }
+
+let balanceHidden = false;
+function applyBalanceVisibility() {
+  const els = document.querySelectorAll('.masked-val');
+  els.forEach(el => {
+    if (balanceHidden) {
+      el.textContent = '••••••';
+    } else {
+      el.textContent = el.dataset.value || el.textContent;
+    }
+  });
+  const showIcon = document.getElementById('eye-icon-show');
+  const hideIcon = document.getElementById('eye-icon-hide');
+  if (showIcon) showIcon.style.display = balanceHidden ? 'none' : 'block';
+  if (hideIcon) hideIcon.style.display = balanceHidden ? 'block' : 'none';
+}
+window.toggleBalanceVisibility = function() {
+  balanceHidden = !balanceHidden;
+  haptic();
+  applyBalanceVisibility();
+};
 
 function buildTransactionItem(tx) {
   const wrapper = document.createElement('div');

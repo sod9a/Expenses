@@ -162,27 +162,34 @@
           <button class="btn-add-tx" onclick="openModal()">+ Add Transaction</button>
         </div>
 
-        <!-- Mobile Hero Card (hidden on desktop via CSS) -->
+        <!-- Mobile Hero Card -->
         <div class="mob-hero-card" id="mob-hero-card">
           <div class="mob-hero-top">
-            <span class="mob-hero-label">Total Balance</span>
-            <span class="mob-hero-date" id="mob-hero-date"></span>
+            <div class="mob-hero-greeting" id="mob-greeting">Good morning 👋</div>
+            <button class="mob-eye-btn" id="mob-eye-btn" onclick="toggleBalanceVisibility()" aria-label="Toggle visibility">
+              <svg id="eye-icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg id="eye-icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
           </div>
-          <div class="mob-hero-balance" id="mob-hero-balance">$0.00</div>
+          <div class="mob-hero-main">
+            <span class="mob-hero-label">Total Income</span>
+            <div class="mob-hero-balance masked-val" id="mob-hero-balance">RM0.00</div>
+          </div>
+          <div class="mob-hero-divider"></div>
           <div class="mob-hero-chips">
             <div class="mob-chip income">
               <div class="mob-chip-icon">↑</div>
               <div class="mob-chip-info">
-                <span class="mob-chip-label">Income</span>
-                <span class="mob-chip-val" id="mob-total-income">$0.00</span>
+                <span class="mob-chip-label">Remaining</span>
+                <span class="mob-chip-val masked-val" id="mob-remaining">RM0.00</span>
               </div>
             </div>
             <div class="mob-chip-divider"></div>
             <div class="mob-chip expense">
               <div class="mob-chip-icon">↓</div>
               <div class="mob-chip-info">
-                <span class="mob-chip-label">Expenses</span>
-                <span class="mob-chip-val" id="mob-total-expense">$0.00</span>
+                <span class="mob-chip-label">Commitments</span>
+                <span class="mob-chip-val masked-val" id="mob-commitments">RM0.00</span>
               </div>
             </div>
           </div>
@@ -400,31 +407,19 @@
       </section>
     </main>
 
-    <!-- Bottom Nav (Mobile Only) — Floating Pill -->
+    <!-- Bottom Nav (Mobile Only) -->
     <nav class="bottom-nav" id="bottom-nav">
       <div class="mob-nav-pill">
-        <a href="#" class="nav-item" data-page="transactions" onclick="haptic();navigateTo('transactions',this)">
-          <div class="nav-item-inner">
-            <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            <span class="nav-text">History</span>
-          </div>
-        </a>
-        <a href="#" class="nav-item" data-page="monthly" onclick="haptic();navigateTo('monthly',this)">
-          <div class="nav-item-inner">
-            <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <span class="nav-text">Monthly</span>
-          </div>
-        </a>
         <a href="#" class="nav-item active" data-page="dashboard" onclick="haptic();navigateTo('dashboard',this)">
           <div class="nav-item-inner">
             <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
             <span class="nav-text">Home</span>
           </div>
         </a>
-        <a href="#" class="nav-item" data-page="tabung" onclick="haptic();navigateTo('tabung',this)">
+        <a href="#" class="nav-item" data-page="transactions" onclick="haptic();navigateTo('transactions',this)">
           <div class="nav-item-inner">
-            <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-            <span class="nav-text">Savings</span>
+            <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span class="nav-text">Expenses</span>
           </div>
         </a>
         <a href="#" class="nav-item" data-page="loans" onclick="haptic();navigateTo('loans',this)">
@@ -433,8 +428,46 @@
             <span class="nav-text">Loans</span>
           </div>
         </a>
+        <a href="#" class="nav-item" data-page="tabung" onclick="haptic();navigateTo('tabung',this)">
+          <div class="nav-item-inner">
+            <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            <span class="nav-text">Savings</span>
+          </div>
+        </a>
+        <a href="#" class="nav-item" data-page="more" onclick="haptic();toggleMoreMenu()">
+          <div class="nav-item-inner">
+            <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
+            <span class="nav-text">More</span>
+          </div>
+        </a>
       </div>
     </nav>
+
+    <!-- More Menu Bottom Sheet -->
+    <div id="more-menu-overlay" class="more-menu-overlay hidden" onclick="closeMoreMenu()">
+      <div class="more-menu-drawer" onclick="event.stopPropagation()">
+        <div class="more-menu-handle"></div>
+        <p class="more-menu-label">More Options</p>
+        <div class="more-menu-grid">
+          <button class="more-menu-item" onclick="haptic();navigateTo('monthly',document.querySelector('[data-page=monthly]'));closeMoreMenu()">
+            <div class="more-menu-icon">📅</div>
+            <span>Monthly</span>
+          </button>
+          <button class="more-menu-item" onclick="haptic();navigateTo('budgets',document.querySelector('[data-page=budgets]'));closeMoreMenu()">
+            <div class="more-menu-icon">🎯</div>
+            <span>Budgets</span>
+          </button>
+          <button class="more-menu-item" onclick="haptic();navigateTo('categories',document.querySelector('[data-page=categories]'));closeMoreMenu()">
+            <div class="more-menu-icon">🏷️</div>
+            <span>Categories</span>
+          </button>
+          <button class="more-menu-item" onclick="haptic();navigateTo('settings',document.querySelector('[data-page=settings]'));closeMoreMenu()">
+            <div class="more-menu-icon">⚙️</div>
+            <span>Settings</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Add/Edit Transaction Modal -->
