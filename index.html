@@ -265,16 +265,18 @@
             <div class="checklist-progress-bar" id="checklist-progress-bar" style="width:0%"></div>
           </div>
           <div class="checklist-body" id="checklist-body">
-            <div id="checklist-list" class="checklist-list">
-              <div class="checklist-empty">No items yet. Add your first payment below.</div>
-            </div>
-            <div class="checklist-add-form">
-              <input type="text" id="checklist-name" class="checklist-input" placeholder="e.g. Netflix, Rent…" />
-              <div class="checklist-amount-wrap">
-                <span class="checklist-currency dynamic-currency">$</span>
-                <input type="number" id="checklist-amount" class="checklist-input checklist-amount-input" placeholder="0.00" min="0" step="0.01" />
+            <div class="checklist-body-inner">
+              <div id="checklist-list" class="checklist-list">
+                <div class="checklist-empty">No items yet. Add your first payment below.</div>
               </div>
-              <button class="checklist-add-btn" onclick="addChecklistItem()">+ Add</button>
+              <div class="checklist-add-form">
+                <input type="text" id="checklist-name" class="checklist-input" placeholder="e.g. Netflix, Rent…" />
+                <div class="checklist-amount-wrap">
+                  <span class="checklist-currency dynamic-currency">$</span>
+                  <input type="number" id="checklist-amount" class="checklist-input checklist-amount-input" placeholder="0.00" min="0" step="0.01" />
+                </div>
+                <button class="checklist-add-btn" onclick="addChecklistItem()">+ Add</button>
+              </div>
             </div>
           </div>
         </div>

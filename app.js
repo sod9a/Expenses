@@ -1236,10 +1236,12 @@ function renderMonthly() {
         </div>
       </div>
       <div class="mth-detail" id="${rowId}">
-        <div class="mth-section-title">BY CATEGORY BREAKDOWN</div>
-        <div class="mth-cat-grid">${catCardsHtml}</div>
-        <div class="mth-section-title" style="margin-top:1.5rem">ALL TRANSACTIONS</div>
-        <div class="mth-tx-list">${txListHtml}</div>
+        <div class="mth-detail-inner">
+          <div class="mth-section-title">BY CATEGORY BREAKDOWN</div>
+          <div class="mth-cat-grid">${catCardsHtml}</div>
+          <div class="mth-section-title" style="margin-top:1.5rem">ALL TRANSACTIONS</div>
+          <div class="mth-tx-list">${txListHtml}</div>
+        </div>
       </div>
     `;
     breakdown.appendChild(div);
