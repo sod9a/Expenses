@@ -199,8 +199,8 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 .checklist-card.open .checklist-chevron{transform:rotate(180deg)}
 .checklist-progress-wrap{height:6px;background:var(--bg-elevated);width:100%;border-radius:3px;overflow:hidden}
 .checklist-progress-bar{height:100%;background:linear-gradient(90deg,var(--neon-violet),var(--neon-teal));border-radius:3px;transition:width .4s var(--ease)}
-.checklist-body{border-top:1px solid var(--border-subtle);display:none;flex-direction:column}
-.checklist-card.open .checklist-body{display:flex}
+.checklist-body{border-top:1px solid transparent;display:flex;flex-direction:column;max-height:0;overflow:hidden;opacity:0;transition:max-height .38s var(--ease),opacity .28s var(--ease),border-top-color .28s var(--ease)}
+.checklist-card.open .checklist-body{max-height:1000px;opacity:1;border-top-color:var(--border-subtle)}
 .checklist-list{display:flex;flex-direction:column;gap:.1rem;padding:.6rem .8rem .3rem}
 .checklist-empty{padding:1.5rem;text-align:center;color:var(--ink-muted);font-size:.82rem}
 .checklist-item{display:flex;align-items:center;gap:.75rem;padding:.7rem .7rem;border-radius:var(--r-md);transition:background var(--t)}
