@@ -525,6 +525,7 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
   .bottom-nav .nav-item.active{color:var(--neon-violet2)}
   .bottom-nav .nav-item.active .nav-svg{filter:drop-shadow(0 0 6px rgba(124,92,252,.7));transform:translateY(-2px) scale(1.12)}
   .bottom-nav .nav-item.active .nav-item-inner{transform:translateY(-1px)}
+  .bottom-nav .nav-item.active::before{content:'';position:absolute;left:50%;transform:translateX(-50%);top:auto;bottom:4px;width:22px;height:3px;background:linear-gradient(90deg,var(--neon-violet),var(--neon-teal));border-radius:2px}
 
   /* ─── SUMMARY GRID — hide on dashboard (replaced by hero) ─── */
   #page-dashboard .summary-grid{display:none}
@@ -608,6 +609,7 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
   .bottom-nav .nav-item.active{color:var(--neon-violet2)}
   .bottom-nav .nav-item.active .nav-svg{filter:drop-shadow(0 0 6px rgba(124,92,252,.7));transform:translateY(-2px) scale(1.12)}
   .bottom-nav .nav-item.active .nav-item-inner{transform:translateY(-1px)}
+  .bottom-nav .nav-item.active::before{content:'';position:absolute;left:50%;transform:translateX(-50%);top:auto;bottom:4px;width:22px;height:3px;background:linear-gradient(90deg,var(--neon-violet),var(--neon-teal));border-radius:2px}
 
   /* ─── MOBILE PAGE FAB (Savings, Loans, Budgets, Transactions) ─── */
   .mob-page-fab{display:inline-flex;align-items:center;justify-content:center;width:100%;padding:.75rem 1rem;background:linear-gradient(135deg,var(--neon-violet),var(--neon-violet2));border:none;border-radius:16px;color:#fff;font-family:'DM Sans',sans-serif;font-size:.92rem;font-weight:700;cursor:pointer;margin-bottom:1rem;box-shadow:0 4px 16px rgba(124,92,252,.4);-webkit-tap-highlight-color:transparent;letter-spacing:.01em}
