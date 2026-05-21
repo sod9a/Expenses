@@ -49,6 +49,8 @@ let unsubscribeBudgets = null;
 let unsubscribeSettings = null;
 let unsubscribeTabung = null;
 let unsubscribeLoans = null;
+let unsubscribeChecklist = null;
+let allChecklist = [];
 let isRegistering = false;
 
 // ─── Auth State ───────────────────────────────────────────────────────────
@@ -66,10 +68,12 @@ onAuthStateChanged(auth, (user) => {
     if (unsubscribeSettings) { unsubscribeSettings(); unsubscribeSettings = null; }
     if (unsubscribeTabung) { unsubscribeTabung(); unsubscribeTabung = null; }
     if (unsubscribeLoans) { unsubscribeLoans(); unsubscribeLoans = null; }
+    if (unsubscribeChecklist) { unsubscribeChecklist(); unsubscribeChecklist = null; }
     allTransactions = [];
     allBudgets = [];
     allTabung = [];
     allLoans = [];
+    allChecklist = [];
   }
 });
 
@@ -332,6 +336,14 @@ window.faceIdLogin = async function () {
 document.addEventListener('DOMContentLoaded', () => {
   showFaceIdButton();
   tryAutoSignIn(); // Attempt silent auto-login on every page load
+  
+  // Read checklist open state from localStorage
+  const isChecklistOpen = localStorage.getItem('checklistOpen') !== 'false';
+  const checklistCard = document.getElementById('checklist-card');
+  if (checklistCard) {
+    if (isChecklistOpen) checklistCard.classList.add('open');
+    else checklistCard.classList.remove('open');
+  }
 });
 
 document.getElementById('btn-forgot').addEventListener('click', async () => {
@@ -428,6 +440,20 @@ function subscribeToData() {
     allLoans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (document.getElementById('page-loans').classList.contains('active')) renderLoans();
     if (activeLoanDetailId) refreshLoanDetailsModal();
+  });
+
+  // 6. Checklist
+  const cq = query(collection(db, 'checklist'), where('uid', '==', currentUser.uid));
+  unsubscribeChecklist = onSnapshot(cq, snap => {
+    allChecklist = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allChecklist.sort((a, b) => {
+      const aTime = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+      const bTime = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+      return aTime - bTime;
+    });
+    renderChecklist();
+  }, (err) => {
+    console.error('Checklist Firestore error:', err);
   });
 }
 
@@ -814,6 +840,7 @@ window.deleteBudget = async function (id) {
 function renderAll() {
   updateSummaryCards();
   renderRecentTransactions();
+  renderChecklist();
   if (document.getElementById('page-transactions').classList.contains('active')) renderAllTransactions();
   if (document.getElementById('page-categories').classList.contains('active')) renderCategories();
   if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
@@ -2102,6 +2129,132 @@ window.addLoanPaymentFromDetail = async function() {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Record Payment';
     }
+  }
+};
+
+// ─── Monthly Payment Checklist Functions ────────────────────────────────────
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+window.toggleChecklistDropdown = function() {
+  const card = document.getElementById('checklist-card');
+  if (!card) return;
+  const isOpen = card.classList.toggle('open');
+  localStorage.setItem('checklistOpen', isOpen);
+};
+
+window.renderChecklist = function() {
+  const listEl = document.getElementById('checklist-list');
+  const barEl = document.getElementById('checklist-progress-bar');
+  const subtitleEl = document.getElementById('checklist-subtitle');
+  const totalAmountEl = document.getElementById('checklist-total-amount');
+  
+  if (!listEl || !barEl || !subtitleEl || !totalAmountEl) return;
+  
+  // Totals & Progress
+  const totalItems = allChecklist.length;
+  const paidItems = allChecklist.filter(item => item.paid).length;
+  const pct = totalItems > 0 ? (paidItems / totalItems) * 100 : 0;
+  
+  barEl.style.width = `${pct}%`;
+  subtitleEl.textContent = `${paidItems} of ${totalItems} paid`;
+  
+  const totalAmount = allChecklist.reduce((sum, item) => sum + (item.amount || 0), 0);
+  totalAmountEl.textContent = formatCurrency(totalAmount);
+  
+  if (totalItems === 0) {
+    listEl.innerHTML = '<div class="checklist-empty">No items yet. Add your first payment below.</div>';
+    return;
+  }
+  
+  listEl.innerHTML = allChecklist.map(item => {
+    const isPaid = item.paid ? 'paid' : '';
+    const isChecked = item.paid ? 'checked' : '';
+    return `
+      <div class="checklist-item ${isPaid}">
+        <div class="checklist-check ${isChecked}" onclick="toggleChecklistItem('${item.id}', ${item.paid})"></div>
+        <div class="checklist-item-info">
+          <span class="checklist-item-name">${escapeHtml(item.name)}</span>
+        </div>
+        <span class="checklist-item-amount">${formatCurrency(item.amount || 0)}</span>
+        <button class="checklist-delete-btn" onclick="deleteChecklistItem('${item.id}')">×</button>
+      </div>
+    `;
+  }).join('');
+};
+
+window.addChecklistItem = async function() {
+  const nameInput = document.getElementById('checklist-name');
+  const amountInput = document.getElementById('checklist-amount');
+  
+  if (!nameInput || !amountInput) return;
+  
+  const name = nameInput.value.trim();
+  const amountVal = amountInput.value.trim();
+  
+  if (!name) {
+    showToast('Please enter an item name.', 'error');
+    return;
+  }
+  
+  const amount = amountVal ? parseFloat(amountVal) : 0;
+  if (isNaN(amount) || amount < 0) {
+    showToast('Please enter a valid amount.', 'error');
+    return;
+  }
+  
+  const addBtn = document.querySelector('.checklist-add-btn');
+  if (addBtn) {
+    addBtn.disabled = true;
+    addBtn.textContent = 'Adding…';
+  }
+  
+  try {
+    await addDoc(collection(db, 'checklist'), {
+      uid: currentUser.uid,
+      name: name,
+      amount: amount,
+      paid: false,
+      createdAt: serverTimestamp()
+    });
+    
+    nameInput.value = '';
+    amountInput.value = '';
+    showToast('Item added successfully!', 'success');
+  } catch(e) {
+    console.error('Error adding checklist item:', e);
+    showToast('Failed to add checklist item.', 'error');
+  } finally {
+    if (addBtn) {
+      addBtn.disabled = false;
+      addBtn.textContent = '+ Add';
+    }
+  }
+};
+
+window.toggleChecklistItem = async function(id, currentPaid) {
+  if (window.haptic) window.haptic();
+  try {
+    await updateDoc(doc(db, 'checklist', id), {
+      paid: !currentPaid
+    });
+  } catch(e) {
+    console.error('Error toggling checklist item:', e);
+    showToast('Failed to update item status.', 'error');
+  }
+};
+
+window.deleteChecklistItem = async function(id) {
+  if (window.haptic) window.haptic();
+  try {
+    await deleteDoc(doc(db, 'checklist', id));
+    showToast('Item removed.', 'success');
+  } catch(e) {
+    console.error('Error deleting checklist item:', e);
+    showToast('Failed to delete item.', 'error');
   }
 };
 

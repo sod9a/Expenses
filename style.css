@@ -185,6 +185,46 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 .section-header{padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-subtle)}
 .section-header h2{font-family:'Sora',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:-.01em}
 
+/* MONTHLY PAYMENT CHECKLIST */
+.checklist-card{margin-top:1.25rem}
+.checklist-header{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.4rem;cursor:pointer;user-select:none;transition:background var(--t)}
+.checklist-header:hover{background:var(--bg-card2)}
+.checklist-header-left{display:flex;align-items:center;gap:.85rem}
+.checklist-icon{font-size:1.5rem;line-height:1}
+.checklist-header-left h2{font-family:'Sora',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:-.01em;margin:0}
+.checklist-subtitle{font-size:.72rem;color:var(--ink-muted);font-weight:500;display:block;margin-top:.1rem}
+.checklist-header-right{display:flex;align-items:center;gap:.75rem}
+.checklist-total-amount{font-family:'Sora',sans-serif;font-size:.85rem;font-weight:700;color:var(--neon-violet)}
+.checklist-chevron{color:var(--ink-secondary);transition:transform .3s var(--ease);flex-shrink:0}
+.checklist-card.open .checklist-chevron{transform:rotate(180deg)}
+.checklist-progress-wrap{height:3px;background:var(--bg-elevated);width:100%}
+.checklist-progress-bar{height:100%;background:linear-gradient(90deg,var(--neon-violet),var(--neon-teal));border-radius:2px;transition:width .5s var(--ease)}
+.checklist-body{border-top:1px solid var(--border-subtle);display:none;flex-direction:column}
+.checklist-card.open .checklist-body{display:flex}
+.checklist-list{display:flex;flex-direction:column;gap:.1rem;padding:.6rem .8rem .3rem}
+.checklist-empty{padding:1.5rem;text-align:center;color:var(--ink-muted);font-size:.82rem}
+.checklist-item{display:flex;align-items:center;gap:.75rem;padding:.7rem .7rem;border-radius:var(--r-md);transition:background var(--t)}
+.checklist-item:hover{background:var(--bg-elevated)}
+.checklist-check{width:20px;height:20px;border-radius:6px;border:2px solid var(--border-med);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s var(--ease)}
+.checklist-check.checked{background:var(--neon-teal);border-color:var(--neon-teal)}
+.checklist-check.checked::after{content:'✓';color:#0a1a12;font-size:.75rem;font-weight:800;line-height:1}
+.checklist-item-info{flex:1;min-width:0}
+.checklist-item-name{font-size:.88rem;font-weight:600;color:var(--ink-primary);transition:color var(--t),text-decoration var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.checklist-item.paid .checklist-item-name{color:var(--ink-muted);text-decoration:line-through}
+.checklist-item-amount{font-family:'Sora',sans-serif;font-size:.82rem;font-weight:700;color:var(--ink-secondary);flex-shrink:0;transition:color var(--t)}
+.checklist-item.paid .checklist-item-amount{color:var(--neon-teal)}
+.checklist-delete-btn{background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:1rem;padding:.2rem .35rem;border-radius:var(--r-sm);transition:color var(--t),background var(--t);flex-shrink:0;line-height:1}
+.checklist-delete-btn:hover{color:var(--neon-coral);background:rgba(255,77,106,.1)}
+.checklist-add-form{display:flex;gap:.6rem;padding:.8rem 1rem 1rem;flex-wrap:wrap;border-top:1px solid var(--border-subtle);align-items:center}
+.checklist-input{flex:1;min-width:120px;padding:.6rem .9rem;border-radius:var(--r-md);border:1.5px solid var(--border-subtle);background:var(--bg-elevated);color:var(--ink-primary);font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;transition:border-color var(--t)}
+.checklist-input:focus{border-color:var(--neon-violet)}
+.checklist-amount-wrap{position:relative;display:flex;align-items:center;min-width:110px}
+.checklist-currency{position:absolute;left:.7rem;font-family:'Sora',sans-serif;font-weight:700;font-size:.85rem;color:var(--ink-secondary);pointer-events:none;z-index:2}
+.checklist-amount-input{padding-left:2rem!important}
+.checklist-add-btn{padding:.6rem 1.1rem;border-radius:var(--r-md);border:none;background:linear-gradient(135deg,var(--neon-violet),var(--neon-violet2));color:#fff;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:opacity var(--t),transform var(--t);white-space:nowrap}
+.checklist-add-btn:hover{opacity:.88;transform:translateY(-1px)}
+.checklist-add-btn:active{transform:translateY(0)}
+
 /* TRANSACTIONS */
 .transaction-wrapper{position:relative;overflow:hidden;border-radius:var(--r-lg);border:1px solid var(--border-subtle);background:var(--bg-card);margin-bottom:.65rem;transition:border-color var(--t)}
 .transaction-item{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.1rem;background:var(--bg-card);transition:transform .3s cubic-bezier(.22,1,.36,1),background var(--t);position:relative;z-index:2;border-radius:var(--r-lg);will-change:transform}
