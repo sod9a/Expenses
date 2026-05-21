@@ -220,7 +220,7 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 .checklist-input:focus{border-color:var(--neon-violet)}
 .checklist-amount-wrap{position:relative;display:flex;align-items:center;min-width:110px}
 .checklist-currency{position:absolute;left:.7rem;font-family:'Sora',sans-serif;font-weight:700;font-size:.85rem;color:var(--ink-secondary);pointer-events:none;z-index:2}
-.checklist-amount-input{padding-left:2rem!important}
+.checklist-amount-input{padding-left:2.7rem!important}
 .checklist-add-btn{padding:.6rem 1.1rem;border-radius:var(--r-md);border:none;background:linear-gradient(135deg,var(--neon-violet),var(--neon-violet2));color:#fff;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:opacity var(--t),transform var(--t);white-space:nowrap}
 .checklist-add-btn:hover{opacity:.88;transform:translateY(-1px)}
 .checklist-add-btn:active{transform:translateY(0)}
