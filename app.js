@@ -929,6 +929,7 @@ function buildTransactionItem(tx) {
 
 function renderRecentTransactions() {
   const container = document.getElementById('recent-list');
+  if (!container) return;
   const recent = allTransactions.slice(0, 5);
   container.innerHTML = '';
   if (!recent.length) {
