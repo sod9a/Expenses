@@ -21,6 +21,13 @@
   --neon-coral2:    #ff6b82;
   --neon-amber:     #ffb547;
   --neon-blue:      #3d9bff;
+  /* Aliases used in JS */
+  --accent-purple:       #7c5cfc;
+  --accent-purple-light: #9b7dfd;
+  --accent-green:        #00e5b4;
+  --accent-green-bg:     rgba(0,229,180,0.1);
+  --accent-gold:         #ffb547;
+  --accent-red:          #ff4d6a;
   --glow-violet:    0 0 20px rgba(124,92,252,0.35);
   --border-subtle:  rgba(255, 255, 255, 0.08);
   --border-med:     rgba(255, 255, 255, 0.14);
