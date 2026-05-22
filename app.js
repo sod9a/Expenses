@@ -316,6 +316,8 @@ window.resendVerification = async function () {
 
 window.logoutUser = async function () {
   await signOut(auth);
+  // Reset balance visibility so next user starts fresh
+  balanceHidden = false;
   // Clear all login/register fields
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
@@ -506,11 +508,19 @@ function subscribeToData() {
       } else {
         grossIncome = 0;
       }
+      // Restore balance visibility preference from Firestore
+      if (typeof docSnap.data().balanceHidden === 'boolean') {
+        balanceHidden = docSnap.data().balanceHidden;
+        localStorage.setItem('balanceHidden', balanceHidden ? 'true' : 'false');
+        applyBalanceVisibility();
+      }
       applySettings();
     } else {
       // Document doesn't exist yet for new user, reset to default settings and 0 gross income
       userSettings = { currency: '$', theme: 'dark', avatarUrl: '' };
       grossIncome = 0;
+      balanceHidden = false;
+      applyBalanceVisibility();
       applySettings();
     }
   });
@@ -1055,6 +1065,10 @@ function applyBalanceVisibility() {
 window.toggleBalanceVisibility = function() {
   balanceHidden = !balanceHidden;
   localStorage.setItem('balanceHidden', balanceHidden ? 'true' : 'false');
+  // Persist to Firestore so the setting survives sign-out / sign-in
+  if (currentUser) {
+    setDoc(doc(db, 'settings', currentUser.uid), { balanceHidden }, { merge: true }).catch(() => {});
+  }
   haptic();
   applyBalanceVisibility();
 };
