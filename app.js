@@ -91,14 +91,8 @@ function showApp(user) {
   setGreeting();
   setHeroDate();
 
-  // Set default current month in transaction page month filter
-  const filterMonthEl = document.getElementById('filter-month');
-  if (filterMonthEl) {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    filterMonthEl.value = `${year}-${month}`;
-  }
+  // Populate year select and set current month/year defaults
+  initMonthYearSelects();
 
   // Always start on Dashboard after login
   navigateTo('dashboard', document.querySelector('[data-page="dashboard"]'));
@@ -109,6 +103,29 @@ function hideApp() {
   document.getElementById('app').classList.add('hidden');
   const overlay = document.getElementById('profile-settings-overlay');
   if (overlay) overlay.classList.add('hidden');
+}
+
+function initMonthYearSelects() {
+  const selMonth = document.getElementById('filter-month-month');
+  const selYear  = document.getElementById('filter-month-year');
+  if (!selMonth || !selYear) return;
+
+  const now   = new Date();
+  const curY  = now.getFullYear();
+  const curM  = String(now.getMonth() + 1).padStart(2, '0');
+
+  // Populate years: 3 years back up to current year
+  selYear.innerHTML = '';
+  for (let y = curY - 3; y <= curY; y++) {
+    const opt = document.createElement('option');
+    opt.value = String(y);
+    opt.textContent = String(y);
+    if (y === curY) opt.selected = true;
+    selYear.appendChild(opt);
+  }
+
+  // Set current month
+  selMonth.value = curM;
 }
 
 function setGreeting() {
@@ -1046,7 +1063,9 @@ function renderRecentTransactions() {
 function getFilteredTransactions() {
   let list = [...allTransactions];
   if (activeFilter !== 'all') list = list.filter(t => t.type === activeFilter);
-  const monthVal = document.getElementById('filter-month').value;
+  const selMonth = document.getElementById('filter-month-month');
+  const selYear  = document.getElementById('filter-month-year');
+  const monthVal = (selMonth && selYear && selYear.value) ? `${selYear.value}-${selMonth.value}` : '';
   if (monthVal) list = list.filter(t => t.date && t.date.startsWith(monthVal));
   
   const searchInput = document.getElementById('search-tx');

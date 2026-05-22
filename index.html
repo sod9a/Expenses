@@ -301,7 +301,23 @@
               <button class="filter-btn" onclick="filterTransactions('income',this)">Income</button>
               <button class="filter-btn" onclick="filterTransactions('expense',this)">Expense</button>
             </div>
-            <input type="month" id="filter-month" class="filter-month" onchange="filterByMonth()" />
+            <div class="filter-month-selects">
+              <select id="filter-month-month" class="filter-month-sel" onchange="filterByMonth()">
+                <option value="01">Jan</option>
+                <option value="02">Feb</option>
+                <option value="03">Mar</option>
+                <option value="04">Apr</option>
+                <option value="05">May</option>
+                <option value="06">Jun</option>
+                <option value="07">Jul</option>
+                <option value="08">Aug</option>
+                <option value="09">Sep</option>
+                <option value="10">Oct</option>
+                <option value="11">Nov</option>
+                <option value="12">Dec</option>
+              </select>
+              <select id="filter-month-year" class="filter-month-sel" onchange="filterByMonth()"></select>
+            </div>
           </div>
         </div>
 
