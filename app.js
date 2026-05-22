@@ -105,16 +105,18 @@ function hideApp() {
   if (overlay) overlay.classList.add('hidden');
 }
 
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
 function initMonthYearSelects() {
   const selMonth = document.getElementById('filter-month-month');
   const selYear  = document.getElementById('filter-month-year');
   if (!selMonth || !selYear) return;
 
-  const now   = new Date();
-  const curY  = now.getFullYear();
-  const curM  = String(now.getMonth() + 1).padStart(2, '0');
+  const now  = new Date();
+  const curY = now.getFullYear();
+  const curM = now.getMonth(); // 0-indexed
 
-  // Populate years: 3 years back up to current year
+  // Populate years: 3 years back → current
   selYear.innerHTML = '';
   for (let y = curY - 3; y <= curY; y++) {
     const opt = document.createElement('option');
@@ -124,9 +126,46 @@ function initMonthYearSelects() {
     selYear.appendChild(opt);
   }
 
-  // Set current month
-  selMonth.value = curM;
+  // Set current month (option values are '01'–'12')
+  selMonth.value = String(curM + 1).padStart(2, '0');
+
+  // Update the pill label immediately
+  updateMonthPickerLabel();
 }
+
+function updateMonthPickerLabel() {
+  const selMonth = document.getElementById('filter-month-month');
+  const selYear  = document.getElementById('filter-month-year');
+  const label    = document.getElementById('month-picker-label');
+  if (!selMonth || !selYear || !label) return;
+  const m = parseInt(selMonth.value, 10) - 1;
+  const y = selYear.value;
+  label.textContent = `${MONTH_NAMES[m]} ${y}`;
+}
+
+window.toggleMonthPicker = function(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('month-picker-dropdown');
+  if (!dd) return;
+  dd.classList.toggle('hidden');
+};
+
+window.onMonthPickerChange = function() {
+  updateMonthPickerLabel();
+  // Close dropdown after selection on mobile
+  const dd = document.getElementById('month-picker-dropdown');
+  if (dd) dd.classList.add('hidden');
+  filterByMonth();
+};
+
+// Close picker when clicking outside
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('month-picker-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const dd = document.getElementById('month-picker-dropdown');
+    if (dd) dd.classList.add('hidden');
+  }
+});
 
 function setGreeting() {
   const h = new Date().getHours();
