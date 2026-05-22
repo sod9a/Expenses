@@ -1141,7 +1141,7 @@ function renderMonthly() {
   summaryEl.innerHTML = `
     <div class="mth-year-summary">
       <div class="mth-year-stat">
-        <span class="mth-year-label">Total Income</span>
+        <span class="mth-year-label">Net Income</span>
         <span class="mth-year-val income">${formatCurrency(totalIncome)}</span>
       </div>
       <div class="mth-year-divider"></div>
