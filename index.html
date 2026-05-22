@@ -140,7 +140,7 @@
       <div class="mob-header-left mobile-profile-container">
         <div class="mob-avatar-btn" id="mobile-user-avatar" onclick="toggleProfileDropdown(event)">U</div>
         <div id="profile-dropdown" class="profile-dropdown">
-          <button class="dropdown-item" onclick="openMobileSettings(event)">⚙️ Profile &amp; Settings</button>
+          <button class="dropdown-item" onclick="openProfileSettingsModal()">⚙️ Profile &amp; Settings</button>
           <button class="dropdown-item text-red" onclick="logoutUser()">↩ Sign Out</button>
         </div>
       </div>
@@ -672,6 +672,78 @@
           </div>
         </div>
         <button class="btn-primary" onclick="saveGrossIncome()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile & Settings Modal -->
+  <div id="profile-settings-overlay" class="modal-overlay hidden" onclick="closeProfileSettingsModalOnOverlay(event)">
+    <div class="modal small-modal">
+      <div class="modal-header">
+        <h2>Profile &amp; Settings</h2>
+        <button class="modal-close" onclick="closeProfileSettingsModal()">✕</button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 1.25rem; padding-bottom: 2rem;">
+        
+        <!-- Profile Picture & Username Section -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; text-align: center;">
+          <!-- Avatar Preview Container -->
+          <div style="position: relative; width: 90px; height: 90px; margin: 0 auto;">
+            <div id="modal-avatar-preview" style="width: 90px; height: 90px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-purple), var(--accent-green)); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 700; color: white; overflow: hidden; border: 3px solid var(--border-light); box-shadow: var(--shadow-med);">
+              <img id="modal-avatar-preview-img" src="" alt="" style="display:none; width:100%; height:100%; object-fit:cover;" />
+              <span id="modal-avatar-preview-initials">U</span>
+            </div>
+            <!-- Small overlay icon to upload/change photo -->
+            <button class="btn-secondary" onclick="document.getElementById('modal-avatar-file-input').click()" style="position: absolute; bottom: 0; right: 0; width: 32px; height: 32px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; box-shadow: var(--shadow-med); min-height: unset;" title="Choose Photo">📷</button>
+          </div>
+          
+          <input type="file" id="modal-avatar-file-input" accept="image/*" style="display:none" onchange="handleModalAvatarUpload(event)" />
+          
+          <button class="btn-secondary" id="modal-btn-remove-avatar" onclick="removeModalAvatar()" style="display:none; font-size: 0.8rem; padding: 0.25rem 0.75rem; min-height: unset; border-radius: 12px; margin-top: -0.25rem;">✕ Remove Photo</button>
+
+          <!-- Profile Details -->
+          <div style="width: 100%; margin-top: 0.5rem;">
+            <div class="input-group" style="margin-bottom: 0.35rem;">
+              <label style="font-size: 0.75rem; color: var(--ink-secondary); text-align: left; display: block; margin-bottom: 0.25rem;">Display Name</label>
+              <input type="text" id="modal-user-name" placeholder="Enter display name" style="text-align: center; font-weight: 600; font-size: 1.1rem; padding: 0.4rem 0.8rem;" onchange="updateProfileName()" />
+            </div>
+            <div style="font-size: 0.85rem; color: var(--ink-secondary); margin-top: 0.25rem;" id="modal-user-email">user@example.com</div>
+          </div>
+        </div>
+        
+        <div style="height: 1px; background: var(--border-med); margin: 0.25rem 0;"></div>
+
+        <!-- Settings Options Section -->
+        <div class="input-group">
+          <label for="modal-setting-currency">Currency Symbol</label>
+          <select id="modal-setting-currency" onchange="saveModalSettings()">
+            <option value="$">USD ($)</option>
+            <option value="RM">MYR (RM)</option>
+            <option value="€">EUR (€)</option>
+            <option value="£">GBP (£)</option>
+            <option value="Rp">IDR (Rp)</option>
+          </select>
+        </div>
+        
+        <div class="input-group">
+          <label for="modal-setting-theme">Theme</label>
+          <select id="modal-setting-theme" onchange="saveModalSettings()">
+            <option value="dark">Dark Mode</option>
+            <option value="light">Light Mode</option>
+          </select>
+        </div>
+        
+        <div class="input-group">
+          <label for="modal-setting-gross-income">Gross Monthly Income</label>
+          <div class="amount-input-wrap">
+            <span class="currency-symbol dynamic-currency">$</span>
+            <input type="number" id="modal-setting-gross-income" placeholder="0.00" min="0" step="0.01" onchange="saveModalSettings()" />
+          </div>
+        </div>
+
+        <div style="margin-top: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem;">
+          <button class="btn-logout" style="width: 100%; justify-content: center; min-height: 48px; border-radius: 16px;" onclick="logoutUser()">Sign Out</button>
+        </div>
       </div>
     </div>
   </div>

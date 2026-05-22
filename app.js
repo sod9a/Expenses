@@ -97,6 +97,8 @@ function showApp(user) {
 function hideApp() {
   document.getElementById('auth-overlay').style.display = 'flex';
   document.getElementById('app').classList.add('hidden');
+  const overlay = document.getElementById('profile-settings-overlay');
+  if (overlay) overlay.classList.add('hidden');
 }
 
 function setGreeting() {
@@ -511,6 +513,39 @@ function applySettings() {
   document.getElementById('setting-theme').value = userSettings.theme;
   const grossInput = document.getElementById('setting-gross-income');
   if (grossInput) grossInput.value = grossIncome || '';
+  
+  // Sync Profile & Settings Modal elements reactively
+  const modalCurrencySelect = document.getElementById('modal-setting-currency');
+  if (modalCurrencySelect) modalCurrencySelect.value = userSettings.currency;
+  
+  const modalThemeSelect = document.getElementById('modal-setting-theme');
+  if (modalThemeSelect) modalThemeSelect.value = userSettings.theme;
+  
+  const modalGrossInput = document.getElementById('modal-setting-gross-income');
+  if (modalGrossInput) modalGrossInput.value = grossIncome || '';
+  
+  const modalPreviewImg = document.getElementById('modal-avatar-preview-img');
+  const modalPreviewInitials = document.getElementById('modal-avatar-preview-initials');
+  const modalRemoveBtn = document.getElementById('modal-btn-remove-avatar');
+  
+  if (userSettings.avatarUrl) {
+    if (modalPreviewImg) {
+      modalPreviewImg.src = userSettings.avatarUrl;
+      modalPreviewImg.style.display = 'block';
+    }
+    if (modalPreviewInitials) modalPreviewInitials.style.display = 'none';
+    if (modalRemoveBtn) modalRemoveBtn.style.display = 'inline-flex';
+  } else {
+    if (modalPreviewImg) {
+      modalPreviewImg.src = '';
+      modalPreviewImg.style.display = 'none';
+    }
+    if (modalPreviewInitials) {
+      modalPreviewInitials.textContent = initial;
+      modalPreviewInitials.style.display = 'block';
+    }
+    if (modalRemoveBtn) modalRemoveBtn.style.display = 'none';
+  }
   
   renderAll(); // Re-render to update currency formats
 }
@@ -2394,4 +2429,154 @@ window.deleteChecklistItem = async function(id) {
     }
   }
 };
+
+// ─── PROFILE & SETTINGS MODAL ────────────────────────────────────────────────
+window.openProfileSettingsModal = function() {
+  if (window.haptic) window.haptic();
+  
+  // Close mobile dropdown if open
+  const dd = document.getElementById('profile-dropdown');
+  if (dd) dd.classList.remove('show');
+  
+  // Populate fields
+  const nameEl = document.getElementById('modal-user-name');
+  if (nameEl) nameEl.value = currentUser.displayName || currentUser.email.split('@')[0];
+  
+  const emailEl = document.getElementById('modal-user-email');
+  if (emailEl) emailEl.textContent = currentUser.email;
+  
+  const currencySelect = document.getElementById('modal-setting-currency');
+  if (currencySelect) currencySelect.value = userSettings.currency;
+  
+  const themeSelect = document.getElementById('modal-setting-theme');
+  if (themeSelect) themeSelect.value = userSettings.theme;
+  
+  const grossInput = document.getElementById('modal-setting-gross-income');
+  if (grossInput) grossInput.value = grossIncome || '';
+  
+  // Sync avatar picture
+  const previewImg = document.getElementById('modal-avatar-preview-img');
+  const previewInitials = document.getElementById('modal-avatar-preview-initials');
+  const removeBtn = document.getElementById('modal-btn-remove-avatar');
+  const initial = (currentUser.displayName || currentUser.email)[0].toUpperCase();
+  
+  if (userSettings.avatarUrl) {
+    if (previewImg) {
+      previewImg.src = userSettings.avatarUrl;
+      previewImg.style.display = 'block';
+    }
+    if (previewInitials) previewInitials.style.display = 'none';
+    if (removeBtn) removeBtn.style.display = 'inline-flex';
+  } else {
+    if (previewImg) {
+      previewImg.src = '';
+      previewImg.style.display = 'none';
+    }
+    if (previewInitials) {
+      previewInitials.textContent = initial;
+      previewInitials.style.display = 'block';
+    }
+    if (removeBtn) removeBtn.style.display = 'none';
+  }
+  
+  document.getElementById('profile-settings-overlay').classList.remove('hidden');
+};
+
+window.closeProfileSettingsModal = function() {
+  document.getElementById('profile-settings-overlay').classList.add('hidden');
+};
+
+window.closeProfileSettingsModalOnOverlay = function(e) {
+  if (e.target.id === 'profile-settings-overlay') closeProfileSettingsModal();
+};
+
+window.updateProfileName = async function() {
+  const newName = document.getElementById('modal-user-name').value.trim();
+  if (!newName) return;
+  try {
+    await updateProfile(currentUser, { displayName: newName });
+    
+    // Update local UI name displays
+    const nameEl = document.getElementById('user-name-display');
+    if (nameEl) nameEl.textContent = newName;
+    
+    // Update initials if no avatar exists
+    if (!userSettings.avatarUrl) {
+      const initial = newName[0].toUpperCase();
+      const avatarEl = document.getElementById('user-avatar');
+      if (avatarEl) avatarEl.textContent = initial;
+      updateMobileAvatar(initial);
+      const modalInitials = document.getElementById('modal-avatar-preview-initials');
+      if (modalInitials) modalInitials.textContent = initial;
+    }
+    
+    showToast('Profile name updated!', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('Failed to update name', 'error');
+  }
+};
+
+window.saveModalSettings = async function() {
+  const currency = document.getElementById('modal-setting-currency').value;
+  const theme = document.getElementById('modal-setting-theme').value;
+  const grossVal = parseFloat(document.getElementById('modal-setting-gross-income').value) || 0;
+  
+  try {
+    await setDoc(doc(db, 'settings', currentUser.uid), { currency, theme, grossIncome: grossVal }, { merge: true });
+    grossIncome = grossVal;
+    showToast('Settings saved!', 'success');
+    updateSummaryCards();
+  } catch(e) {
+    console.error(e);
+    showToast('Failed to save settings', 'error');
+  }
+};
+
+window.handleModalAvatarUpload = async function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) return showToast('Please select an image file', 'error');
+  if (file.size > 2 * 1024 * 1024) return showToast('Image must be less than 2MB', 'error');
+
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const img = new Image();
+    img.onload = async function() {
+      const canvas = document.createElement('canvas');
+      const MAX_SIZE = 200;
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+      } else {
+        if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const base64Avatar = canvas.toDataURL('image/jpeg', 0.8);
+      try {
+        await setDoc(doc(db, 'settings', currentUser.uid), { avatarUrl: base64Avatar }, { merge: true });
+        showToast('Profile picture updated!', 'success');
+      } catch(err) {
+        showToast('Failed to upload image', 'error');
+      }
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.removeModalAvatar = async function() {
+  try {
+    await setDoc(doc(db, 'settings', currentUser.uid), { avatarUrl: '' }, { merge: true });
+    showToast('Profile picture removed!', 'success');
+  } catch(err) {
+    showToast('Failed to remove image', 'error');
+  }
+};
+
 
