@@ -108,39 +108,42 @@ function hideApp() {
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 function initMonthYearSelects() {
-  const selMonth = document.getElementById('filter-month-month');
-  const selYear  = document.getElementById('filter-month-year');
-  if (!selMonth || !selYear) return;
+  const selCombined = document.getElementById('filter-month-combined');
+  if (!selCombined) return;
 
-  const now  = new Date();
+  const now = new Date();
   const curY = now.getFullYear();
   const curM = now.getMonth(); // 0-indexed
 
-  // Populate years: 3 years back → current
-  selYear.innerHTML = '';
-  for (let y = curY - 3; y <= curY; y++) {
+  selCombined.innerHTML = '';
+  
+  // Generate options from current month going back 36 months (3 years)
+  for (let i = 0; i < 36; i++) {
+    const d = new Date(curY, curM - i, 1);
+    const yVal = d.getFullYear();
+    const mVal = String(d.getMonth() + 1).padStart(2, '0');
+    const labelText = `${MONTH_NAMES[d.getMonth()]} ${yVal}`;
+    
     const opt = document.createElement('option');
-    opt.value = String(y);
-    opt.textContent = String(y);
-    if (y === curY) opt.selected = true;
-    selYear.appendChild(opt);
+    opt.value = `${yVal}-${mVal}`;
+    opt.textContent = labelText;
+    if (i === 0) opt.selected = true;
+    selCombined.appendChild(opt);
   }
-
-  // Set current month (option values are '01'–'12')
-  selMonth.value = String(curM + 1).padStart(2, '0');
 
   // Update the pill label immediately
   updateMonthPickerLabel();
 }
 
 function updateMonthPickerLabel() {
-  const selMonth = document.getElementById('filter-month-month');
-  const selYear  = document.getElementById('filter-month-year');
-  const label    = document.getElementById('month-picker-label');
-  if (!selMonth || !selYear || !label) return;
-  const m = parseInt(selMonth.value, 10) - 1;
-  const y = selYear.value;
-  label.textContent = `${MONTH_NAMES[m]} ${y}`;
+  const selCombined = document.getElementById('filter-month-combined');
+  const label = document.getElementById('month-picker-label');
+  if (!selCombined || !label) return;
+  
+  const selectedOption = selCombined.options[selCombined.selectedIndex];
+  if (selectedOption) {
+    label.textContent = selectedOption.textContent;
+  }
 }
 
 window.toggleMonthPicker = function(e) {
@@ -1102,9 +1105,8 @@ function renderRecentTransactions() {
 function getFilteredTransactions() {
   let list = [...allTransactions];
   if (activeFilter !== 'all') list = list.filter(t => t.type === activeFilter);
-  const selMonth = document.getElementById('filter-month-month');
-  const selYear  = document.getElementById('filter-month-year');
-  const monthVal = (selMonth && selYear && selYear.value) ? `${selYear.value}-${selMonth.value}` : '';
+  const selCombined = document.getElementById('filter-month-combined');
+  const monthVal = selCombined ? selCombined.value : '';
   if (monthVal) list = list.filter(t => t.date && t.date.startsWith(monthVal));
   
   const searchInput = document.getElementById('search-tx');
