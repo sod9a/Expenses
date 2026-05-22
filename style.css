@@ -82,8 +82,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-base);color:var(--ink-
 .input-group{margin-bottom:1rem}
 .input-group label{display:block;font-size:.78rem;font-weight:600;color:var(--ink-secondary);margin-bottom:.45rem;letter-spacing:.04em;text-transform:uppercase}
 .input-group input,.input-group select,.input-group textarea{width:100%;padding:.85rem 1.1rem;background:var(--bg-elevated);border:1.5px solid var(--border-subtle);border-radius:var(--r-md);color:var(--ink-primary);font-family:'DM Sans',sans-serif;font-size:16px;transition:border-color var(--t),box-shadow var(--t),background var(--t);outline:none}
-input[type="date"]{-webkit-appearance:none;appearance:none;text-align:left}
-input[type="date"]::-webkit-date-and-time-value{text-align:left}
+input[type="date"],input[type="month"]{-webkit-appearance:none;appearance:none;text-align:left}
+input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-date-and-time-value{text-align:left;min-height:1em}
 .input-group input:focus,.input-group select:focus,.input-group textarea:focus{border-color:var(--neon-violet);background:var(--bg-card2);box-shadow:0 0 0 3px rgba(124,92,252,.18)}
 .input-group textarea{resize:vertical;min-height:76px}
 .input-group select{cursor:pointer}
@@ -260,7 +260,7 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
 .filter-btn{padding:.5rem 1rem;border-radius:30px;border:1.5px solid var(--border-subtle);background:transparent;color:var(--ink-secondary);font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all var(--t);letter-spacing:.02em}
 .filter-btn:hover{border-color:var(--neon-violet);color:var(--neon-violet)}
 .filter-btn.active{background:var(--neon-violet);border-color:var(--neon-violet);color:#fff;box-shadow:0 4px 14px rgba(124,92,252,.4)}
-.filter-month{padding:.5rem .85rem;border-radius:var(--r-sm);border:1.5px solid var(--border-subtle);background:var(--bg-card);color:var(--ink-primary);font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer}
+.filter-month{padding:.5rem .85rem;border-radius:var(--r-sm);border:1.5px solid var(--border-subtle);background:var(--bg-card);color:var(--ink-primary);font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;-webkit-appearance:none;appearance:none;text-align:left}
 .filter-month:focus{outline:none;border-color:var(--neon-violet)}
 
 /* CATEGORIES */
@@ -578,7 +578,7 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left}
   .filter-buttons{display:flex;align-items:center;gap:0;flex:1;background:var(--bg-elevated);border-radius:24px;padding:.2rem}
   .filter-btn{border:none!important;border-radius:20px;padding:.42rem 0;font-size:.76rem;background:transparent;color:var(--ink-secondary);white-space:nowrap;transition:all .22s var(--ease);flex:1;text-align:center}
   .filter-btn.active{background:var(--bg-card)!important;color:var(--ink-primary)!important;box-shadow:0 2px 10px rgba(0,0,0,.4);border-color:transparent!important}
-  .filter-month{border-radius:20px;font-size:.74rem;padding:.42rem .55rem;flex-shrink:0;max-width:120px;background:var(--bg-elevated);border:1px solid rgba(255,255,255,.08);color:var(--ink-secondary)}
+  .filter-month{border-radius:20px;font-size:.74rem;padding:.42rem .55rem;flex-shrink:0;min-width:110px;max-width:140px;background:var(--bg-elevated);border:1px solid rgba(255,255,255,.08);color:var(--ink-primary);-webkit-appearance:none;appearance:none;text-align:left}
 
   /* ─── CATEGORIES GRID ─── */
   .categories-grid{grid-template-columns:1fr}
