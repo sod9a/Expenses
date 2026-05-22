@@ -1306,7 +1306,7 @@ window.saveTabung = async function() {
 
   if (!name) { errEl.textContent = 'Please enter a name.'; errEl.style.display = 'block'; return; }
   if (!target || target <= 0) { errEl.textContent = 'Please enter a valid target amount.'; errEl.style.display = 'block'; return; }
-  if (saved > target) { errEl.textContent = 'Amount saved cannot exceed target.'; errEl.style.display = 'block'; return; }
+  // Allowing saved to exceed target — no restriction
 
   const btn = document.getElementById('btn-save-tabung');
   btn.disabled = true; btn.textContent = 'Saving…';
@@ -1357,7 +1357,7 @@ window.topupTabung = async function() {
   if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
   const t = allTabung.find(x => x.id === topupTabungId);
   if (!t) return;
-  const newSaved = Math.min(t.saved + amount, t.target);
+  const newSaved = t.saved + amount; // Allow exceeding target
   try {
     await updateDoc(doc(db, 'tabung', topupTabungId), { saved: newSaved, updatedAt: serverTimestamp() });
     showToast(`Added ${formatCurrency(amount)} to ${t.name}!`, 'success');
@@ -1378,10 +1378,13 @@ function renderTabung() {
     return bT - aT;
   });
   allTabung.forEach(t => {
-    const pct = Math.min((t.saved / t.target) * 100, 100);
-    let statusClass = 'safe', statusText = `${pct.toFixed(0)}% reached`;
-    if (pct >= 100) { statusClass = 'income-text'; statusText = '🎉 Goal reached!'; }
-    else if (pct >= 75) { statusClass = 'warn'; }
+    const rawPct = (t.saved / t.target) * 100;
+    const pct = Math.min(rawPct, 100); // Cap bar width at 100%
+    const isExceeded = t.saved > t.target;
+    let statusClass = 'safe', statusText = `${rawPct.toFixed(0)}% reached`;
+    if (isExceeded) { statusClass = 'income-text'; statusText = `🚀 Exceeded by ${formatCurrency(t.saved - t.target)}!`; }
+    else if (rawPct >= 100) { statusClass = 'income-text'; statusText = '🎉 Goal reached!'; }
+    else if (rawPct >= 75) { statusClass = 'warn'; }
 
     let deadlineHtml = '';
     if (t.deadline) {
@@ -1712,7 +1715,9 @@ window.refreshTabungDetailsModal = function() {
   }
   
   // Progress calculations
-  const pct = Math.min((t.saved / t.target) * 100, 100);
+  const rawPct = (t.saved / t.target) * 100;
+  const pct = Math.min(rawPct, 100); // Cap bar width at 100%
+  const isExceeded = t.saved > t.target;
   const savedEl = document.getElementById('tabung-details-saved');
   const targetEl = document.getElementById('tabung-details-target');
   const barEl = document.getElementById('tabung-details-progress-bar');
@@ -1725,27 +1730,34 @@ window.refreshTabungDetailsModal = function() {
   if (barEl) {
     barEl.style.width = `${pct}%`;
     if (pct >= 100) {
-      barEl.style.background = 'linear-gradient(90deg,var(--accent-green),#16b98d)';
+      barEl.style.background = 'linear-gradient(90deg,var(--neon-teal),#16b98d)';
     } else if (pct >= 75) {
-      barEl.style.background = 'linear-gradient(90deg,var(--accent-gold),#fda642)';
+      barEl.style.background = 'linear-gradient(90deg,var(--neon-amber),#fda642)';
     } else {
-      barEl.style.background = 'linear-gradient(90deg,var(--accent-purple),var(--accent-purple-light))';
+      barEl.style.background = 'linear-gradient(90deg,var(--neon-violet),var(--neon-violet2))';
     }
   }
   
   if (statusEl) {
-    if (pct >= 100) {
+    if (isExceeded) {
+      statusEl.textContent = `🚀 Exceeded by ${formatCurrency(t.saved - t.target)}!`;
+      statusEl.className = 'budget-status safe income-text';
+    } else if (pct >= 100) {
       statusEl.textContent = '🎉 Goal reached!';
       statusEl.className = 'budget-status safe income-text';
     } else {
-      statusEl.textContent = `${pct.toFixed(0)}% reached`;
+      statusEl.textContent = `${rawPct.toFixed(0)}% reached`;
       statusEl.className = `budget-status ${pct >= 75 ? 'warn' : 'safe'}`;
     }
   }
   
   if (remainingEl) {
-    const remaining = t.target - t.saved;
-    remainingEl.textContent = remaining > 0 ? `${formatCurrency(remaining)} remaining` : 'Fully funded';
+    if (isExceeded) {
+      remainingEl.textContent = `🎯 ${formatCurrency(t.saved - t.target)} over target`;
+    } else {
+      const remaining = t.target - t.saved;
+      remainingEl.textContent = remaining > 0 ? `${formatCurrency(remaining)} remaining` : 'Fully funded';
+    }
   }
   
   // History loading and rendering
@@ -1829,12 +1841,8 @@ window.addTabungSavingsFromDetail = async function() {
   let finalAmount = amount;
   
   if (tabungActionType === 'add') {
-    const remaining = t.target - t.saved;
-    if (remaining <= 0) {
-      errEl.textContent = 'This savings goal is already fully funded!';
-      return;
-    }
-    finalAmount = Math.min(amount, remaining);
+    // Allow adding even if already at or over target
+    finalAmount = amount;
     newSaved = t.saved + finalAmount;
   } else {
     // Withdraw mode
