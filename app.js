@@ -32,6 +32,7 @@ let allBudgets = [];
 let allTabung = [];
 let allLoans = [];
 let userSettings = { currency: '$', theme: 'dark', avatarUrl: '' };
+let grossIncome = 0; // User-defined gross monthly income
 let activeFilter = 'all';
 let editingTxId = null;
 let editingTabungId = null;
@@ -427,6 +428,10 @@ function subscribeToData() {
   unsubscribeSettings = onSnapshot(doc(db, 'settings', currentUser.uid), docSnap => {
     if (docSnap.exists()) {
       userSettings = { ...userSettings, ...docSnap.data() };
+      // Load gross income from settings
+      if (typeof docSnap.data().grossIncome === 'number') {
+        grossIncome = docSnap.data().grossIncome;
+      }
       applySettings();
     }
   });
@@ -496,6 +501,8 @@ function applySettings() {
   
   document.getElementById('setting-currency').value = userSettings.currency;
   document.getElementById('setting-theme').value = userSettings.theme;
+  const grossInput = document.getElementById('setting-gross-income');
+  if (grossInput) grossInput.value = grossIncome || '';
   
   renderAll(); // Re-render to update currency formats
 }
@@ -503,13 +510,49 @@ function applySettings() {
 window.saveSettings = async function () {
   const currency = document.getElementById('setting-currency').value;
   const theme = document.getElementById('setting-theme').value;
+  const grossInput = document.getElementById('setting-gross-income');
+  const grossVal = grossInput ? parseFloat(grossInput.value) || 0 : 0;
   
   try {
-    await setDoc(doc(db, 'settings', currentUser.uid), { currency, theme }, { merge: true });
+    await setDoc(doc(db, 'settings', currentUser.uid), { currency, theme, grossIncome: grossVal }, { merge: true });
+    grossIncome = grossVal;
     showToast('Settings saved!', 'success');
+    updateSummaryCards();
   } catch(e) {
     console.error(e);
     showToast('Failed to save settings', 'error');
+  }
+};
+
+// ─── GROSS INCOME ────────────────────────────────────────────────────────────
+window.openGrossIncomeModal = function() {
+  const input = document.getElementById('gross-income-input');
+  if (input && grossIncome > 0) input.value = grossIncome;
+  document.getElementById('gross-income-overlay').classList.remove('hidden');
+  setTimeout(() => input && input.focus(), 100);
+};
+
+window.closeGrossIncomeModal = function() {
+  document.getElementById('gross-income-overlay').classList.add('hidden');
+};
+
+window.closeGrossIncomeModalOnOverlay = function(e) {
+  if (e.target.id === 'gross-income-overlay') closeGrossIncomeModal();
+};
+
+window.saveGrossIncome = async function() {
+  const val = parseFloat(document.getElementById('gross-income-input').value);
+  if (!val || val < 0) { showToast('Please enter a valid amount', 'error'); return; }
+  grossIncome = val;
+  try {
+    await setDoc(doc(db, 'settings', currentUser.uid), { grossIncome: val }, { merge: true });
+    showToast('Gross income updated!', 'success');
+    const grossInput = document.getElementById('setting-gross-income');
+    if (grossInput) grossInput.value = val;
+    closeGrossIncomeModal();
+    updateSummaryCards();
+  } catch(e) {
+    showToast('Failed to save', 'error'); console.error(e);
   }
 };
 
@@ -860,22 +903,25 @@ function getCategoryIcon(cat) {
 }
 
 function updateSummaryCards() {
-  const income = allTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expense = allTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const balance = income - expense;
+  const netIncome = allTransactions.filter(t => t.type === 'income' && t.category === 'Salary').reduce((s, t) => s + t.amount, 0);
+  const expense  = allTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const balance  = netIncome - expense;
+  const remaining = netIncome - expense; // Remaining is Net Income after all expenses/deductions
+
   // Desktop summary cards
-  document.getElementById('total-income').textContent = formatCurrency(income);
+  document.getElementById('total-income').textContent  = formatCurrency(netIncome);
   document.getElementById('total-expense').textContent = formatCurrency(expense);
   document.getElementById('total-balance').textContent = formatCurrency(balance);
-  document.getElementById('tx-count').textContent = allTransactions.length;
-  // Mobile hero card — total income + remaining after commitments
-  const mobBal = document.getElementById('mob-hero-balance');
-  const mobRem = document.getElementById('mob-remaining');
-  const mobCom = document.getElementById('mob-commitments');
-  if (mobBal) mobBal.dataset.value = formatCurrency(income);
-  if (mobRem) mobRem.dataset.value = formatCurrency(balance);
-  if (mobCom) mobCom.dataset.value = formatCurrency(expense);
-  // Apply current visibility state
+  document.getElementById('tx-count').textContent      = allTransactions.length;
+
+  // Mobile hero card
+  const mobBal       = document.getElementById('mob-hero-balance');
+  const mobGross     = document.getElementById('mob-gross-income');
+  const mobRemaining = document.getElementById('mob-remaining');
+  if (mobBal)       mobBal.dataset.value       = formatCurrency(netIncome);
+  if (mobGross)     mobGross.dataset.value     = formatCurrency(grossIncome);
+  if (mobRemaining) mobRemaining.dataset.value = formatCurrency(remaining);
+
   applyBalanceVisibility();
 }
 
