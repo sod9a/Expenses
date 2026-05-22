@@ -90,6 +90,16 @@ function showApp(user) {
   updateMobileAvatar(name[0].toUpperCase());
   setGreeting();
   setHeroDate();
+
+  // Set default current month in transaction page month filter
+  const filterMonthEl = document.getElementById('filter-month');
+  if (filterMonthEl) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    filterMonthEl.value = `${year}-${month}`;
+  }
+
   // Always start on Dashboard after login
   navigateTo('dashboard', document.querySelector('[data-page="dashboard"]'));
 }
