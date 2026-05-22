@@ -1037,7 +1037,7 @@ function updateSummaryCards() {
   applyBalanceVisibility();
 }
 
-let balanceHidden = false;
+let balanceHidden = localStorage.getItem('balanceHidden') === 'true';
 function applyBalanceVisibility() {
   const els = document.querySelectorAll('.masked-val');
   els.forEach(el => {
@@ -1054,6 +1054,7 @@ function applyBalanceVisibility() {
 }
 window.toggleBalanceVisibility = function() {
   balanceHidden = !balanceHidden;
+  localStorage.setItem('balanceHidden', balanceHidden ? 'true' : 'false');
   haptic();
   applyBalanceVisibility();
 };
