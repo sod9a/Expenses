@@ -287,7 +287,7 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 .budget-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
 .budget-cat{font-weight:700;font-size:1rem}
 .budget-amounts{font-size:.875rem;color:var(--ink-secondary)}
-.budget-progress-wrap{height:7px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;margin-bottom:.5rem}
+.budget-progress-wrap{height:7px;width:100%;background:var(--bg-elevated);border-radius:4px;overflow:hidden;margin-bottom:.5rem}
 .budget-progress{height:100%;border-radius:4px;transition:width .6s var(--ease)}
 .budget-progress.safe{background:linear-gradient(90deg,var(--neon-teal),var(--neon-teal2))}
 .budget-progress.warn{background:linear-gradient(90deg,var(--neon-amber),#fda642)}
