@@ -75,6 +75,8 @@ onAuthStateChanged(auth, (user) => {
     allTabung = [];
     allLoans = [];
     allChecklist = [];
+    grossIncome = 0;
+    userSettings = { currency: '$', theme: 'dark', avatarUrl: '' };
   }
 });
 
@@ -424,14 +426,20 @@ function subscribeToData() {
     if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
   });
 
-  // 3. Settings
   unsubscribeSettings = onSnapshot(doc(db, 'settings', currentUser.uid), docSnap => {
     if (docSnap.exists()) {
       userSettings = { ...userSettings, ...docSnap.data() };
       // Load gross income from settings
       if (typeof docSnap.data().grossIncome === 'number') {
         grossIncome = docSnap.data().grossIncome;
+      } else {
+        grossIncome = 0;
       }
+      applySettings();
+    } else {
+      // Document doesn't exist yet for new user, reset to default settings and 0 gross income
+      userSettings = { currency: '$', theme: 'dark', avatarUrl: '' };
+      grossIncome = 0;
       applySettings();
     }
   });
