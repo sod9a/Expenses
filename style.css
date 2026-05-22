@@ -536,8 +536,8 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 
   /* ─── BOTTOM NAV — 5-tab clean pill ─── */
   .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;padding:0 .75rem calc(env(safe-area-inset-bottom) + .75rem);z-index:100;background:transparent;pointer-events:none;align-items:flex-end}
-  .mob-nav-pill{display:flex;align-items:center;justify-content:space-around;flex:1;height:62px;background:rgba(13,15,26,.97);backdrop-filter:blur(28px) saturate(200%);-webkit-backdrop-filter:blur(28px) saturate(200%);border:1px solid rgba(255,255,255,.1);border-radius:26px;padding:0 .4rem;pointer-events:all;box-shadow:0 -4px 32px rgba(0,0,0,.4),0 8px 32px rgba(0,0,0,.5)}
-  .bottom-nav .nav-item{flex:1;display:flex;align-items:center;justify-content:center;padding:.3rem 0;color:var(--ink-muted);text-decoration:none;-webkit-tap-highlight-color:transparent;transition:color .2s;height:100%}
+  .mob-nav-pill{display:flex;align-items:center;justify-content:space-around;flex:1;height:62px;background:rgba(13,15,26,.97);backdrop-filter:blur(28px) saturate(200%);-webkit-backdrop-filter:blur(28px) saturate(200%);border:1px solid rgba(255,255,255,.1);border-radius:26px;padding:0 .4rem;pointer-events:all;box-shadow:0 -4px 32px rgba(0,0,0,.4),0 8px 32px rgba(0,0,0,.5);overflow:hidden}
+  .bottom-nav .nav-item{flex:1;display:flex;align-items:center;justify-content:center;padding:.3rem 0;color:var(--ink-muted);text-decoration:none;-webkit-tap-highlight-color:transparent;transition:color .2s;height:100%;position:relative}
   .nav-item-inner{display:flex;flex-direction:column;align-items:center;gap:3px;transition:transform .2s var(--ease)}
   .nav-svg{width:22px;height:22px;stroke:currentColor;transition:filter .2s,transform .2s var(--ease)}
   .nav-text{font-size:.56rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;transition:color .2s}
@@ -622,8 +622,8 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 
   /* ─── BOTTOM NAV — 6-item layout ─── */
   .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;padding:0 .5rem calc(env(safe-area-inset-bottom) + .7rem);z-index:100;background:transparent;pointer-events:none;align-items:flex-end}
-  .mob-nav-pill{display:flex;align-items:center;justify-content:space-around;flex:1;height:64px;background:rgba(13,15,26,.96);backdrop-filter:blur(28px) saturate(200%);-webkit-backdrop-filter:blur(28px) saturate(200%);border:1px solid rgba(255,255,255,.1);border-radius:28px;padding:0 .2rem;pointer-events:all;box-shadow:0 -4px 32px rgba(0,0,0,.4),0 8px 32px rgba(0,0,0,.5)}
-  .bottom-nav .nav-item{flex:1;display:flex;align-items:center;justify-content:center;padding:.3rem 0;color:var(--ink-muted);text-decoration:none;border-radius:0;margin:0;-webkit-tap-highlight-color:transparent;transition:color .2s;height:100%}
+  .mob-nav-pill{display:flex;align-items:center;justify-content:space-around;flex:1;height:64px;background:rgba(13,15,26,.96);backdrop-filter:blur(28px) saturate(200%);-webkit-backdrop-filter:blur(28px) saturate(200%);border:1px solid rgba(255,255,255,.1);border-radius:28px;padding:0 .2rem;pointer-events:all;box-shadow:0 -4px 32px rgba(0,0,0,.4),0 8px 32px rgba(0,0,0,.5);overflow:hidden}
+  .bottom-nav .nav-item{flex:1;display:flex;align-items:center;justify-content:center;padding:.3rem 0;color:var(--ink-muted);text-decoration:none;border-radius:0;margin:0;-webkit-tap-highlight-color:transparent;transition:color .2s;height:100%;position:relative}
   .nav-item-inner{display:flex;flex-direction:column;align-items:center;gap:2px;transition:transform .2s var(--ease)}
   .nav-svg{width:20px;height:20px;stroke:currentColor;transition:filter .2s,transform .2s var(--ease)}
   .nav-text{font-size:.52rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;transition:color .2s}
