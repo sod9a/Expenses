@@ -1025,10 +1025,12 @@ function getCategoryIcon(cat) {
 }
 
 function updateSummaryCards() {
-  const netIncome = allTransactions.filter(t => t.type === 'income' && t.category === 'Salary').reduce((s, t) => s + t.amount, 0);
-  const expense  = allTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const balance  = netIncome - expense;
-  const remaining = netIncome - expense; // Remaining is Net Income after all expenses/deductions
+  const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  // Net income = grossIncome from settings (persistent monthly salary, set once by user)
+  const netIncome = grossIncome;
+  const expense   = allTransactions.filter(t => t.type === 'expense' && t.date && t.date.startsWith(currentMonthStr)).reduce((s, t) => s + t.amount, 0);
+  const balance   = netIncome - expense;
+  const remaining = netIncome - expense;
 
   // Desktop summary cards
   document.getElementById('total-income').textContent  = formatCurrency(netIncome);
@@ -1590,7 +1592,7 @@ function renderTabung() {
         <span class="tabung-target-val">${formatCurrency(t.target)}</span>
       </div>
       <div class="budget-progress-wrap" style="margin:0.75rem 0;">
-        <div class="budget-progress ${pct >= 100 ? 'safe' : pct >= 75 ? 'warn' : 'safe'}" style="width:${pct}%;background:${pct >= 100 ? 'linear-gradient(90deg,var(--accent-green),#16b98d)' : pct >= 75 ? 'linear-gradient(90deg,var(--accent-gold),#fda642)' : 'linear-gradient(90deg,var(--accent-purple),var(--accent-purple-light))'}"></div>
+        <div class="budget-progress ${pct >= 100 ? 'safe' : pct >= 75 ? 'warn' : 'safe'}" style="width:${pct}%"></div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <span class="budget-status ${pct >= 100 ? 'safe' : ''}" style="color:${pct >= 100 ? 'var(--accent-green)' : pct >= 75 ? 'var(--accent-gold)' : 'var(--text-secondary)'}">${statusText}</span>
@@ -2335,9 +2337,10 @@ window.renderChecklist = function() {
   
   if (!listEl || !barEl || !subtitleEl || !percentageEl) return;
   
-  // Totals & Progress
+  const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  // Totals & Progress — item is "paid" only if it was marked paid THIS month
   const totalItems = allChecklist.length;
-  const paidItems = allChecklist.filter(item => item.paid).length;
+  const paidItems = allChecklist.filter(item => item.paid && item.paidMonth === currentMonthStr).length;
   const pct = totalItems > 0 ? (paidItems / totalItems) * 100 : 0;
   const pctRound = Math.round(pct);
   
@@ -2358,8 +2361,9 @@ window.renderChecklist = function() {
   }
   
   listEl.innerHTML = allChecklist.map(item => {
-    const isPaid = item.paid ? 'paid' : '';
-    const isChecked = item.paid ? 'checked' : '';
+    const isPaidThisMonth = item.paid && item.paidMonth === currentMonthStr;
+    const isPaid = isPaidThisMonth ? 'paid' : '';
+    const isChecked = isPaidThisMonth ? 'checked' : '';
     return `
       <div class="checklist-item ${isPaid}">
         <div class="checklist-check ${isChecked}" onclick="toggleChecklistItem('${item.id}', ${item.paid})"></div>
@@ -2475,7 +2479,11 @@ window.toggleChecklistItem = async function(id, currentPaid) {
   
   try {
     // 1. Update checklist item status
-    await updateDoc(doc(db, 'budgets', id), { paid: isMarkingPaid });
+    const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+    await updateDoc(doc(db, 'budgets', id), {
+      paid: isMarkingPaid,
+      paidMonth: isMarkingPaid ? currentMonthStr : null
+    });
     
     // 2. If user confirmed, create corresponding transaction
     if (recordTransaction && item) {
