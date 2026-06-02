@@ -53,6 +53,9 @@ let unsubscribeLoans = null;
 let unsubscribeChecklist = null;
 let allChecklist = [];
 let isRegistering = false;
+let transactionsLoaded = false;
+let budgetsLoaded = false;
+let settingsLoaded = false;
 
 // ─── Auth State ───────────────────────────────────────────────────────────
 onAuthStateChanged(auth, (user) => {
@@ -77,6 +80,9 @@ onAuthStateChanged(auth, (user) => {
     allChecklist = [];
     grossIncome = 0;
     userSettings = { currency: '$', theme: 'dark', avatarUrl: '' };
+    transactionsLoaded = false;
+    budgetsLoaded = false;
+    settingsLoaded = false;
   }
 });
 
@@ -479,6 +485,8 @@ function subscribeToData() {
       const bTime = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : Date.now();
       return bTime - aTime;
     });
+    transactionsLoaded = true;
+    checkForMonthlyReset();
     renderAll();
   }, (err) => {
     console.error('Firestore error:', err);
@@ -495,6 +503,8 @@ function subscribeToData() {
     allBudgets = allDocs.filter(d => !d.isChecklist);
     allChecklist = allDocs.filter(d => !!d.isChecklist);
     allChecklist.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    budgetsLoaded = true;
+    checkForMonthlyReset();
     renderChecklist();
     if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
   });
@@ -514,6 +524,8 @@ function subscribeToData() {
         localStorage.setItem('balanceHidden', balanceHidden ? 'true' : 'false');
         applyBalanceVisibility();
       }
+      settingsLoaded = true;
+      checkForMonthlyReset();
       applySettings();
     } else {
       // Document doesn't exist yet for new user, reset to default settings and 0 gross income
@@ -521,6 +533,8 @@ function subscribeToData() {
       grossIncome = 0;
       balanceHidden = false;
       applyBalanceVisibility();
+      settingsLoaded = true;
+      checkForMonthlyReset();
       applySettings();
     }
   });
@@ -540,6 +554,82 @@ function subscribeToData() {
     if (document.getElementById('page-loans').classList.contains('active')) renderLoans();
     if (activeLoanDetailId) refreshLoanDetailsModal();
   });
+}
+
+let isResettingMonth = false;
+
+async function checkForMonthlyReset() {
+  if (!currentUser || isResettingMonth) return;
+  if (!transactionsLoaded || !budgetsLoaded || !settingsLoaded) return;
+  
+  const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  const lastProcessedMonth = userSettings.lastProcessedMonth;
+  
+  // Initial setup for new users or first-time migration
+  if (!lastProcessedMonth) {
+    isResettingMonth = true;
+    try {
+      await setDoc(doc(db, 'settings', currentUser.uid), {
+        lastProcessedMonth: currentMonthStr,
+        carryOverBalance: 0
+      }, { merge: true });
+      userSettings.lastProcessedMonth = currentMonthStr;
+      userSettings.carryOverBalance = 0;
+    } catch (e) {
+      console.error("Error migrating user settings:", e);
+    } finally {
+      isResettingMonth = false;
+    }
+    return;
+  }
+  
+  // If a new month has arrived
+  if (lastProcessedMonth !== currentMonthStr) {
+    isResettingMonth = true;
+    try {
+      showToast('Processing new month transitions...', 'info');
+      
+      // 1. Calculate previous month's ending remaining balance
+      const prevGross = typeof userSettings.grossIncome === 'number' ? userSettings.grossIncome : 0;
+      const prevCarry = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : 0;
+      
+      const prevExpenses = allTransactions
+        .filter(t => t.type === 'expense' && t.date && t.date.startsWith(lastProcessedMonth))
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+      const prevIncome = allTransactions
+        .filter(t => t.type === 'income' && t.date && t.date.startsWith(lastProcessedMonth))
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+      const prevRemaining = prevCarry + prevGross + prevIncome - prevExpenses;
+      
+      console.log(`Reset transition: calculated previous remaining balance = ${prevRemaining}`);
+      
+      // 2. Wipe out all checklist items (stored in budgets collection with isChecklist: true)
+      const deletePromises = allChecklist.map(item => deleteDoc(doc(db, 'budgets', item.id)));
+      await Promise.all(deletePromises);
+      
+      // 3. Reset gross income to 0, save new carryOverBalance, and update lastProcessedMonth
+      await setDoc(doc(db, 'settings', currentUser.uid), {
+        grossIncome: 0,
+        carryOverBalance: prevRemaining,
+        lastProcessedMonth: currentMonthStr
+      }, { merge: true });
+      
+      // Update local variables in sync
+      grossIncome = 0;
+      userSettings.grossIncome = 0;
+      userSettings.carryOverBalance = prevRemaining;
+      userSettings.lastProcessedMonth = currentMonthStr;
+      
+      showToast('Welcome to a new month! Gross income reset to 0, checklist wiped, and remaining balance carried over.', 'success');
+    } catch (e) {
+      console.error("Error during monthly reset:", e);
+      showToast('Failed to complete monthly reset transitions.', 'error');
+    } finally {
+      isResettingMonth = false;
+    }
+  }
 }
 
 // ─── Settings ──────────────────────────────────────────────────────────────
@@ -1029,8 +1119,11 @@ function updateSummaryCards() {
   // Net income = grossIncome from settings (persistent monthly salary, set once by user)
   const netIncome = grossIncome;
   const expense   = allTransactions.filter(t => t.type === 'expense' && t.date && t.date.startsWith(currentMonthStr)).reduce((s, t) => s + t.amount, 0);
-  const balance   = netIncome - expense;
-  const remaining = netIncome - expense;
+  const income    = allTransactions.filter(t => t.type === 'income' && t.date && t.date.startsWith(currentMonthStr)).reduce((s, t) => s + t.amount, 0);
+  
+  const carryOver = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : 0;
+  const balance   = carryOver + netIncome + income - expense;
+  const remaining = carryOver + netIncome + income - expense;
 
   // Desktop summary cards
   document.getElementById('total-income').textContent  = formatCurrency(netIncome);
