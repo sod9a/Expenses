@@ -426,6 +426,14 @@
                 <input type="number" id="setting-gross-income" placeholder="0.00" min="0" step="0.01" onchange="saveSettings()" />
               </div>
             </div>
+            
+            <div class="input-group">
+              <label for="setting-carry-over">Carry-over Balance (Starting Balance)</label>
+              <div class="amount-input-wrap">
+                <span class="currency-symbol dynamic-currency">$</span>
+                <input type="number" id="setting-carry-over" placeholder="0.00" step="0.01" onchange="saveSettings()" />
+              </div>
+            </div>
             <div class="input-group">
               <label>Profile Picture</label>
               <div class="avatar-upload-wrap">
@@ -746,6 +754,14 @@
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
             <input type="number" id="modal-setting-gross-income" placeholder="0.00" min="0" step="0.01" onchange="saveModalSettings()" />
+          </div>
+        </div>
+        
+        <div class="input-group">
+          <label for="modal-setting-carry-over">Carry-over Balance (Starting Balance)</label>
+          <div class="amount-input-wrap">
+            <span class="currency-symbol dynamic-currency">$</span>
+            <input type="number" id="modal-setting-carry-over" placeholder="0.00" step="0.01" onchange="saveModalSettings()" />
           </div>
         </div>
 

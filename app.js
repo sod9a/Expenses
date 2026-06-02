@@ -725,6 +725,9 @@ function applySettings() {
   document.getElementById('setting-theme').value = userSettings.theme;
   const grossInput = document.getElementById('setting-gross-income');
   if (grossInput) grossInput.value = grossIncome || '';
+
+  const carryInput = document.getElementById('setting-carry-over');
+  if (carryInput) carryInput.value = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : '';
   
   // Sync Profile & Settings Modal elements reactively
   const modalCurrencySelect = document.getElementById('modal-setting-currency');
@@ -735,6 +738,9 @@ function applySettings() {
   
   const modalGrossInput = document.getElementById('modal-setting-gross-income');
   if (modalGrossInput) modalGrossInput.value = grossIncome || '';
+
+  const modalCarryInput = document.getElementById('modal-setting-carry-over');
+  if (modalCarryInput) modalCarryInput.value = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : '';
   
   const modalPreviewImg = document.getElementById('modal-avatar-preview-img');
   const modalPreviewInitials = document.getElementById('modal-avatar-preview-initials');
@@ -768,9 +774,18 @@ window.saveSettings = async function () {
   const grossInput = document.getElementById('setting-gross-income');
   const grossVal = grossInput ? parseFloat(grossInput.value) || 0 : 0;
   
+  const carryInput = document.getElementById('setting-carry-over');
+  const carryVal = carryInput ? parseFloat(carryInput.value) || 0 : 0;
+  
   try {
-    await setDoc(doc(db, 'settings', currentUser.uid), { currency, theme, grossIncome: grossVal }, { merge: true });
+    await setDoc(doc(db, 'settings', currentUser.uid), { 
+      currency, 
+      theme, 
+      grossIncome: grossVal,
+      carryOverBalance: carryVal 
+    }, { merge: true });
     grossIncome = grossVal;
+    userSettings.carryOverBalance = carryVal;
     showToast('Settings saved!', 'success');
     updateSummaryCards();
   } catch(e) {
@@ -2683,6 +2698,9 @@ window.openProfileSettingsModal = function() {
   const grossInput = document.getElementById('modal-setting-gross-income');
   if (grossInput) grossInput.value = grossIncome || '';
   
+  const carryInput = document.getElementById('modal-setting-carry-over');
+  if (carryInput) carryInput.value = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : '';
+  
   // Sync avatar picture
   const previewImg = document.getElementById('modal-avatar-preview-img');
   const previewInitials = document.getElementById('modal-avatar-preview-initials');
@@ -2751,9 +2769,18 @@ window.saveModalSettings = async function() {
   const theme = document.getElementById('modal-setting-theme').value;
   const grossVal = parseFloat(document.getElementById('modal-setting-gross-income').value) || 0;
   
+  const carryInput = document.getElementById('modal-setting-carry-over');
+  const carryVal = carryInput ? parseFloat(carryInput.value) || 0 : 0;
+  
   try {
-    await setDoc(doc(db, 'settings', currentUser.uid), { currency, theme, grossIncome: grossVal }, { merge: true });
+    await setDoc(doc(db, 'settings', currentUser.uid), { 
+      currency, 
+      theme, 
+      grossIncome: grossVal,
+      carryOverBalance: carryVal 
+    }, { merge: true });
     grossIncome = grossVal;
+    userSettings.carryOverBalance = carryVal;
     showToast('Settings saved!', 'success');
     updateSummaryCards();
   } catch(e) {
