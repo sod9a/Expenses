@@ -57,6 +57,10 @@ let transactionsLoaded = false;
 let budgetsLoaded = false;
 let settingsLoaded = false;
 
+// Categories Month Selection State (placed at top to prevent Temporal Dead Zone ReferenceErrors)
+let catSelectedYear  = new Date().getFullYear();
+let catSelectedMonth = new Date().getMonth(); // 0-indexed
+
 // ─── Auth State ───────────────────────────────────────────────────────────
 onAuthStateChanged(auth, (user) => {
   if (isRegistering) return; // Skip during active registration to avoid race conditions
@@ -1320,8 +1324,6 @@ window.searchTransactions = function () {
 window.filterByMonth = function () { renderAllTransactions(); };
 
 // ─── Categories Month State ──────────────────────────────────────────
-let catSelectedYear  = new Date().getFullYear();
-let catSelectedMonth = new Date().getMonth(); // 0-indexed
 
 function getCatMonthStr() {
   return `${catSelectedYear}-${String(catSelectedMonth + 1).padStart(2, '0')}`;
