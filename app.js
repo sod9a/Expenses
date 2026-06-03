@@ -2057,7 +2057,7 @@ window.recordLoanPayment = async function() {
   if (!amount || amount <= 0) { showToast('Enter valid amount', 'error'); return; }
   const l = allLoans.find(x => x.id === loanPayId);
   if (!l) return;
-  const newPaid = Math.min(l.paid + amount, l.total);
+  const newPaid = l.paid + amount; // Allow overpayment — no cap
   try {
     await updateDoc(doc(db, 'loans', loanPayId), { paid: newPaid, updatedAt: serverTimestamp() });
     showToast(`Payment of ${formatCurrency(amount)} recorded!`, 'success');
@@ -2103,8 +2103,10 @@ function renderLoans() {
 
   allLoans.forEach(l => {
     const remaining = l.total - l.paid;
-    const pct = Math.min((l.paid / l.total) * 100, 100);
-    const isSettled = remaining <= 0;
+    const isSettled = l.paid >= l.total;
+    const isOverpaid = l.paid > l.total;
+    const overpaidAmt = isOverpaid ? l.paid - l.total : 0;
+    const pct = isOverpaid ? 100 : Math.min((l.paid / l.total) * 100, 100);
 
     let dueHtml = '';
     if (l.due && !isSettled) {
@@ -2114,6 +2116,17 @@ function renderLoans() {
       const label = diff < 0 ? `⚠️ ${Math.abs(diff)} days overdue` : diff === 0 ? '🔔 Due today!' : `📆 ${diff} days left`;
       dueHtml = `<span class="tabung-deadline-label ${diff < 0 ? 'overdue' : ''}">${label}</span>`;
     }
+
+    const remainingDisplay = isOverpaid
+      ? `<span>Overpaid: <strong style="color:var(--neon-amber)">+${formatCurrency(overpaidAmt)}</strong></span>`
+      : `<span>Remaining: <strong style="color:${isSettled ? 'var(--accent-green)' : 'var(--accent-red)'}">${formatCurrency(Math.max(remaining, 0))}</strong></span>`;
+
+    const progressClass = isOverpaid ? 'overpaid' : 'safe';
+    const statusText = isOverpaid
+      ? `<span style="font-size:0.8rem;color:var(--neon-amber);font-weight:700;">⚡ Overpaid by ${formatCurrency(overpaidAmt)}</span>`
+      : isSettled
+        ? `<span style="font-size:0.8rem;color:var(--accent-green);">✅ Settled!</span>`
+        : `<span style="font-size:0.8rem;color:var(--text-secondary);">${pct.toFixed(0)}% paid</span>`;
 
     const card = document.createElement('div');
     card.className = `loan-card ${isSettled ? 'settled' : ''} ${l.loanType}`;
@@ -2133,16 +2146,14 @@ function renderLoans() {
       ${dueHtml}
       <div class="loan-amounts">
         <span>Paid: <strong style="color:var(--accent-green)">${formatCurrency(l.paid)}</strong></span>
-        <span>Remaining: <strong style="color:${isSettled ? 'var(--accent-green)' : 'var(--accent-red)'}">${formatCurrency(remaining)}</strong></span>
+        ${remainingDisplay}
         <span>Total: <strong>${formatCurrency(l.total)}</strong></span>
       </div>
       <div class="budget-progress-wrap" style="margin:0.75rem 0;">
-        <div class="budget-progress safe" style="width:${pct}%"></div>
+        <div class="budget-progress ${progressClass}" style="width:${pct}%"></div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:0.8rem;color:${isSettled ? 'var(--accent-green)' : 'var(--text-secondary)'}">
-          ${isSettled ? '✅ Settled!' : `${pct.toFixed(0)}% paid`}
-        </span>
+        ${statusText}
         ${!isSettled ? `<button class="btn-add-tx" style="padding:0.4rem 0.9rem;font-size:0.8rem;" onclick="event.stopPropagation(); openLoanPayModal('${l.id}')">+ Pay</button>` : ''}
       </div>
     `;
@@ -2470,7 +2481,10 @@ window.refreshLoanDetailsModal = function() {
   }
   
   const remaining = l.total - l.paid;
-  const isSettled = remaining <= 0;
+  const isSettled = l.paid >= l.total;
+  const isOverpaid = l.paid > l.total;
+  const overpaidAmt = isOverpaid ? l.paid - l.total : 0;
+  const pct = isOverpaid ? 100 : Math.min((l.paid / l.total) * 100, 100);
   
   // Set basic detail texts
   const personEl = document.getElementById('loan-details-person');
@@ -2492,47 +2506,70 @@ window.refreshLoanDetailsModal = function() {
   }
   
   if (dueEl) {
-    if (l.due && !isSettled) {
+    if (isOverpaid) {
+      dueEl.innerHTML = `<span class="tabung-deadline-label" style="background:rgba(251,191,36,0.15);color:var(--neon-amber);font-size:0.8rem;border-color:rgba(251,191,36,0.3);padding:0.25rem 0.6rem;">⚡ Overpaid by ${formatCurrency(overpaidAmt)}</span>`;
+    } else if (isSettled) {
+      dueEl.innerHTML = '<span class="tabung-deadline-label" style="background:var(--accent-green-bg);color:var(--accent-green);font-size:0.8rem;border-color:transparent;padding:0.25rem 0.6rem;">✅ Fully Settled</span>';
+    } else if (l.due) {
       const d = new Date(l.due + 'T00:00:00');
       const today = new Date(); today.setHours(0,0,0,0);
       const diff = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
       const label = diff < 0 ? `⚠️ ${Math.abs(diff)} days overdue` : diff === 0 ? '🔔 Due today!' : `📆 ${diff} days left`;
       dueEl.innerHTML = `<span class="tabung-deadline-label ${diff < 0 ? 'overdue' : ''}" style="font-size:0.8rem;">${label} (Due: ${formatDate(l.due)})</span>`;
-    } else if (isSettled) {
-      dueEl.innerHTML = '<span class="tabung-deadline-label" style="background:var(--accent-green-bg); color:var(--accent-green); font-size:0.8rem; border-color:transparent; padding:0.25rem 0.6rem;">✅ Fully Settled</span>';
     } else {
-      dueEl.innerHTML = '<span style="font-size:0.8rem; color:var(--ink-secondary);">No due date set</span>';
+      dueEl.innerHTML = '<span style="font-size:0.8rem;color:var(--ink-secondary);">No due date set</span>';
     }
   }
   
-  // Hide form if settled
+  // Hide form if settled or overpaid
   const payBox = document.getElementById('loan-details-pay-box');
   if (payBox) {
     payBox.style.display = isSettled ? 'none' : 'block';
   }
   
-  // Amounts
+  // Amounts — show overpaid label when applicable
   const paidEl = document.getElementById('loan-details-paid');
   const remainingValEl = document.getElementById('loan-details-remaining-val');
   const totalEl = document.getElementById('loan-details-total');
   
   if (paidEl) paidEl.textContent = formatCurrency(l.paid);
-  if (remainingValEl) remainingValEl.textContent = formatCurrency(remaining);
+  if (remainingValEl) {
+    if (isOverpaid) {
+      remainingValEl.textContent = `+${formatCurrency(overpaidAmt)} over`;
+      remainingValEl.style.color = 'var(--neon-amber)';
+    } else {
+      remainingValEl.textContent = formatCurrency(Math.max(remaining, 0));
+      remainingValEl.style.color = isSettled ? 'var(--accent-green)' : 'var(--accent-red)';
+    }
+  }
   if (totalEl) totalEl.textContent = formatCurrency(l.total);
   
   // Progress Bar & Status Text
-  const pct = Math.min((l.paid / l.total) * 100, 100);
   const barEl = document.getElementById('loan-details-progress-bar');
   const statusEl = document.getElementById('loan-details-status');
   
   if (barEl) {
     barEl.style.width = `${pct}%`;
-    barEl.style.background = isSettled ? 'linear-gradient(90deg,var(--accent-green),#16b98d)' : 'linear-gradient(90deg,var(--accent-purple),var(--accent-purple-light))';
+    if (isOverpaid) {
+      barEl.style.background = 'linear-gradient(90deg,var(--neon-amber),#f59e0b)';
+    } else if (isSettled) {
+      barEl.style.background = 'linear-gradient(90deg,var(--accent-green),#16b98d)';
+    } else {
+      barEl.style.background = 'linear-gradient(90deg,var(--accent-purple),var(--accent-purple-light))';
+    }
   }
   
   if (statusEl) {
-    statusEl.textContent = isSettled ? '✅ Settled!' : `${pct.toFixed(0)}% paid`;
-    statusEl.style.color = isSettled ? 'var(--accent-green)' : 'var(--text-secondary)';
+    if (isOverpaid) {
+      statusEl.textContent = `⚡ Overpaid by ${formatCurrency(overpaidAmt)}`;
+      statusEl.style.color = 'var(--neon-amber)';
+    } else if (isSettled) {
+      statusEl.textContent = '✅ Settled!';
+      statusEl.style.color = 'var(--accent-green)';
+    } else {
+      statusEl.textContent = `${pct.toFixed(0)}% paid`;
+      statusEl.style.color = 'var(--text-secondary)';
+    }
   }
   
   // Repayment History List
@@ -2606,12 +2643,8 @@ window.addLoanPaymentFromDetail = async function() {
   if (!l) return;
   
   const remaining = l.total - l.paid;
-  if (remaining <= 0) {
-    errEl.textContent = 'This loan is already fully settled!';
-    return;
-  }
-  
-  const finalAmount = Math.min(amount, remaining);
+  // Allow overpayment — no longer block when remaining <= 0
+  const finalAmount = amount; // record exactly what was paid, even if it exceeds the loan total
   const newPaid = l.paid + finalAmount;
   
   let history = l.history || [];

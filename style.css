@@ -363,6 +363,8 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 .budget-progress.safe{background:linear-gradient(90deg,var(--neon-teal),var(--neon-teal2))}
 .budget-progress.warn{background:linear-gradient(90deg,var(--neon-amber),#fda642)}
 .budget-progress.danger{background:linear-gradient(90deg,var(--neon-coral),var(--neon-coral2))}
+.budget-progress.overpaid{background:linear-gradient(90deg,var(--neon-amber),#f59e0b);animation:overpaid-pulse 1.5s ease-in-out infinite alternate}
+@keyframes overpaid-pulse{from{opacity:.85}to{opacity:1}}
 .budget-status{font-size:.78rem;font-weight:700;letter-spacing:.02em}
 .budget-status.safe{color:var(--neon-teal)}
 .budget-status.warn{color:var(--neon-amber)}
