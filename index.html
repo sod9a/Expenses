@@ -606,7 +606,55 @@
     </div>
   </div>
 
+  <!-- Budget Chart Modal -->
+  <div id="budget-chart-overlay" class="modal-overlay hidden" onclick="closeBudgetChartOnOverlay(event)">
+    <div class="modal small-modal budget-chart-modal">
+      <div class="modal-header">
+        <h2 id="budget-chart-title">Budget Overview</h2>
+        <button class="modal-close" onclick="closeBudgetChart()">✕</button>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <div class="budget-donut-wrap">
+          <svg id="budget-donut-svg" viewBox="0 0 200 200" width="200" height="200">
+            <circle id="budget-donut-bg" cx="100" cy="100" r="80" fill="none" stroke-width="22"/>
+            <circle id="budget-donut-spent" cx="100" cy="100" r="80" fill="none" stroke-width="22"
+              stroke-linecap="round"
+              transform="rotate(-90 100 100)"
+              stroke-dasharray="0 502"/>
+            <circle id="budget-donut-safe" cx="100" cy="100" r="80" fill="none" stroke-width="22"
+              stroke-linecap="round"
+              transform="rotate(-90 100 100)"
+              stroke-dasharray="0 502"/>
+          </svg>
+          <div class="budget-donut-center">
+            <span id="budget-donut-pct" class="budget-donut-pct">0%</span>
+            <span class="budget-donut-sub">used</span>
+          </div>
+        </div>
+        <div class="budget-chart-legend">
+          <div class="budget-legend-row">
+            <span class="budget-legend-dot spent"></span>
+            <span class="budget-legend-label">Spent</span>
+            <span id="budget-legend-spent" class="budget-legend-val">RM0.00</span>
+          </div>
+          <div class="budget-legend-row">
+            <span class="budget-legend-dot remaining"></span>
+            <span class="budget-legend-label">Remaining</span>
+            <span id="budget-legend-remaining" class="budget-legend-val">RM0.00</span>
+          </div>
+          <div class="budget-legend-row total-row">
+            <span class="budget-legend-dot total"></span>
+            <span class="budget-legend-label">Budget Limit</span>
+            <span id="budget-legend-limit" class="budget-legend-val">RM0.00</span>
+          </div>
+        </div>
+        <div id="budget-chart-status" class="budget-chart-status"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Delete Confirm Modal -->
+
   <div id="delete-modal" class="modal-overlay hidden">
     <div class="modal small-modal">
       <div class="modal-header">

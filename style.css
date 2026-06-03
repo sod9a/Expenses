@@ -294,8 +294,9 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 .cat-expense-val{font-family:'Sora',sans-serif;font-size:.88rem;color:var(--neon-coral);font-weight:700}
 
 /* BUDGETS */
-.budget-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--r-xl);padding:1.5rem;transition:transform var(--t) var(--ease),box-shadow var(--t)}
-.budget-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-card)}
+.budget-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--r-xl);padding:1.5rem;transition:transform var(--t) var(--ease),box-shadow var(--t);cursor:pointer}
+.budget-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-card);border-color:rgba(34,197,94,.3)}
+.budget-card:active{transform:scale(.98)}
 .budget-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
 .budget-cat{font-weight:700;font-size:1rem}
 .budget-amounts{font-size:.875rem;color:var(--ink-secondary)}
@@ -308,8 +309,31 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 .budget-status.safe{color:var(--neon-teal)}
 .budget-status.warn{color:var(--neon-amber)}
 .budget-status.danger{color:var(--neon-coral)}
-.btn-del-budget{background:rgba(255,77,106,.1);border:none;color:var(--neon-coral);width:30px;height:30px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all var(--t)}
+.btn-del-budget{background:rgba(255,77,106,.1);border:none;color:var(--neon-coral);width:30px;height:30px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all var(--t);flex-shrink:0;z-index:2;position:relative}
 .btn-del-budget:hover{background:var(--neon-coral);color:white;transform:scale(1.1)}
+
+/* BUDGET CHART MODAL */
+.budget-chart-modal{max-width:360px}
+.budget-donut-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;margin:1.2rem auto 1.5rem;width:200px;height:200px}
+#budget-donut-bg{stroke:var(--bg-elevated)}
+#budget-donut-spent{stroke:var(--neon-coral);transition:stroke-dasharray .7s var(--ease)}
+#budget-donut-safe{stroke:var(--neon-teal);transition:stroke-dasharray .7s var(--ease)}
+.budget-donut-center{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem}
+.budget-donut-pct{font-family:'Sora',sans-serif;font-size:2rem;font-weight:800;letter-spacing:-.04em;color:var(--ink-primary);line-height:1}
+.budget-donut-sub{font-size:.72rem;font-weight:600;color:var(--ink-secondary);letter-spacing:.06em;text-transform:uppercase}
+.budget-chart-legend{display:flex;flex-direction:column;gap:.65rem;margin:0 auto 1.2rem;max-width:280px;text-align:left}
+.budget-legend-row{display:flex;align-items:center;gap:.75rem;padding:.55rem .85rem;background:var(--bg-elevated);border-radius:12px}
+.budget-legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.budget-legend-dot.spent{background:var(--neon-coral)}
+.budget-legend-dot.remaining{background:var(--neon-teal)}
+.budget-legend-dot.total{background:var(--bg-glass-light);border:2px solid var(--border-med)}
+.budget-legend-label{flex:1;font-size:.85rem;color:var(--ink-secondary);font-weight:500}
+.budget-legend-val{font-size:.9rem;font-weight:700;color:var(--ink-primary);font-family:'Sora',sans-serif}
+.budget-legend-row.total-row{opacity:.7}
+.budget-chart-status{font-size:.85rem;font-weight:700;padding:.6rem 1.2rem;border-radius:30px;display:inline-block;margin-top:.2rem}
+.budget-chart-status.safe{background:rgba(34,197,94,.12);color:var(--neon-teal)}
+.budget-chart-status.warn{background:rgba(251,191,36,.12);color:var(--neon-amber)}
+.budget-chart-status.danger{background:rgba(248,113,113,.12);color:var(--neon-coral)}
 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;padding:0}

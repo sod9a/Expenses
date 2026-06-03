@@ -1372,7 +1372,7 @@ function renderBudgets() {
     div.innerHTML = `
       <div class="budget-header">
         <span class="budget-cat">${getCategoryIcon(b.category)} ${b.category}</span>
-        <button class="btn-del-budget" onclick="deleteBudget('${b.id}')">✕</button>
+        <button class="btn-del-budget" onclick="event.stopPropagation();deleteBudget('${b.id}')">✕</button>
       </div>
       <div class="budget-amounts">
         <strong>${formatCurrency(spent)}</strong> spent of ${formatCurrency(b.limit)}
@@ -1382,9 +1382,57 @@ function renderBudgets() {
       </div>
       <div class="budget-status ${statusClass}">${statusText} (${pct.toFixed(0)}%)</div>
     `;
+    div.addEventListener('click', () => openBudgetChart(b, spent, pct, statusClass));
     container.appendChild(div);
   });
 }
+
+// ─── Budget Chart Modal ────────────────────────────────────────────────────
+window.openBudgetChart = function(b, spent, pct, statusClass) {
+  const circumference = 2 * Math.PI * 80;
+  const spentDash = (pct / 100) * circumference;
+  const safePct   = Math.max(0, 100 - pct);
+  const safeDash  = (safePct / 100) * circumference;
+  const remaining = Math.max(0, b.limit - spent);
+
+  document.getElementById('budget-chart-title').textContent = `${getCategoryIcon(b.category)} ${b.category}`;
+
+  const safeArc  = document.getElementById('budget-donut-safe');
+  const spentArc = document.getElementById('budget-donut-spent');
+  safeArc.setAttribute('stroke-dasharray',  '0 503');
+  spentArc.setAttribute('stroke-dasharray', '0 503');
+  safeArc.style.strokeDashoffset  = '0';
+
+  document.getElementById('budget-donut-pct').textContent       = `${pct.toFixed(0)}%`;
+  document.getElementById('budget-legend-spent').textContent     = formatCurrency(spent);
+  document.getElementById('budget-legend-remaining').textContent = formatCurrency(remaining);
+  document.getElementById('budget-legend-limit').textContent     = formatCurrency(b.limit);
+
+  const statusEl = document.getElementById('budget-chart-status');
+  const labels   = { safe: '✅ Looking good!', warn: '⚠️ Nearing limit', danger: '🚨 Over budget!' };
+  statusEl.textContent = labels[statusClass] || '';
+  statusEl.className   = `budget-chart-status ${statusClass}`;
+
+  document.getElementById('budget-chart-overlay').classList.remove('hidden');
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (pct > 0) {
+      spentArc.setAttribute('stroke-dasharray', `${spentDash.toFixed(2)} ${circumference.toFixed(2)}`);
+    }
+    if (safePct > 0) {
+      safeArc.style.strokeDashoffset = `-${spentDash.toFixed(2)}`;
+      safeArc.setAttribute('stroke-dasharray', `${safeDash.toFixed(2)} ${circumference.toFixed(2)}`);
+    }
+  }));
+};
+
+window.closeBudgetChart = function() {
+  document.getElementById('budget-chart-overlay').classList.add('hidden');
+};
+
+window.closeBudgetChartOnOverlay = function(e) {
+  if (e.target === document.getElementById('budget-chart-overlay')) closeBudgetChart();
+};
 
 // ─── Toast ─────────────────────────────────────────────────────────────────
 function showToast(msg, type = 'success') {
