@@ -812,7 +812,7 @@ window.closeGrossIncomeModalOnOverlay = function(e) {
 
 window.saveGrossIncome = async function() {
   const val = parseFloat(document.getElementById('gross-income-input').value);
-  if (!val || val < 0) { showToast('Please enter a valid amount', 'error'); return; }
+  if (isNaN(val) || val < 0) { showToast('Please enter a valid amount', 'error'); return; }
   grossIncome = val;
   try {
     await setDoc(doc(db, 'settings', currentUser.uid), { grossIncome: val }, { merge: true });
