@@ -1197,14 +1197,24 @@ function getCategoryIcon(cat) {
 
 function updateSummaryCards() {
   const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
-  // Net income = grossIncome from settings (persistent monthly salary, set once by user)
-  const netIncome = grossIncome;
+  
+  // Sum current month's income transactions categorized as "Salary" (case-insensitive)
+  const salaryIncome = allTransactions
+    .filter(t => t.type === 'income' && t.category && t.category.toLowerCase() === 'salary' && t.date && t.date.startsWith(currentMonthStr))
+    .reduce((s, t) => s + t.amount, 0);
+
+  // Sum current month's other income transactions (excluding "Salary")
+  const otherIncome = allTransactions
+    .filter(t => t.type === 'income' && (!t.category || t.category.toLowerCase() !== 'salary') && t.date && t.date.startsWith(currentMonthStr))
+    .reduce((s, t) => s + t.amount, 0);
+
+  // Net income = grossIncome from settings + any salary income transactions
+  const netIncome = grossIncome + salaryIncome;
   const expense   = allTransactions.filter(t => t.type === 'expense' && t.date && t.date.startsWith(currentMonthStr)).reduce((s, t) => s + t.amount, 0);
-  const income    = allTransactions.filter(t => t.type === 'income' && t.date && t.date.startsWith(currentMonthStr)).reduce((s, t) => s + t.amount, 0);
   
   const carryOver = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : 0;
-  const balance   = carryOver + netIncome + income - expense;
-  const remaining = carryOver + netIncome + income - expense;
+  const balance   = carryOver + netIncome + otherIncome - expense;
+  const remaining = carryOver + netIncome + otherIncome - expense;
 
   // Desktop summary cards
   document.getElementById('total-income').textContent  = formatCurrency(netIncome);
