@@ -2069,8 +2069,8 @@ function renderLoans() {
   const container = document.getElementById('loan-list');
   const summaryEl = document.getElementById('loan-summary-cards');
 
-  const totalOwe = allLoans.filter(l => l.loanType === 'owe').reduce((s, l) => s + (l.total - l.paid), 0);
-  const totalLent = allLoans.filter(l => l.loanType === 'lent').reduce((s, l) => s + (l.total - l.paid), 0);
+  const totalOwe  = allLoans.filter(l => l.loanType === 'owe' ).reduce((s, l) => s + Math.max(0, l.total - l.paid), 0);
+  const totalLent = allLoans.filter(l => l.loanType === 'lent').reduce((s, l) => s + Math.max(0, l.total - l.paid), 0);
 
   summaryEl.innerHTML = `
     <div class="summary-card expense">
