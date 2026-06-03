@@ -665,7 +665,7 @@ async function checkForMonthlyReset() {
       userSettings.carryOverBalance = prevRemaining;
       userSettings.lastProcessedMonth = currentMonthStr;
       
-      showToast('Welcome to a new month! Gross income reset to 0, checklist wiped, and remaining balance carried over.', 'success');
+      showToast('Welcome to a new month! Net income reset to 0, checklist wiped, and remaining balance carried over.', 'success');
     } catch (e) {
       console.error("Error during monthly reset:", e);
       showToast('Failed to complete monthly reset transitions.', 'error');
@@ -816,7 +816,7 @@ window.saveGrossIncome = async function() {
   grossIncome = val;
   try {
     await setDoc(doc(db, 'settings', currentUser.uid), { grossIncome: val }, { merge: true });
-    showToast('Gross income updated!', 'success');
+    showToast('Net income updated!', 'success');
     const grossInput = document.getElementById('setting-gross-income');
     if (grossInput) grossInput.value = val;
     closeGrossIncomeModal();
