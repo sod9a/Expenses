@@ -119,57 +119,70 @@ function hideApp() {
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 function initMonthYearSelects() {
-  const selCombined = document.getElementById('filter-month-combined');
-  if (!selCombined) return;
+  const listContainer = document.getElementById('filter-month-list');
+  const hiddenInput = document.getElementById('filter-month-combined');
+  if (!listContainer || !hiddenInput) return;
 
   const now = new Date();
   const curY = now.getFullYear();
   const curM = now.getMonth(); // 0-indexed
 
-  selCombined.innerHTML = '';
+  listContainer.innerHTML = '';
   
+  const defaultVal = `${curY}-${String(curM + 1).padStart(2, '0')}`;
+  hiddenInput.value = defaultVal;
+  
+  // Set initial button label
+  const label = document.getElementById('month-picker-label');
+  if (label) label.textContent = `${MONTH_NAMES[curM]} ${curY}`;
+
   // Generate options from current month going back 36 months (3 years)
   for (let i = 0; i < 36; i++) {
     const d = new Date(curY, curM - i, 1);
     const yVal = d.getFullYear();
     const mVal = String(d.getMonth() + 1).padStart(2, '0');
+    const val = `${yVal}-${mVal}`;
     const labelText = `${MONTH_NAMES[d.getMonth()]} ${yVal}`;
     
-    const opt = document.createElement('option');
-    opt.value = `${yVal}-${mVal}`;
-    opt.textContent = labelText;
-    if (i === 0) opt.selected = true;
-    selCombined.appendChild(opt);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'month-selector-item';
+    if (i === 0) btn.classList.add('selected');
+    btn.textContent = labelText;
+    btn.dataset.value = val;
+    btn.onclick = function() {
+      selectMonthForTransactions(val, labelText, btn);
+    };
+    listContainer.appendChild(btn);
   }
-
-  // Update the pill label immediately
-  updateMonthPickerLabel();
 }
 
-function updateMonthPickerLabel() {
-  const selCombined = document.getElementById('filter-month-combined');
+window.selectMonthForTransactions = function(val, labelText, clickedEl) {
+  const hiddenInput = document.getElementById('filter-month-combined');
   const label = document.getElementById('month-picker-label');
-  if (!selCombined || !label) return;
-  
-  const selectedOption = selCombined.options[selCombined.selectedIndex];
-  if (selectedOption) {
-    label.textContent = selectedOption.textContent;
+  if (hiddenInput) hiddenInput.value = val;
+  if (label) label.textContent = labelText;
+
+  // Toggle active class
+  const listContainer = document.getElementById('filter-month-list');
+  if (listContainer) {
+    listContainer.querySelectorAll('.month-selector-item').forEach(b => b.classList.remove('selected'));
   }
-}
+  if (clickedEl) clickedEl.classList.add('selected');
+
+  // Close dropdown
+  const dd = document.getElementById('month-picker-dropdown');
+  if (dd) dd.classList.add('hidden');
+
+  // Trigger filter
+  filterByMonth();
+};
 
 window.toggleMonthPicker = function(e) {
   e.stopPropagation();
   const dd = document.getElementById('month-picker-dropdown');
   if (!dd) return;
   dd.classList.toggle('hidden');
-};
-
-window.onMonthPickerChange = function() {
-  updateMonthPickerLabel();
-  // Close dropdown after selection on mobile
-  const dd = document.getElementById('month-picker-dropdown');
-  if (dd) dd.classList.add('hidden');
-  filterByMonth();
 };
 
 // Close picker when clicking outside
@@ -1345,31 +1358,66 @@ function updateCatMonthLabel() {
 }
 
 function initCatMonthYearSelects() {
-  const selCombined = document.getElementById('cat-filter-month-combined');
-  if (!selCombined) return;
+  const listContainer = document.getElementById('cat-filter-month-list');
+  const hiddenInput = document.getElementById('cat-filter-month-combined');
+  if (!listContainer || !hiddenInput) return;
 
   const now = new Date();
   const curY = now.getFullYear();
   const curM = now.getMonth(); // 0-indexed
 
-  selCombined.innerHTML = '';
+  listContainer.innerHTML = '';
   
+  const defaultVal = `${catSelectedYear}-${String(catSelectedMonth + 1).padStart(2, '0')}`;
+  hiddenInput.value = defaultVal;
+
   // Generate options from current month going back 36 months (3 years)
   for (let i = 0; i < 36; i++) {
     const d = new Date(curY, curM - i, 1);
     const yVal = d.getFullYear();
     const mVal = String(d.getMonth() + 1).padStart(2, '0');
+    const val = `${yVal}-${mVal}`;
     const labelText = `${MONTH_NAMES[d.getMonth()]} ${yVal}`;
     
-    const opt = document.createElement('option');
-    opt.value = `${yVal}-${mVal}`;
-    opt.textContent = labelText;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'month-selector-item';
     if (yVal === catSelectedYear && d.getMonth() === catSelectedMonth) {
-      opt.selected = true;
+      btn.classList.add('selected');
     }
-    selCombined.appendChild(opt);
+    btn.textContent = labelText;
+    btn.dataset.value = val;
+    btn.onclick = function() {
+      selectMonthForCategories(val, labelText, btn);
+    };
+    listContainer.appendChild(btn);
   }
+  
+  updateCatMonthLabel();
 }
+
+window.selectMonthForCategories = function(val, labelText, clickedEl) {
+  const hiddenInput = document.getElementById('cat-filter-month-combined');
+  if (hiddenInput) hiddenInput.value = val;
+  
+  const parts = val.split('-');
+  catSelectedYear = parseInt(parts[0], 10);
+  catSelectedMonth = parseInt(parts[1], 10) - 1;
+
+  // Toggle active class
+  const listContainer = document.getElementById('cat-filter-month-list');
+  if (listContainer) {
+    listContainer.querySelectorAll('.month-selector-item').forEach(b => b.classList.remove('selected'));
+  }
+  if (clickedEl) clickedEl.classList.add('selected');
+
+  // Close dropdown
+  const dd = document.getElementById('cat-month-picker-dropdown');
+  if (dd) dd.classList.add('hidden');
+
+  updateCatMonthLabel();
+  renderCategories();
+};
 
 window.toggleCatMonthPicker = function(e) {
   e.stopPropagation();
@@ -1378,30 +1426,27 @@ window.toggleCatMonthPicker = function(e) {
   dd.classList.toggle('hidden');
 };
 
-window.onCatMonthPickerChange = function() {
-  const selCombined = document.getElementById('cat-filter-month-combined');
-  if (!selCombined) return;
-  const val = selCombined.value;
-  if (val) {
-    const parts = val.split('-');
-    catSelectedYear = parseInt(parts[0], 10);
-    catSelectedMonth = parseInt(parts[1], 10) - 1;
-  }
-  const dd = document.getElementById('cat-month-picker-dropdown');
-  if (dd) dd.classList.add('hidden');
-  updateCatMonthLabel();
-  renderCategories();
-};
-
 window.catMonthShift = function(dir) {
   catSelectedMonth += dir;
   if (catSelectedMonth > 11) { catSelectedMonth = 0;  catSelectedYear++; }
   if (catSelectedMonth < 0)  { catSelectedMonth = 11; catSelectedYear--; }
   
-  const selCombined = document.getElementById('cat-filter-month-combined');
-  if (selCombined) {
-    const val = `${catSelectedYear}-${String(catSelectedMonth + 1).padStart(2, '0')}`;
-    selCombined.value = val;
+  const val = `${catSelectedYear}-${String(catSelectedMonth + 1).padStart(2, '0')}`;
+  const hiddenInput = document.getElementById('cat-filter-month-combined');
+  if (hiddenInput) {
+    hiddenInput.value = val;
+  }
+  
+  // Update selected class in custom list
+  const listContainer = document.getElementById('cat-filter-month-list');
+  if (listContainer) {
+    listContainer.querySelectorAll('.month-selector-item').forEach(b => {
+      if (b.dataset.value === val) {
+        b.classList.add('selected');
+      } else {
+        b.classList.remove('selected');
+      }
+    });
   }
   updateCatMonthLabel();
   renderCategories();
