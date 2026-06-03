@@ -171,24 +171,16 @@
               <svg id="eye-icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
             </button>
           </div>
-          <div class="mob-hero-main">
-            <span class="mob-hero-label">Net Income</span>
+          <div class="mob-hero-main" onclick="openGrossIncomeModal()" style="cursor:pointer;" title="Tap to set your net income">
+            <span class="mob-hero-label">Net Income <span style="font-size:.65rem;opacity:.6">✏️</span></span>
             <div class="mob-hero-balance masked-val" id="mob-hero-balance">RM0.00</div>
           </div>
           <div class="mob-hero-divider"></div>
-          <div class="mob-hero-chips">
-            <div class="mob-chip income" onclick="openGrossIncomeModal()" style="cursor:pointer;" title="Tap to set your gross income">
-              <div class="mob-chip-icon">↑</div>
-              <div class="mob-chip-info">
-                <span class="mob-chip-label">Gross Income <span style="font-size:.65rem;opacity:.6">✏️</span></span>
-                <span class="mob-chip-val masked-val" id="mob-gross-income">RM0.00</span>
-              </div>
-            </div>
-            <div class="mob-chip-divider"></div>
+          <div class="mob-hero-chips" style="justify-content: center;">
             <div class="mob-chip expense">
               <div class="mob-chip-icon">↓</div>
               <div class="mob-chip-info">
-                <span class="mob-chip-label">Remaining</span>
+                <span class="mob-chip-label">Remaining Balance</span>
                 <span class="mob-chip-val masked-val" id="mob-remaining">RM0.00</span>
               </div>
             </div>
@@ -671,17 +663,17 @@
     </div>
   </div>
 
-  <!-- Gross Income Modal -->
+  <!-- Net Income Modal -->
   <div id="gross-income-overlay" class="modal-overlay hidden" onclick="closeGrossIncomeModalOnOverlay(event)">
     <div class="modal small-modal">
       <div class="modal-header">
-        <h2>Set Gross Income</h2>
-        <button class="modal-close" onclick="closeGrossIncomeModal()">✕</button>
+        <h2>Set Net Income</h2>
+        <button class="modal-close" onclick="closeGrossIncomeModal()">×</button>
       </div>
       <div class="modal-body">
-        <p style="color:var(--ink-secondary);margin-bottom:1rem;font-size:.88rem;line-height:1.5;">Enter your monthly gross income (salary before deductions). This is used to calculate your <strong>Remaining</strong> balance.</p>
+        <p style="color:var(--ink-secondary);margin-bottom:1rem;font-size:.88rem;line-height:1.5;">Enter your monthly net income. This is used to calculate your <strong>Remaining</strong> balance.</p>
         <div class="input-group">
-          <label>Gross Monthly Income</label>
+          <label>Net Monthly Income</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
             <input type="number" id="gross-income-input" placeholder="0.00" min="0" step="0.01" />

@@ -1191,10 +1191,8 @@ function updateSummaryCards() {
 
   // Mobile hero card
   const mobBal       = document.getElementById('mob-hero-balance');
-  const mobGross     = document.getElementById('mob-gross-income');
   const mobRemaining = document.getElementById('mob-remaining');
   if (mobBal)       mobBal.dataset.value       = formatCurrency(netIncome);
-  if (mobGross)     mobGross.dataset.value     = formatCurrency(grossIncome);
   if (mobRemaining) mobRemaining.dataset.value = formatCurrency(remaining);
 
   applyBalanceVisibility();
