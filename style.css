@@ -284,6 +284,14 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 
 /* CATEGORIES */
 .categories-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem}
+/* CATEGORY MONTH PICKER */
+.cat-month-picker{display:flex;align-items:center;justify-content:center;gap:1rem;margin:0 0 1.25rem;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:40px;padding:.55rem 1.1rem}
+.cat-month-label{font-family:'Sora',sans-serif;font-weight:700;font-size:.95rem;color:var(--ink-primary);min-width:130px;text-align:center;letter-spacing:-.01em;border:none;background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;padding:.3rem .6rem;border-radius:20px;transition:background var(--t)}
+.cat-month-label:hover{background:var(--bg-glass-light)}
+.cat-month-arrow{background:none;border:none;color:var(--neon-teal);font-size:1.5rem;font-weight:700;cursor:pointer;padding:.1rem .4rem;border-radius:50%;line-height:1;transition:background var(--t),color var(--t)}
+.cat-month-arrow:hover:not(:disabled){background:rgba(34,197,94,.12);color:var(--neon-teal2)}
+.cat-month-arrow:disabled{cursor:default}
+
 .cat-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--r-xl);padding:1.25rem;transition:transform var(--t) var(--ease),box-shadow var(--t)}
 .cat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-card)}
 .cat-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}

@@ -318,6 +318,20 @@
             <p class="page-subtitle">Breakdown by category</p>
           </div>
         </div>
+        <!-- Month Picker -->
+        <div class="cat-month-picker">
+          <button class="cat-month-arrow" id="cat-month-prev" onclick="catMonthShift(-1)">‹</button>
+          <div class="month-picker-wrap" id="cat-month-picker-wrap" style="position: relative; display: inline-block;">
+            <button class="cat-month-label" id="cat-month-label" onclick="toggleCatMonthPicker(event)" type="button">
+              <span id="cat-month-picker-text">June 2026</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px;"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="month-picker-dropdown hidden" id="cat-month-picker-dropdown" style="top: calc(100% + 0.5rem); left: 50%; transform: translateX(-50%); right: auto;">
+              <select id="cat-filter-month-combined" class="month-picker-sel-full" onchange="onCatMonthPickerChange()"></select>
+            </div>
+          </div>
+          <button class="cat-month-arrow" id="cat-month-next" onclick="catMonthShift(1)">›</button>
+        </div>
         <div id="categories-content" class="categories-grid">
           <div class="empty-state"><span>🏷️</span><p>No data yet. Add some transactions!</p></div>
         </div>

@@ -99,6 +99,7 @@ function showApp(user) {
 
   // Populate year select and set current month/year defaults
   initMonthYearSelects();
+  initCatMonthYearSelects();
 
   // Always start on Dashboard after login
   navigateTo('dashboard', document.querySelector('[data-page="dashboard"]'));
@@ -173,6 +174,11 @@ document.addEventListener('click', function(e) {
   if (wrap && !wrap.contains(e.target)) {
     const dd = document.getElementById('month-picker-dropdown');
     if (dd) dd.classList.add('hidden');
+  }
+  const catWrap = document.getElementById('cat-month-picker-wrap');
+  if (catWrap && !catWrap.contains(e.target)) {
+    const catDd = document.getElementById('cat-month-picker-dropdown');
+    if (catDd) catDd.classList.add('hidden');
   }
 });
 
@@ -1313,14 +1319,104 @@ window.searchTransactions = function () {
 
 window.filterByMonth = function () { renderAllTransactions(); };
 
+// ─── Categories Month State ──────────────────────────────────────────
+let catSelectedYear  = new Date().getFullYear();
+let catSelectedMonth = new Date().getMonth(); // 0-indexed
+
+function getCatMonthStr() {
+  return `${catSelectedYear}-${String(catSelectedMonth + 1).padStart(2, '0')}`;
+}
+
+function updateCatMonthLabel() {
+  const labelText = document.getElementById('cat-month-picker-text');
+  if (!labelText) return;
+  const d = new Date(catSelectedYear, catSelectedMonth, 1);
+  labelText.textContent = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+  // Disable next arrow if we are at current month
+  const now = new Date();
+  const nextBtn = document.getElementById('cat-month-next');
+  if (nextBtn) {
+    const isCurrentMonth = catSelectedYear === now.getFullYear() && catSelectedMonth === now.getMonth();
+    nextBtn.disabled = isCurrentMonth;
+    nextBtn.style.opacity = isCurrentMonth ? '0.3' : '1';
+  }
+}
+
+function initCatMonthYearSelects() {
+  const selCombined = document.getElementById('cat-filter-month-combined');
+  if (!selCombined) return;
+
+  const now = new Date();
+  const curY = now.getFullYear();
+  const curM = now.getMonth(); // 0-indexed
+
+  selCombined.innerHTML = '';
+  
+  // Generate options from current month going back 36 months (3 years)
+  for (let i = 0; i < 36; i++) {
+    const d = new Date(curY, curM - i, 1);
+    const yVal = d.getFullYear();
+    const mVal = String(d.getMonth() + 1).padStart(2, '0');
+    const labelText = `${MONTH_NAMES[d.getMonth()]} ${yVal}`;
+    
+    const opt = document.createElement('option');
+    opt.value = `${yVal}-${mVal}`;
+    opt.textContent = labelText;
+    if (yVal === catSelectedYear && d.getMonth() === catSelectedMonth) {
+      opt.selected = true;
+    }
+    selCombined.appendChild(opt);
+  }
+}
+
+window.toggleCatMonthPicker = function(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('cat-month-picker-dropdown');
+  if (!dd) return;
+  dd.classList.toggle('hidden');
+};
+
+window.onCatMonthPickerChange = function() {
+  const selCombined = document.getElementById('cat-filter-month-combined');
+  if (!selCombined) return;
+  const val = selCombined.value;
+  if (val) {
+    const parts = val.split('-');
+    catSelectedYear = parseInt(parts[0], 10);
+    catSelectedMonth = parseInt(parts[1], 10) - 1;
+  }
+  const dd = document.getElementById('cat-month-picker-dropdown');
+  if (dd) dd.classList.add('hidden');
+  updateCatMonthLabel();
+  renderCategories();
+};
+
+window.catMonthShift = function(dir) {
+  catSelectedMonth += dir;
+  if (catSelectedMonth > 11) { catSelectedMonth = 0;  catSelectedYear++; }
+  if (catSelectedMonth < 0)  { catSelectedMonth = 11; catSelectedYear--; }
+  
+  const selCombined = document.getElementById('cat-filter-month-combined');
+  if (selCombined) {
+    const val = `${catSelectedYear}-${String(catSelectedMonth + 1).padStart(2, '0')}`;
+    selCombined.value = val;
+  }
+  updateCatMonthLabel();
+  renderCategories();
+};
+
 function renderCategories() {
+  updateCatMonthLabel();
   const container = document.getElementById('categories-content');
-  if (!allTransactions.length) {
-    container.innerHTML = '<div class="empty-state"><span>🏷️</span><p>No data yet. Add some transactions!</p></div>';
+  const monthStr = getCatMonthStr();
+  const filtered = allTransactions.filter(t => t.date && t.date.startsWith(monthStr));
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty-state"><span>🏷️</span><p>No transactions for this month.</p></div>';
     return;
   }
   const map = {};
-  allTransactions.forEach(t => {
+  filtered.forEach(t => {
     if (!map[t.category]) map[t.category] = { income: 0, expense: 0, count: 0 };
     map[t.category][t.type] += t.amount;
     map[t.category].count++;
@@ -1328,7 +1424,6 @@ function renderCategories() {
   const maxTotal = Math.max(...Object.values(map).map(v => v.income + v.expense));
   container.innerHTML = '';
   Object.entries(map).sort((a, b) => (b[1].income + b[1].expense) - (a[1].income + a[1].expense)).forEach(([cat, vals]) => {
-    const pct = maxTotal > 0 ? ((vals.income + vals.expense) / maxTotal * 100) : 0;
     const card = document.createElement('div');
     card.className = 'cat-card';
     card.innerHTML = `
