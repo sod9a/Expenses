@@ -1291,7 +1291,7 @@ function updateExpensesChart() {
     'Bills': '#8B5CF6',
     'Entertainment': '#EF4444',
     'Health': '#06B6D4',
-    'Education': '#F97316',
+    'Clothing': '#F97316',
     'Salary': '#10B981',
     'Freelance': '#10B981',
     'Investment': '#10B981',
@@ -1422,7 +1422,7 @@ function getCategoryIcon(cat) {
   const icons = {
     'Food & Dining': '🍔', 'Housing': '🏠', 'Rent': '🏠', 'Transport': '🚗',
     'Shopping': '🛍️', 'Groceries': '🛒', 'Bills': '🧾', 
-    'Entertainment': '🎬', 'Health': '💊', 'Education': '📚', 
+    'Entertainment': '🎬', 'Health': '💊', 'Clothing': '👕', 
     'Salary': '💼', 'Freelance': '💻', 'Investment': '📈', 
     'Loan': '🏦', 'Other': '✨', 'General': '💡'
   };
@@ -3073,8 +3073,8 @@ function matchCategory(name) {
   if (lowercaseName.includes('health') || lowercaseName.includes('medical') || lowercaseName.includes('doctor') || lowercaseName.includes('clinic') || lowercaseName.includes('pharmacy') || lowercaseName.includes('ubat') || lowercaseName.includes('hospital')) {
     return 'Health';
   }
-  if (lowercaseName.includes('education') || lowercaseName.includes('school') || lowercaseName.includes('book') || lowercaseName.includes('yuran') || lowercaseName.includes('class')) {
-    return 'Education';
+  if (lowercaseName.includes('clothing') || lowercaseName.includes('baju') || lowercaseName.includes('clothes') || lowercaseName.includes('shirt') || lowercaseName.includes('pants') || lowercaseName.includes('shoe') || lowercaseName.includes('kasut')) {
+    return 'Clothing';
   }
   if (lowercaseName.includes('loan') || lowercaseName.includes('hutang') || lowercaseName.includes('bank') || lowercaseName.includes('installment') || lowercaseName.includes('bayar')) {
     return 'Loan';
