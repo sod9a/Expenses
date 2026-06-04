@@ -238,36 +238,62 @@
           </div>
         </div>
 
-        <!-- Monthly Payment Checklist -->
-        <div class="section-card checklist-card" id="checklist-card">
-          <div class="checklist-header" onclick="toggleChecklistDropdown()">
-            <div class="checklist-header-left">
-              <span class="checklist-icon">📋</span>
+        <!-- Dashboard Grid for Chart & Checklist -->
+        <div class="dashboard-grid">
+          <!-- Expenses Circle Chart Card -->
+          <div class="section-card chart-card" id="expenses-chart-card">
+            <div class="chart-header">
+              <span class="chart-icon">🍩</span>
               <div>
-                <h2 id="checklist-title">Monthly Checklist</h2>
-                <span class="checklist-subtitle" id="checklist-subtitle">0 of 0 paid</span>
+                <h2>Expenses by Category</h2>
+                <span class="chart-subtitle" id="chart-month-subtitle">This Month</span>
               </div>
             </div>
-            <div class="checklist-header-right">
-              <span class="checklist-percentage" id="checklist-percentage">0%</span>
-              <svg class="checklist-chevron" id="checklist-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <div class="chart-content">
+              <div class="chart-canvas-wrap">
+                <canvas id="expenses-circle-chart"></canvas>
+              </div>
+              <div id="chart-empty-state" class="chart-empty-state hidden">
+                <span>📊</span>
+                <p>No expense data for this month</p>
+              </div>
+              <div id="chart-legend-container" class="chart-legend-container">
+                <!-- Legend items dynamically loaded here -->
+              </div>
             </div>
           </div>
-          <div class="checklist-progress-wrap">
-            <div class="checklist-progress-bar" id="checklist-progress-bar" style="width:0%"></div>
-          </div>
-          <div class="checklist-body" id="checklist-body">
-            <div class="checklist-body-inner">
-              <div id="checklist-list" class="checklist-list">
-                <div class="checklist-empty">No items yet. Add your first payment below.</div>
-              </div>
-              <div class="checklist-add-form">
-                <input type="text" id="checklist-name" class="checklist-input" placeholder="e.g. Netflix, Rent…" />
-                <div class="checklist-amount-wrap">
-                  <span class="checklist-currency dynamic-currency">$</span>
-                  <input type="number" id="checklist-amount" class="checklist-input checklist-amount-input" placeholder="0.00" min="0" step="0.01" />
+
+          <!-- Monthly Payment Checklist -->
+          <div class="section-card checklist-card" id="checklist-card">
+            <div class="checklist-header" onclick="toggleChecklistDropdown()">
+              <div class="checklist-header-left">
+                <span class="checklist-icon">📋</span>
+                <div>
+                  <h2 id="checklist-title">Monthly Checklist</h2>
+                  <span class="checklist-subtitle" id="checklist-subtitle">0 of 0 paid</span>
                 </div>
-                <button class="checklist-add-btn" onclick="addChecklistItem()">+ Add</button>
+              </div>
+              <div class="checklist-header-right">
+                <span class="checklist-percentage" id="checklist-percentage">0%</span>
+                <svg class="checklist-chevron" id="checklist-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+            <div class="checklist-progress-wrap">
+              <div class="checklist-progress-bar" id="checklist-progress-bar" style="width:0%"></div>
+            </div>
+            <div class="checklist-body" id="checklist-body">
+              <div class="checklist-body-inner">
+                <div id="checklist-list" class="checklist-list">
+                  <div class="checklist-empty">No items yet. Add your first payment below.</div>
+                </div>
+                <div class="checklist-add-form">
+                  <input type="text" id="checklist-name" class="checklist-input" placeholder="e.g. Netflix, Rent…" />
+                  <div class="checklist-amount-wrap">
+                    <span class="checklist-currency dynamic-currency">$</span>
+                    <input type="number" id="checklist-amount" class="checklist-input checklist-amount-input" placeholder="0.00" min="0" step="0.01" />
+                  </div>
+                  <button class="checklist-add-btn" onclick="addChecklistItem()">+ Add</button>
+                </div>
               </div>
             </div>
           </div>
@@ -1034,6 +1060,7 @@
 
   <div id="toast" class="toast hidden"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   <script type="module" src="app.js?v=1.0.4"></script>
 </body>
 </html>

@@ -33,6 +33,7 @@ let allTabung = [];
 let allLoans = [];
 let userSettings = { currency: '$', theme: 'dark', avatarUrl: '' };
 let grossIncome = 0; // User-defined gross monthly income
+let expensesChart = null;
 let activeFilter = 'all';
 let editingTxId = null;
 let editingTabungId = null;
@@ -1214,10 +1215,189 @@ function renderAll() {
   updateSummaryCards();
   renderRecentTransactions();
   renderChecklist();
+  updateExpensesChart();
   if (document.getElementById('page-transactions').classList.contains('active')) renderAllTransactions();
   if (document.getElementById('page-categories').classList.contains('active')) renderCategories();
   if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
 }
+
+let expensesChartTimeout = null;
+function updateExpensesChart() {
+  const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const now = new Date();
+  const monthSubtitle = document.getElementById('chart-month-subtitle');
+  if (monthSubtitle) {
+    monthSubtitle.textContent = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+  }
+
+  const monthExpenses = allTransactions.filter(t => 
+    t.type === 'expense' && 
+    t.date && 
+    t.date.startsWith(currentMonthStr)
+  );
+
+  const canvas = document.getElementById('expenses-circle-chart');
+  const emptyState = document.getElementById('chart-empty-state');
+  const legendContainer = document.getElementById('chart-legend-container');
+
+  if (!canvas) return;
+
+  if (monthExpenses.length === 0) {
+    canvas.style.display = 'none';
+    if (emptyState) emptyState.classList.remove('hidden');
+    if (legendContainer) legendContainer.innerHTML = '';
+    if (expensesChart) {
+      expensesChart.destroy();
+      expensesChart = null;
+    }
+    return;
+  }
+
+  canvas.style.display = 'block';
+  if (emptyState) emptyState.classList.add('hidden');
+
+  const categoriesMap = {};
+  let totalExpenseAmount = 0;
+
+  monthExpenses.forEach(t => {
+    const cat = t.category || 'General';
+    categoriesMap[cat] = (categoriesMap[cat] || 0) + t.amount;
+    totalExpenseAmount += t.amount;
+  });
+
+  const sortedCategories = Object.entries(categoriesMap)
+    .sort((a, b) => b[1] - a[1]);
+
+  const labels = sortedCategories.map(x => x[0]);
+  const data = sortedCategories.map(x => x[1]);
+
+  const categoryColors = {
+    'Food & Dining': '#FF5E7E',
+    'Housing': '#3B82F6',
+    'Rent': '#3B82F6',
+    'Transport': '#F59E0B',
+    'Shopping': '#EC4899',
+    'Groceries': '#10B981',
+    'Bills': '#8B5CF6',
+    'Entertainment': '#EF4444',
+    'Health': '#06B6D4',
+    'Education': '#F97316',
+    'Salary': '#10B981',
+    'Freelance': '#10B981',
+    'Investment': '#10B981',
+    'Loan': '#EF4444',
+    'Other': '#6B7280',
+    'General': '#6B7280'
+  };
+
+  const defaultPalette = [
+    '#FF5E7E', '#3B82F6', '#F59E0B', '#EC4899', '#10B981', 
+    '#8B5CF6', '#EF4444', '#06B6D4', '#F97316', '#6D28D9'
+  ];
+
+  const colors = labels.map((label, idx) => categoryColors[label] || defaultPalette[idx % defaultPalette.length]);
+
+  if (expensesChart) {
+    expensesChart.data.labels = labels;
+    expensesChart.data.datasets[0].data = data;
+    expensesChart.data.datasets[0].backgroundColor = colors;
+    expensesChart.data.datasets[0].borderColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-card-solid').trim() || '#1c2128';
+    expensesChart.update();
+  } else {
+    if (!window.Chart) {
+      if (expensesChartTimeout) clearTimeout(expensesChartTimeout);
+      expensesChartTimeout = setTimeout(updateExpensesChart, 100);
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    expensesChart = new window.Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: colors,
+          borderWidth: 2,
+          borderColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-card-solid').trim() || '#1c2128',
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const value = context.raw;
+                const percentage = ((value / totalExpenseAmount) * 100).toFixed(1);
+                return ` ${context.label}: ${formatCurrency(value)} (${percentage}%)`;
+              }
+            },
+            backgroundColor: '#1E2235',
+            titleColor: '#F3F4F6',
+            bodyColor: '#F3F4F6',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+            padding: 10,
+            displayColors: true,
+            boxWidth: 8,
+            boxHeight: 8,
+            usePointStyle: true,
+            pointStyle: 'circle'
+          }
+        },
+        cutout: '70%'
+      }
+    });
+  }
+
+  if (legendContainer) {
+    legendContainer.innerHTML = sortedCategories.map(([cat, amount], idx) => {
+      const percentage = ((amount / totalExpenseAmount) * 100).toFixed(0);
+      const color = colors[idx];
+      const icon = getCategoryIcon(cat);
+      return `
+        <div class="legend-item" onclick="highlightChartSegment(${idx})">
+          <div class="legend-item-left">
+            <span class="legend-color-dot" style="background-color: ${color}"></span>
+            <span class="legend-icon">${icon}</span>
+            <span class="legend-name">${cat}</span>
+          </div>
+          <div class="legend-item-right">
+            <span class="legend-amount">${formatCurrency(amount)}</span>
+            <span class="legend-percentage">${percentage}%</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+window.highlightChartSegment = function(index) {
+  if (!expensesChart) return;
+  const meta = expensesChart.getDatasetMeta(0);
+  if (!meta.data[index]) return;
+  const isAlreadyActive = meta.data[index].active;
+  expensesChart.setActiveElements(isAlreadyActive ? [] : [{
+    datasetIndex: 0,
+    index: index
+  }]);
+  expensesChart.tooltip.setActiveElements(isAlreadyActive ? [] : [{
+    datasetIndex: 0,
+    index: index
+  }], {
+    x: 0,
+    y: 0
+  });
+  expensesChart.update();
+};
 
 function formatCurrency(n) {
   const formatted = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);

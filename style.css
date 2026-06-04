@@ -879,6 +879,7 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 .section-card,
 .summary-card,
 .checklist-card,
+.chart-card,
 .transaction-wrapper,
 .cat-card,
 .budget-card,
@@ -891,5 +892,193 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 .more-menu-drawer {
   backdrop-filter: blur(20px) saturate(190%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(190%) !important;
+}
+
+/* DASHBOARD GRID & EXPENSES CHART */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-card {
+  margin-top: 0 !important;
+  transition: transform var(--t) var(--ease), box-shadow var(--t);
+}
+
+.dashboard-grid .checklist-card {
+  margin-top: 0 !important;
+}
+
+.chart-card:hover {
+  box-shadow: var(--shadow-card);
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.chart-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.chart-header h2 {
+  font-family: 'Sora', sans-serif;
+  font-size: .95rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  margin: 0;
+  color: var(--ink-primary);
+}
+
+.chart-subtitle {
+  font-size: .72rem;
+  color: var(--ink-muted);
+  font-weight: 500;
+  display: block;
+  margin-top: .1rem;
+}
+
+.chart-content {
+  padding: 1.25rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.chart-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  max-width: 200px;
+}
+
+.chart-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  color: var(--ink-muted);
+}
+
+.chart-empty-state span {
+  font-size: 2.5rem;
+  margin-bottom: .75rem;
+  opacity: .7;
+}
+
+.chart-empty-state p {
+  font-size: .85rem;
+  margin: 0;
+}
+
+.chart-legend-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: .25rem;
+}
+
+/* Custom Scrollbar for legend */
+.chart-legend-container::-webkit-scrollbar {
+  width: 4px;
+}
+.chart-legend-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chart-legend-container::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 2px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .55rem .75rem;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-subtle);
+  transition: all .2s var(--ease);
+}
+
+.legend-item:hover {
+  background: var(--bg-elevated);
+  transform: translateX(4px);
+  border-color: var(--border-med);
+}
+
+.legend-item-left {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  min-width: 0;
+}
+
+.legend-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.legend-name {
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--ink-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.legend-item-right {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-shrink: 0;
+}
+
+.legend-amount {
+  font-family: 'Sora', sans-serif;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.legend-percentage {
+  font-family: 'Sora', sans-serif;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  background: var(--bg-elevated);
+  padding: .15rem .4rem;
+  border-radius: var(--r-sm);
+  min-width: 32px;
+  text-align: center;
 }
 
