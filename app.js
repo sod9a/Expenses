@@ -1342,21 +1342,28 @@ function updateExpensesChart() {
           },
           tooltip: {
             callbacks: {
+              title: () => '',
               label: function(context) {
                 const value = context.raw;
                 const percentage = ((value / totalExpenseAmount) * 100).toFixed(1);
                 return ` ${context.label}: ${formatCurrency(value)} (${percentage}%)`;
               }
             },
-            backgroundColor: '#1E2235',
-            titleColor: '#F3F4F6',
-            bodyColor: '#F3F4F6',
-            borderColor: 'rgba(255,255,255,0.1)',
+            backgroundColor: 'rgba(22, 27, 34, 0.95)',
+            bodyColor: '#e6f1ea',
+            bodyFont: {
+              family: "'Outfit', sans-serif",
+              size: 11,
+              weight: '500'
+            },
+            borderColor: 'rgba(255,255,255,0.12)',
             borderWidth: 1,
-            padding: 10,
+            padding: 8,
+            cornerRadius: 8,
             displayColors: true,
-            boxWidth: 8,
-            boxHeight: 8,
+            boxWidth: 6,
+            boxHeight: 6,
+            boxPadding: 4,
             usePointStyle: true,
             pointStyle: 'circle'
           }
