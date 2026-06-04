@@ -293,15 +293,20 @@
               <button class="filter-btn" onclick="filterTransactions('income',this)">Income</button>
               <button class="filter-btn" onclick="filterTransactions('expense',this)">Expense</button>
             </div>
-            <div class="month-picker-wrap" id="month-picker-wrap">
-              <button class="month-picker-btn" id="month-picker-btn" onclick="toggleMonthPicker(event)" type="button">
-                <span id="month-picker-label">May 2026</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <div class="month-picker-dropdown hidden" id="month-picker-dropdown">
-                <div id="filter-month-list" class="month-selector-list"></div>
-                <input type="hidden" id="filter-month-combined" value="" />
+            <!-- Transaction Month Arrow Picker (same style as Categories) -->
+            <div class="cat-month-picker" id="tx-month-picker-bar" style="margin:0;padding:.45rem 1rem;">
+              <button class="cat-month-arrow" id="tx-month-prev" onclick="txMonthShift(-1)">‹</button>
+              <div class="month-picker-wrap" id="month-picker-wrap" style="position:relative;display:inline-block;">
+                <button class="cat-month-label" id="month-picker-btn" onclick="toggleMonthPicker(event)" type="button">
+                  <span id="month-picker-label">June 2026</span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="month-picker-dropdown hidden" id="month-picker-dropdown" style="top:calc(100% + 0.5rem);left:50%;transform:translateX(-50%);right:auto;">
+                  <div id="filter-month-list" class="month-selector-list"></div>
+                  <input type="hidden" id="filter-month-combined" value="" />
+                </div>
               </div>
+              <button class="cat-month-arrow" id="tx-month-next" onclick="txMonthShift(1)">›</button>
             </div>
           </div>
         </div>

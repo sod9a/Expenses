@@ -57,9 +57,13 @@ let transactionsLoaded = false;
 let budgetsLoaded = false;
 let settingsLoaded = false;
 
-// Categories Month Selection State (placed at top to prevent Temporal Dead Zone ReferenceErrors)
+// Categories Month Selection State
 let catSelectedYear  = new Date().getFullYear();
 let catSelectedMonth = new Date().getMonth(); // 0-indexed
+
+// Transactions Month Selection State
+let txSelectedYear  = new Date().getFullYear();
+let txSelectedMonth = new Date().getMonth(); // 0-indexed
 
 // ─── Auth State ───────────────────────────────────────────────────────────
 onAuthStateChanged(auth, (user) => {
@@ -127,14 +131,15 @@ function initMonthYearSelects() {
   const curY = now.getFullYear();
   const curM = now.getMonth(); // 0-indexed
 
+  txSelectedYear  = curY;
+  txSelectedMonth = curM;
+
   listContainer.innerHTML = '';
   
   const defaultVal = `${curY}-${String(curM + 1).padStart(2, '0')}`;
   hiddenInput.value = defaultVal;
   
-  // Set initial button label
-  const label = document.getElementById('month-picker-label');
-  if (label) label.textContent = `${MONTH_NAMES[curM]} ${curY}`;
+  updateTxMonthLabel();
 
   // Generate options from current month going back 36 months (3 years)
   for (let i = 0; i < 36; i++) {
@@ -157,11 +162,52 @@ function initMonthYearSelects() {
   }
 }
 
+function updateTxMonthLabel() {
+  const label = document.getElementById('month-picker-label');
+  if (!label) return;
+  const d = new Date(txSelectedYear, txSelectedMonth, 1);
+  label.textContent = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+  // Disable next arrow if at current month
+  const now = new Date();
+  const nextBtn = document.getElementById('tx-month-next');
+  if (nextBtn) {
+    const isCurrent = txSelectedYear === now.getFullYear() && txSelectedMonth === now.getMonth();
+    nextBtn.disabled = isCurrent;
+    nextBtn.style.opacity = isCurrent ? '0.3' : '1';
+  }
+}
+
+window.txMonthShift = function(dir) {
+  txSelectedMonth += dir;
+  if (txSelectedMonth > 11) { txSelectedMonth = 0; txSelectedYear++; }
+  if (txSelectedMonth < 0)  { txSelectedMonth = 11; txSelectedYear--; }
+
+  const val = `${txSelectedYear}-${String(txSelectedMonth + 1).padStart(2, '0')}`;
+  const hiddenInput = document.getElementById('filter-month-combined');
+  if (hiddenInput) hiddenInput.value = val;
+
+  // Sync selected class in custom list
+  const listContainer = document.getElementById('filter-month-list');
+  if (listContainer) {
+    listContainer.querySelectorAll('.month-selector-item').forEach(b => {
+      b.classList.toggle('selected', b.dataset.value === val);
+    });
+  }
+
+  updateTxMonthLabel();
+  renderAllTransactions();
+};
+
 window.selectMonthForTransactions = function(val, labelText, clickedEl) {
   const hiddenInput = document.getElementById('filter-month-combined');
-  const label = document.getElementById('month-picker-label');
   if (hiddenInput) hiddenInput.value = val;
-  if (label) label.textContent = labelText;
+
+  // Sync txSelectedYear/Month state
+  const parts = val.split('-');
+  txSelectedYear  = parseInt(parts[0], 10);
+  txSelectedMonth = parseInt(parts[1], 10) - 1;
+
+  updateTxMonthLabel();
 
   // Toggle active class
   const listContainer = document.getElementById('filter-month-list');
