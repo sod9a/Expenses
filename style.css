@@ -267,8 +267,8 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 .filter-bar{display:flex;gap:.75rem;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center}
 .search-input{flex:1;min-width:180px;padding:.7rem 1.2rem;border-radius:30px;border:1.5px solid var(--border-subtle);background:var(--bg-card);color:var(--ink-primary);font-family:'DM Sans',sans-serif;font-size:16px;outline:none;transition:all var(--t)}
 .search-input:focus{border-color:var(--neon-violet);box-shadow:0 0 0 3px rgba(34,197,94,.15)}
-.filter-row-2{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
-.filter-buttons{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center}
+.filter-row-2{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.filter-buttons{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
 .filter-btn{padding:.5rem 1rem;border-radius:30px;border:1.5px solid var(--border-subtle);background:transparent;color:var(--ink-secondary);font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all var(--t);letter-spacing:.02em}
 .filter-btn:hover{border-color:var(--neon-violet);color:var(--neon-violet)}
 .filter-btn.active{background:var(--neon-violet);border-color:var(--neon-violet);color:#fff;box-shadow:0 4px 14px rgba(34,197,94,.4)}
@@ -687,10 +687,12 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
   /* ─── FILTERS — 2-row stacked layout ─── */
   .filter-bar{flex-direction:column;gap:.6rem;margin-bottom:1rem;width:100%;overflow:visible;padding-bottom:0}
   .search-input{width:100%;min-width:0;font-size:15px;box-sizing:border-box}
-  .filter-row-2{display:flex;align-items:center;gap:.5rem;width:100%}
-  .filter-buttons{display:flex;align-items:center;gap:0;flex:1;background:var(--bg-elevated);border-radius:24px;padding:.2rem}
-  .filter-btn{border:none!important;border-radius:20px;padding:.42rem 0;font-size:.76rem;background:transparent;color:var(--ink-secondary);white-space:nowrap;transition:all .22s var(--ease);flex:1;text-align:center}
+  .filter-row-2{display:flex;align-items:center;gap:.5rem;width:100%;justify-content:space-between}
+  .filter-buttons{display:flex;align-items:center;gap:.3rem;flex-shrink:0;background:var(--bg-elevated);border-radius:24px;padding:.2rem}
+  .filter-btn{border:none!important;border-radius:20px;padding:.42rem .7rem;font-size:.76rem;background:transparent;color:var(--ink-secondary);white-space:nowrap;transition:all .22s var(--ease);text-align:center}
   .filter-btn.active{background:var(--bg-card)!important;color:var(--ink-primary)!important;box-shadow:0 2px 10px rgba(0,0,0,.4);border-color:transparent!important}
+  /* month arrow picker inside filter bar */
+  #tx-month-picker-bar{flex-shrink:0;margin:0;padding:.35rem .65rem;border-radius:40px}
   .month-picker-btn{font-size:.76rem;padding:.42rem .75rem;border-radius:20px;background:var(--bg-elevated);border:1px solid rgba(255,255,255,.1)}
   .month-picker-dropdown{right:0;left:auto;min-width:200px}
   .month-picker-sel-full{font-size:.78rem;padding:.45rem .4rem}
