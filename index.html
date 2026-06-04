@@ -294,7 +294,7 @@
                   <input type="text" id="checklist-name" class="checklist-input" placeholder="e.g. Netflix, Rent…" />
                   <div class="checklist-amount-wrap">
                     <span class="checklist-currency dynamic-currency">$</span>
-                    <input type="number" id="checklist-amount" class="checklist-input checklist-amount-input" placeholder="0.00" min="0" step="0.01" />
+                    <input type="number" id="checklist-amount" class="checklist-input checklist-amount-input" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
                   </div>
                   <button class="checklist-add-btn" onclick="addChecklistItem()">+ Add</button>
                 </div>
@@ -466,7 +466,7 @@
               <label for="setting-gross-income">Net Monthly Income</label>
               <div class="amount-input-wrap">
                 <span class="currency-symbol dynamic-currency">$</span>
-                <input type="number" id="setting-gross-income" placeholder="0.00" min="0" step="0.01" onchange="saveSettings()" />
+                <input type="number" id="setting-gross-income" placeholder="0.00" min="0" step="0.01" onchange="saveSettings()" inputmode="decimal" />
               </div>
             </div>
             
@@ -474,7 +474,7 @@
               <label for="setting-carry-over">Carry-over Balance (Starting Balance)</label>
               <div class="amount-input-wrap">
                 <span class="currency-symbol dynamic-currency">$</span>
-                <input type="number" id="setting-carry-over" placeholder="0.00" step="0.01" onchange="saveSettings()" />
+                <input type="number" id="setting-carry-over" placeholder="0.00" step="0.01" onchange="saveSettings()" inputmode="decimal" />
               </div>
             </div>
             <div class="input-group">
@@ -583,7 +583,7 @@
           <label for="tx-amount">Amount</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
-            <input type="number" id="tx-amount" placeholder="0.00" min="0" step="0.01" />
+            <input type="number" id="tx-amount" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
           </div>
         </div>
         <div class="form-row">
@@ -649,7 +649,7 @@
           <label for="budget-limit">Monthly Limit</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
-            <input type="number" id="budget-limit" placeholder="0.00" min="0" step="0.01" />
+            <input type="number" id="budget-limit" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
           </div>
         </div>
         <button id="btn-save-budget" class="btn-primary" onclick="saveBudget()">Save Budget</button>
@@ -738,14 +738,14 @@
           <label for="tabung-target">Target Amount</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
-            <input type="number" id="tabung-target" placeholder="0.00" min="0" step="0.01" />
+            <input type="number" id="tabung-target" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
           </div>
         </div>
         <div class="input-group">
           <label for="tabung-saved">Amount Saved So Far</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
-            <input type="number" id="tabung-saved" placeholder="0.00" min="0" step="0.01" value="0" />
+            <input type="number" id="tabung-saved" placeholder="0.00" min="0" step="0.01" value="0" inputmode="decimal" />
           </div>
         </div>
         <div class="input-group">
@@ -775,7 +775,7 @@
           <label>Net Monthly Income</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
-            <input type="number" id="gross-income-input" placeholder="0.00" min="0" step="0.01" />
+            <input type="number" id="gross-income-input" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
           </div>
         </div>
         <button class="btn-primary" onclick="saveGrossIncome()">Save</button>
@@ -844,7 +844,7 @@
           <label for="modal-setting-gross-income">Net Monthly Income</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
-            <input type="number" id="modal-setting-gross-income" placeholder="0.00" min="0" step="0.01" onchange="saveModalSettings()" />
+            <input type="number" id="modal-setting-gross-income" placeholder="0.00" min="0" step="0.01" onchange="saveModalSettings()" inputmode="decimal" />
           </div>
         </div>
         
@@ -852,7 +852,7 @@
           <label for="modal-setting-carry-over">Carry-over Balance (Starting Balance)</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
-            <input type="number" id="modal-setting-carry-over" placeholder="0.00" step="0.01" onchange="saveModalSettings()" />
+            <input type="number" id="modal-setting-carry-over" placeholder="0.00" step="0.01" onchange="saveModalSettings()" inputmode="decimal" />
           </div>
         </div>
 
@@ -876,7 +876,7 @@
           <label>Add Amount</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
-            <input type="number" id="topup-amount" placeholder="0.00" min="0" step="0.01" />
+            <input type="number" id="topup-amount" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
           </div>
         </div>
         <button class="btn-primary" onclick="topupTabung()">Add to Tabung</button>
@@ -924,7 +924,7 @@
           <div style="display:flex; gap:0.5rem; flex-direction:column;">
             <div class="amount-input-wrap">
               <span class="currency-symbol dynamic-currency">$</span>
-              <input type="number" id="detail-tabung-amount" placeholder="Amount to deposit" min="0" step="0.01" />
+              <input type="number" id="detail-tabung-amount" placeholder="Amount to deposit" min="0" step="0.01" inputmode="decimal" />
             </div>
             <div class="input-group" style="margin:0;">
               <input type="date" id="detail-tabung-date" style="padding:0.6rem; font-size:0.9rem;" />
@@ -977,7 +977,7 @@
           <div style="display:flex; gap:0.5rem; flex-direction:column;">
             <div class="amount-input-wrap">
               <span class="currency-symbol dynamic-currency">$</span>
-              <input type="number" id="detail-loan-amount" placeholder="Amount paid" min="0" step="0.01" />
+              <input type="number" id="detail-loan-amount" placeholder="Amount paid" min="0" step="0.01" inputmode="decimal" />
             </div>
             <div class="input-group" style="margin:0;">
               <input type="date" id="detail-loan-date" style="padding:0.6rem; font-size:0.9rem;" />
@@ -1021,14 +1021,14 @@
           <label for="loan-total">Total Amount</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
-            <input type="number" id="loan-total" placeholder="0.00" min="0" step="0.01" />
+            <input type="number" id="loan-total" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
           </div>
         </div>
         <div class="input-group">
           <label for="loan-paid">Amount Paid / Received</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
-            <input type="number" id="loan-paid" placeholder="0.00" min="0" step="0.01" value="0" />
+            <input type="number" id="loan-paid" placeholder="0.00" min="0" step="0.01" value="0" inputmode="decimal" />
           </div>
         </div>
         <div class="input-group">
@@ -1054,7 +1054,7 @@
           <label>Payment Amount</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
-            <input type="number" id="loan-pay-amount" placeholder="0.00" min="0" step="0.01" />
+            <input type="number" id="loan-pay-amount" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
           </div>
         </div>
         <button class="btn-primary" onclick="recordLoanPayment()">Record Payment</button>
