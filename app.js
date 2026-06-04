@@ -1241,11 +1241,14 @@ function updateExpensesChart() {
   const canvas = document.getElementById('expenses-circle-chart');
   const emptyState = document.getElementById('chart-empty-state');
   const legendContainer = document.getElementById('chart-legend-container');
+  const centerText = document.getElementById('chart-center-text');
+  const centerVal = document.getElementById('chart-center-val');
 
   if (!canvas) return;
 
   if (monthExpenses.length === 0) {
     canvas.style.display = 'none';
+    if (centerText) centerText.style.display = 'none';
     if (emptyState) emptyState.classList.remove('hidden');
     if (legendContainer) legendContainer.innerHTML = '';
     if (expensesChart) {
@@ -1256,6 +1259,7 @@ function updateExpensesChart() {
   }
 
   canvas.style.display = 'block';
+  if (centerText) centerText.style.display = 'flex';
   if (emptyState) emptyState.classList.add('hidden');
 
   const categoriesMap = {};
@@ -1266,6 +1270,10 @@ function updateExpensesChart() {
     categoriesMap[cat] = (categoriesMap[cat] || 0) + t.amount;
     totalExpenseAmount += t.amount;
   });
+
+  if (centerVal) {
+    centerVal.textContent = formatCurrency(totalExpenseAmount);
+  }
 
   const sortedCategories = Object.entries(categoriesMap)
     .sort((a, b) => b[1] - a[1]);

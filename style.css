@@ -967,6 +967,40 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
   max-width: 200px;
 }
 
+.chart-center-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  z-index: 2;
+  width: 120px;
+}
+
+.chart-center-label {
+  font-size: .65rem;
+  color: var(--ink-secondary);
+  opacity: 0.85;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  line-height: 1.2;
+}
+
+.chart-center-val {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink-primary);
+  margin-top: .2rem;
+  line-height: 1.2;
+}
+
 .chart-empty-state {
   display: flex;
   flex-direction: column;
