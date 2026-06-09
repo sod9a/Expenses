@@ -496,6 +496,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isChecklistOpen) checklistCard.classList.add('open');
     else checklistCard.classList.remove('open');
   }
+
+  // Read chart open state from localStorage
+  const isChartOpen = localStorage.getItem('chartOpen') !== 'false';
+  const chartCard = document.getElementById('expenses-chart-card');
+  if (chartCard) {
+    if (isChartOpen) chartCard.classList.add('open');
+    else chartCard.classList.remove('open');
+  }
 });
 
 document.getElementById('btn-forgot').addEventListener('click', async () => {
@@ -2944,6 +2952,18 @@ window.toggleChecklistDropdown = function() {
   if (!card) return;
   const isOpen = card.classList.toggle('open');
   localStorage.setItem('checklistOpen', isOpen);
+};
+
+window.toggleChartDropdown = function() {
+  const card = document.getElementById('expenses-chart-card');
+  if (!card) return;
+  const isOpen = card.classList.toggle('open');
+  localStorage.setItem('chartOpen', isOpen);
+  if (isOpen && expensesChart) {
+    setTimeout(() => {
+      expensesChart.resize();
+    }, 400);
+  }
 };
 
 window.renderChecklist = function() {

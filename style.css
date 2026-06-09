@@ -925,14 +925,62 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 .chart-header {
   display: flex;
   align-items: center;
-  gap: .85rem;
+  justify-content: space-between;
   padding: 1.1rem 1.4rem;
-  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--t);
+}
+
+.chart-header:hover {
+  background: var(--bg-card2);
+}
+
+.chart-header-left {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
 }
 
 .chart-icon {
   font-size: 1.5rem;
   line-height: 1;
+}
+
+.chart-header-right {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+
+.chart-chevron {
+  color: var(--ink-secondary);
+  transition: transform .3s var(--ease);
+  flex-shrink: 0;
+}
+
+.chart-card.open .chart-chevron {
+  transform: rotate(180deg);
+}
+
+.chart-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  opacity: 0;
+  transition: grid-template-rows .38s var(--ease), opacity .28s var(--ease);
+}
+
+.chart-card.open .chart-body {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.chart-body-inner {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .chart-header h2 {
