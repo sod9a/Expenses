@@ -36,6 +36,7 @@ let grossIncome = 0; // User-defined gross monthly income
 let expensesChart = null;
 let activeFilter = 'all';
 let editingTxId = null;
+let editingBudgetId = null;
 let editingTabungId = null;
 let editingLoanId = null;
 let topupTabungId = null;
@@ -1173,13 +1174,30 @@ window.closeDeleteModal = function () {
 };
 
 // ─── Budget Modal & Logic ──────────────────────────────────────────────────
-window.openBudgetModal = function () {
+window.openBudgetModal = function (budgetId = null) {
+  editingBudgetId = budgetId;
+  const existing = budgetId ? allBudgets.find(b => b.id === budgetId) : null;
+  const title = document.getElementById('budget-modal-title');
+  const categoryEl = document.getElementById('budget-category');
+  const limitEl = document.getElementById('budget-limit');
+  const saveBtn = document.getElementById('btn-save-budget');
+
+  if (title) title.textContent = existing ? 'Edit Budget' : 'Set Budget';
+  if (categoryEl) {
+    if (existing) categoryEl.value = existing.category;
+    else categoryEl.selectedIndex = 0;
+  }
+  if (limitEl) limitEl.value = existing ? existing.limit : '';
+  if (saveBtn) saveBtn.textContent = existing ? 'Update Budget' : 'Save Budget';
+
   document.getElementById('budget-modal-overlay').classList.remove('hidden');
-  document.getElementById('budget-limit').value = '';
 };
 
 window.closeBudgetModal = function () {
   document.getElementById('budget-modal-overlay').classList.add('hidden');
+  editingBudgetId = null;
+  const saveBtn = document.getElementById('btn-save-budget');
+  if (saveBtn) saveBtn.textContent = 'Save Budget';
 };
 
 window.closeBudgetModalOnOverlay = function (e) {
@@ -1191,23 +1209,29 @@ window.saveBudget = async function () {
   const limit = parseFloat(document.getElementById('budget-limit').value);
   if (!limit || limit <= 0) return showToast('Please enter a valid limit', 'error');
   
-  const existing = allBudgets.find(b => b.category === category);
+  const existing = editingBudgetId
+    ? allBudgets.find(b => b.id === editingBudgetId)
+    : allBudgets.find(b => b.category === category);
+  const duplicate = allBudgets.find(b => b.category === category && b.id !== editingBudgetId);
+  if (duplicate && (!existing || duplicate.id !== existing.id)) {
+    return showToast('A budget already exists for this category.', 'error');
+  }
   const btn = document.getElementById('btn-save-budget');
   btn.disabled = true; btn.textContent = 'Saving…';
   
   try {
     if (existing) {
-      await updateDoc(doc(db, 'budgets', existing.id), { limit, updatedAt: serverTimestamp() });
+      await updateDoc(doc(db, 'budgets', existing.id), { category, limit, updatedAt: serverTimestamp() });
     } else {
       await addDoc(collection(db, 'budgets'), { uid: currentUser.uid, category, limit, createdAt: serverTimestamp() });
     }
-    showToast('Budget saved!', 'success');
+    showToast(existing ? 'Budget updated!' : 'Budget saved!', 'success');
     closeBudgetModal();
   } catch (e) {
     console.error(e);
     showToast('Failed to save budget', 'error');
   } finally {
-    btn.disabled = false; btn.textContent = 'Save Budget';
+    btn.disabled = false; btn.textContent = editingBudgetId ? 'Update Budget' : 'Save Budget';
   }
 };
 
@@ -1750,6 +1774,46 @@ function renderCategories() {
 
 let currentEditWeek = null;
 
+const WEEKLY_BUDGET_DEFAULTS = { week1: 0, week2: 0, week3: 0, week4: 0 };
+const WEEKLY_BUDGET_META = [
+  { num: 1, label: 'Week 1 (1st - 7th)', key: 'week1' },
+  { num: 2, label: 'Week 2 (8th - 14th)', key: 'week2' },
+  { num: 3, label: 'Week 3 (15th - 21st)', key: 'week3' },
+  { num: 4, label: 'Week 4 (22nd - End)', key: 'week4' }
+];
+
+function getWeeklyBudgets() {
+  return { ...WEEKLY_BUDGET_DEFAULTS, ...(userSettings.weeklyBudgets || {}) };
+}
+
+function getCurrentBudgetWeek() {
+  const day = new Date().getDate();
+  if (day <= 7) return 1;
+  if (day <= 14) return 2;
+  if (day <= 21) return 3;
+  return 4;
+}
+
+function syncWeeklyBudgetModal() {
+  const weekNum = currentEditWeek || getCurrentBudgetWeek();
+  currentEditWeek = weekNum;
+
+  const weeklyBudgets = getWeeklyBudgets();
+  const currentLimit = weeklyBudgets[`week${weekNum}`] || 0;
+  const titleEl = document.getElementById('weekly-budget-title');
+  const inputEl = document.getElementById('weekly-budget-limit');
+  const selectEl = document.getElementById('weekly-budget-week');
+  const helperEl = document.getElementById('weekly-budget-helper');
+
+  if (selectEl) selectEl.value = String(weekNum);
+  if (titleEl) titleEl.textContent = currentLimit > 0 ? `Edit Week ${weekNum} Budget` : `Set Week ${weekNum} Budget`;
+  if (helperEl) helperEl.textContent = 'Set a spending limit for this week of the current month.';
+  if (inputEl) {
+    inputEl.value = currentLimit > 0 ? currentLimit : '';
+    setTimeout(() => inputEl.focus(), 0);
+  }
+}
+
 function renderWeeklyBudgets() {
   const weeklyContainer = document.getElementById('weekly-budgets-list');
   if (!weeklyContainer) return;
@@ -1758,7 +1822,7 @@ function renderWeeklyBudgets() {
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}`;
   
   // Get weekly budget settings from userSettings
-  const weeklyBudgets = userSettings.weeklyBudgets || { week1: 0, week2: 0, week3: 0, week4: 0 };
+  const weeklyBudgets = getWeeklyBudgets();
   
   // Calculate spent for each week
   const weeklySpent = { week1: 0, week2: 0, week3: 0, week4: 0 };
@@ -1775,12 +1839,7 @@ function renderWeeklyBudgets() {
     }
   });
 
-  const weeks = [
-    { num: 1, label: 'Week 1 (1st - 7th)', key: 'week1' },
-    { num: 2, label: 'Week 2 (8th - 14th)', key: 'week2' },
-    { num: 3, label: 'Week 3 (15th - 21st)', key: 'week3' },
-    { num: 4, label: 'Week 4 (22nd - End)', key: 'week4' }
-  ];
+  const weeks = WEEKLY_BUDGET_META;
 
   weeklyContainer.innerHTML = '';
   weeks.forEach(w => {
@@ -1815,16 +1874,16 @@ function renderWeeklyBudgets() {
   });
 }
 
-window.openWeeklyBudgetModal = function(weekNum) {
-  currentEditWeek = weekNum;
-  
-  const weeklyBudgets = userSettings.weeklyBudgets || { week1: 0, week2: 0, week3: 0, week4: 0 };
-  const currentLimit = weeklyBudgets[`week${weekNum}`] || 0;
-  
-  document.getElementById('weekly-budget-title').textContent = `Set Budget for Week ${weekNum}`;
-  document.getElementById('weekly-budget-limit').value = currentLimit > 0 ? currentLimit : '';
-  
+window.openWeeklyBudgetModal = function(weekNum = null) {
+  currentEditWeek = weekNum || getCurrentBudgetWeek();
+  syncWeeklyBudgetModal();
   document.getElementById('weekly-budget-modal-overlay').classList.remove('hidden');
+};
+
+window.updateWeeklyBudgetModalFromSelect = function() {
+  const selectEl = document.getElementById('weekly-budget-week');
+  currentEditWeek = selectEl ? parseInt(selectEl.value, 10) : getCurrentBudgetWeek();
+  syncWeeklyBudgetModal();
 };
 
 window.closeWeeklyBudgetModal = function() {
@@ -1839,12 +1898,15 @@ window.closeWeeklyBudgetModalOnOverlay = function(e) {
 };
 
 window.saveWeeklyBudget = async function() {
+  const selectEl = document.getElementById('weekly-budget-week');
+  if (selectEl) currentEditWeek = parseInt(selectEl.value, 10);
   if (!currentEditWeek) return;
   
   const limitInput = document.getElementById('weekly-budget-limit');
   const val = parseFloat(limitInput.value) || 0;
+  if (val < 0) return showToast('Please enter a valid weekly limit.', 'error');
   
-  const weeklyBudgets = { ...(userSettings.weeklyBudgets || { week1: 0, week2: 0, week3: 0, week4: 0 }) };
+  const weeklyBudgets = getWeeklyBudgets();
   weeklyBudgets[`week${currentEditWeek}`] = val;
   
   try {
@@ -1901,6 +1963,9 @@ function renderBudgets() {
     div.innerHTML = `
       <div class="budget-header">
         <span class="budget-cat">${getCategoryIcon(b.category)} ${b.category}</span>
+        <button class="btn-edit-budget" onclick="event.stopPropagation();openBudgetModal('${b.id}')" aria-label="Edit budget" title="Edit budget">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5z"/></svg>
+        </button>
         <button class="btn-del-budget" onclick="event.stopPropagation();deleteBudget('${b.id}')">✕</button>
       </div>
       <div class="budget-amounts">
@@ -3454,5 +3519,3 @@ window.removeModalAvatar = async function() {
     showToast('Failed to remove image', 'error');
   }
 };
-
-

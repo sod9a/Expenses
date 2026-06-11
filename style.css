@@ -355,8 +355,8 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 .budget-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--r-xl);padding:1.5rem;transition:transform var(--t) var(--ease),box-shadow var(--t);cursor:pointer}
 .budget-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-card);border-color:rgba(107,158,199,.3)}
 .budget-card:active{transform:scale(.98)}
-.budget-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
-.budget-cat{font-weight:700;font-size:1rem}
+.budget-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;gap:.5rem}
+.budget-cat{font-weight:700;font-size:1rem;flex:1;min-width:0}
 .budget-amounts{font-size:.875rem;color:var(--ink-secondary)}
 .budget-progress-wrap{height:7px;width:100%;background:var(--bg-elevated);border-radius:4px;overflow:hidden;margin-bottom:.5rem}
 .budget-progress{height:100%;border-radius:4px;transition:width .6s var(--ease)}
@@ -371,6 +371,11 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 .budget-status.danger{color:var(--neon-coral)}
 .btn-del-budget{background:rgba(255,77,106,.1);border:none;color:var(--neon-coral);width:30px;height:30px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all var(--t);flex-shrink:0;z-index:2;position:relative}
 .btn-del-budget:hover{background:var(--neon-coral);color:white;transform:scale(1.1)}
+
+.budget-heading-action{flex:0 0 auto!important;width:auto!important;min-height:unset;padding:.55rem .9rem;margin-left:auto;margin-top:0;font-size:.82rem;border-radius:999px}
+.weekly-budgets-grid{margin-bottom:2rem}
+.btn-edit-budget{background:rgba(107,158,199,.1);border:none;color:var(--neon-teal);width:30px;height:30px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--t);flex-shrink:0;z-index:2;position:relative}
+.btn-edit-budget:hover{background:var(--neon-teal);color:#0d0f1a;transform:scale(1.1)}
 
 .btn-edit-weekly{background:rgba(107,158,199,.1);border:none;color:var(--neon-teal);width:30px;height:30px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all var(--t);flex-shrink:0;z-index:2;position:relative}
 .btn-edit-weekly:hover{background:var(--neon-teal);color:#0d0f1a;transform:scale(1.1)}
@@ -1166,4 +1171,3 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
   min-width: 32px;
   text-align: center;
 }
-

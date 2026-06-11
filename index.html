@@ -377,12 +377,13 @@
         <button class="mob-page-fab" onclick="openBudgetModal()">+ Set Budget</button>
 
         <!-- Weekly Budgets Section -->
-        <div style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; margin-top: 1.5rem;">
+        <div style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; margin-top: 1.5rem; flex-wrap: wrap;">
           <span style="font-size: 1.25rem;">📅</span>
           <h2 style="font-family:'Sora',sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--ink-primary); margin: 0;">Weekly Budgets</h2>
+          <button class="btn-secondary budget-heading-action" onclick="openWeeklyBudgetModal()">+ Weekly Budget</button>
         </div>
         
-        <div id="weekly-budgets-list" class="categories-grid" style="margin-bottom: 2rem;">
+        <div id="weekly-budgets-list" class="categories-grid weekly-budgets-grid" style="margin-bottom: 2rem;">
           <!-- Dynamic Weekly budget cards -->
         </div>
 
@@ -632,7 +633,7 @@
   <div id="budget-modal-overlay" class="modal-overlay hidden" onclick="closeBudgetModalOnOverlay(event)">
     <div class="modal small-modal">
       <div class="modal-header">
-        <h2>Set Budget</h2>
+        <h2 id="budget-modal-title">Set Budget</h2>
         <button class="modal-close" onclick="closeBudgetModal()">✕</button>
       </div>
       <div class="modal-body">
@@ -672,7 +673,16 @@
         <button class="modal-close" onclick="closeWeeklyBudgetModal()">✕</button>
       </div>
       <div class="modal-body">
-        <p style="color:var(--ink-secondary);margin-bottom:1rem;font-size:.88rem;line-height:1.5;">Enter the budget limit for this week of the month.</p>
+        <p id="weekly-budget-helper" style="color:var(--ink-secondary);margin-bottom:1rem;font-size:.88rem;line-height:1.5;">Choose a week and enter the budget limit for that week of the month.</p>
+        <div class="input-group">
+          <label for="weekly-budget-week">Week</label>
+          <select id="weekly-budget-week" onchange="updateWeeklyBudgetModalFromSelect()">
+            <option value="1">Week 1 (1st - 7th)</option>
+            <option value="2">Week 2 (8th - 14th)</option>
+            <option value="3">Week 3 (15th - 21st)</option>
+            <option value="4">Week 4 (22nd - End)</option>
+          </select>
+        </div>
         <div class="input-group">
           <label>Weekly Limit</label>
           <div class="amount-input-wrap">
