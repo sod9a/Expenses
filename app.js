@@ -1776,6 +1776,7 @@ function renderCategories() {
 }
 
 let currentEditWeek = null;
+let dashboardSelectedWeek = null;
 
 const WEEKLY_BUDGET_DEFAULTS = { week1: 0, week2: 0, week3: 0, week4: 0 };
 const WEEKLY_BUDGET_META = [
@@ -1795,6 +1796,10 @@ function getCurrentBudgetWeek() {
   if (day <= 14) return 2;
   if (day <= 21) return 3;
   return 4;
+}
+
+function getDashboardBudgetWeek() {
+  return dashboardSelectedWeek || getCurrentBudgetWeek();
 }
 
 function getWeeklySpentByWeek() {
@@ -1921,15 +1926,16 @@ function renderDashboardWeeklyBudget() {
   const card = document.getElementById('dashboard-weekly-budget-card');
   if (!card) return;
 
-  const summary = getWeeklyBudgetSummary(getCurrentBudgetWeek());
-  const titleEl = document.getElementById('dashboard-weekly-title');
+  const weekNum = getDashboardBudgetWeek();
+  const summary = getWeeklyBudgetSummary(weekNum);
+  const selectEl = document.getElementById('dashboard-weekly-select');
   const spentEl = document.getElementById('dashboard-weekly-spent');
   const limitEl = document.getElementById('dashboard-weekly-limit');
   const remainingEl = document.getElementById('dashboard-weekly-remaining');
   const progressEl = document.getElementById('dashboard-weekly-progress');
   const statusEl = document.getElementById('dashboard-weekly-status');
 
-  if (titleEl) titleEl.textContent = `${summary.label} Budget`;
+  if (selectEl) selectEl.value = String(weekNum);
   if (spentEl) spentEl.textContent = formatCurrency(summary.spent);
   if (limitEl) limitEl.textContent = formatCurrency(summary.limit);
   if (remainingEl) remainingEl.textContent = summary.limit > 0 ? formatCurrency(summary.remaining) : '--';
@@ -1944,6 +1950,16 @@ function renderDashboardWeeklyBudget() {
       : 'No budget set';
   }
 }
+
+window.selectDashboardWeeklyBudget = function() {
+  const selectEl = document.getElementById('dashboard-weekly-select');
+  dashboardSelectedWeek = selectEl ? parseInt(selectEl.value, 10) : getCurrentBudgetWeek();
+  renderDashboardWeeklyBudget();
+};
+
+window.openDashboardWeeklyBudgetModal = function() {
+  openWeeklyBudgetModal(getDashboardBudgetWeek());
+};
 
 window.openWeeklyBudgetModal = function(weekNum = null) {
   currentEditWeek = weekNum || getCurrentBudgetWeek();
@@ -1990,6 +2006,7 @@ window.saveWeeklyBudget = async function() {
     }, { merge: true });
     
     userSettings.weeklyBudgets = weeklyBudgets;
+    dashboardSelectedWeek = currentEditWeek;
     showToast(`Week ${currentEditWeek} budget saved!`, 'success');
     closeWeeklyBudgetModal();
     renderBudgets();
