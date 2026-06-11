@@ -903,6 +903,65 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 }
 
 /* DASHBOARD GRID & EXPENSES CHART */
+.weekly-dashboard-card {
+  padding: 1.15rem 1.35rem;
+  margin: 0 0 1.25rem;
+  cursor: pointer;
+  transition: transform var(--t) var(--ease), box-shadow var(--t), border-color var(--t);
+}
+
+.weekly-dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+  border-color: rgba(107,158,199,.3);
+}
+
+.weekly-dashboard-header,
+.weekly-dashboard-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.weekly-dashboard-kicker,
+.weekly-dashboard-label {
+  display: block;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.weekly-dashboard-header h2 {
+  margin: .12rem 0 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 1.05rem;
+  letter-spacing: -.02em;
+}
+
+.weekly-dashboard-main {
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.weekly-dashboard-main > div {
+  min-width: 110px;
+}
+
+.weekly-dashboard-main strong {
+  display: block;
+  margin-top: .15rem;
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+  color: var(--ink-primary);
+}
+
+.weekly-dashboard-progress {
+  margin-top: 1rem;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1.1fr 1fr;

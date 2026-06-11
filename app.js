@@ -606,6 +606,7 @@ function subscribeToData() {
       settingsLoaded = true;
       checkForMonthlyReset();
       applySettings();
+      renderDashboardWeeklyBudget();
       if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
     } else {
       // Document doesn't exist yet for new user, reset to default settings and 0 gross income
@@ -616,6 +617,7 @@ function subscribeToData() {
       settingsLoaded = true;
       checkForMonthlyReset();
       applySettings();
+      renderDashboardWeeklyBudget();
       if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
     }
   });
@@ -1250,6 +1252,7 @@ function renderAll() {
   renderRecentTransactions();
   renderChecklist();
   updateExpensesChart();
+  renderDashboardWeeklyBudget();
   if (document.getElementById('page-transactions').classList.contains('active')) renderAllTransactions();
   if (document.getElementById('page-categories').classList.contains('active')) renderCategories();
   if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
@@ -1776,10 +1779,10 @@ let currentEditWeek = null;
 
 const WEEKLY_BUDGET_DEFAULTS = { week1: 0, week2: 0, week3: 0, week4: 0 };
 const WEEKLY_BUDGET_META = [
-  { num: 1, label: 'Week 1 (1st - 7th)', key: 'week1' },
-  { num: 2, label: 'Week 2 (8th - 14th)', key: 'week2' },
-  { num: 3, label: 'Week 3 (15th - 21st)', key: 'week3' },
-  { num: 4, label: 'Week 4 (22nd - End)', key: 'week4' }
+  { num: 1, label: 'Week 1', key: 'week1' },
+  { num: 2, label: 'Week 2', key: 'week2' },
+  { num: 3, label: 'Week 3', key: 'week3' },
+  { num: 4, label: 'Week 4', key: 'week4' }
 ];
 
 function getWeeklyBudgets() {
@@ -1792,6 +1795,46 @@ function getCurrentBudgetWeek() {
   if (day <= 14) return 2;
   if (day <= 21) return 3;
   return 4;
+}
+
+function getWeeklySpentByWeek() {
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}`;
+  const weeklySpent = { week1: 0, week2: 0, week3: 0, week4: 0 };
+
+  allTransactions.forEach(t => {
+    if (t.type === 'expense' && t.date && t.date.startsWith(currentMonthStr)) {
+      const parts = t.date.split('-');
+      if (parts.length === 3) {
+        const day = parseInt(parts[2], 10);
+        if (day >= 1 && day <= 7) weeklySpent.week1 += t.amount;
+        else if (day >= 8 && day <= 14) weeklySpent.week2 += t.amount;
+        else if (day >= 15 && day <= 21) weeklySpent.week3 += t.amount;
+        else if (day >= 22) weeklySpent.week4 += t.amount;
+      }
+    }
+  });
+
+  return weeklySpent;
+}
+
+function getWeeklyBudgetSummary(weekNum = getCurrentBudgetWeek()) {
+  const week = WEEKLY_BUDGET_META.find(w => w.num === weekNum) || WEEKLY_BUDGET_META[0];
+  const weeklyBudgets = getWeeklyBudgets();
+  const weeklySpent = getWeeklySpentByWeek();
+  const limit = weeklyBudgets[week.key] || 0;
+  const spent = weeklySpent[week.key] || 0;
+  const remaining = Math.max(0, limit - spent);
+  const pct = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
+
+  let statusClass = 'safe';
+  let statusText = limit > 0 ? 'Looking good!' : 'No budget set';
+  if (limit > 0) {
+    if (pct >= 100) { statusClass = 'danger'; statusText = 'Over budget!'; }
+    else if (pct >= 80) { statusClass = 'warn'; statusText = 'Nearing limit'; }
+  }
+
+  return { ...week, limit, spent, remaining, pct, statusClass, statusText };
 }
 
 function syncWeeklyBudgetModal() {
@@ -1874,6 +1917,34 @@ function renderWeeklyBudgets() {
   });
 }
 
+function renderDashboardWeeklyBudget() {
+  const card = document.getElementById('dashboard-weekly-budget-card');
+  if (!card) return;
+
+  const summary = getWeeklyBudgetSummary(getCurrentBudgetWeek());
+  const titleEl = document.getElementById('dashboard-weekly-title');
+  const spentEl = document.getElementById('dashboard-weekly-spent');
+  const limitEl = document.getElementById('dashboard-weekly-limit');
+  const remainingEl = document.getElementById('dashboard-weekly-remaining');
+  const progressEl = document.getElementById('dashboard-weekly-progress');
+  const statusEl = document.getElementById('dashboard-weekly-status');
+
+  if (titleEl) titleEl.textContent = `${summary.label} Budget`;
+  if (spentEl) spentEl.textContent = formatCurrency(summary.spent);
+  if (limitEl) limitEl.textContent = formatCurrency(summary.limit);
+  if (remainingEl) remainingEl.textContent = summary.limit > 0 ? formatCurrency(summary.remaining) : '--';
+  if (progressEl) {
+    progressEl.className = `budget-progress ${summary.statusClass}`;
+    progressEl.style.width = `${summary.limit > 0 ? summary.pct : 0}%`;
+  }
+  if (statusEl) {
+    statusEl.className = `budget-status ${summary.statusClass}`;
+    statusEl.textContent = summary.limit > 0
+      ? `${summary.statusText} (${summary.pct.toFixed(0)}%)`
+      : 'No budget set';
+  }
+}
+
 window.openWeeklyBudgetModal = function(weekNum = null) {
   currentEditWeek = weekNum || getCurrentBudgetWeek();
   syncWeeklyBudgetModal();
@@ -1922,6 +1993,7 @@ window.saveWeeklyBudget = async function() {
     showToast(`Week ${currentEditWeek} budget saved!`, 'success');
     closeWeeklyBudgetModal();
     renderBudgets();
+    renderDashboardWeeklyBudget();
   } catch(e) {
     console.error(e);
     showToast('Failed to save budget', 'error');
