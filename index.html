@@ -220,13 +220,18 @@
           </div>
         </div>
 
-        <div class="section-card weekly-dashboard-card" id="dashboard-weekly-budget-card" onclick="openWeeklyBudgetModal()">
+        <div class="section-card weekly-dashboard-card" id="dashboard-weekly-budget-card" onclick="openDashboardWeeklyBudgetModal()">
           <div class="weekly-dashboard-header">
             <div>
-              <span class="weekly-dashboard-kicker">Current Week</span>
-              <h2 id="dashboard-weekly-title">Week 1 Budget</h2>
+              <label class="weekly-dashboard-kicker" for="dashboard-weekly-select">Budget Week</label>
+              <select id="dashboard-weekly-select" class="weekly-dashboard-select" onclick="event.stopPropagation()" onchange="selectDashboardWeeklyBudget()">
+                <option value="1">Week 1</option>
+                <option value="2">Week 2</option>
+                <option value="3">Week 3</option>
+                <option value="4">Week 4</option>
+              </select>
             </div>
-            <button class="btn-edit-weekly" onclick="event.stopPropagation(); openWeeklyBudgetModal()" aria-label="Edit current week budget" title="Edit current week budget">
+            <button class="btn-edit-weekly" onclick="event.stopPropagation(); openDashboardWeeklyBudgetModal()" aria-label="Edit selected week budget" title="Edit selected week budget">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5z"/></svg>
             </button>
           </div>
