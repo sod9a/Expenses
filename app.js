@@ -1931,15 +1931,32 @@ function renderDashboardWeeklyBudget() {
 
   const currentWeek = getCurrentBudgetWeek();
   const currentSummary = getWeeklyBudgetSummary(currentWeek);
+  const summary = currentSummary;
+
+  // Update subtitle
   const statusHeaderEl = document.getElementById('dashboard-weekly-current-status');
   if (statusHeaderEl) {
-    if (currentSummary.limit > 0) {
-      statusHeaderEl.textContent = `Week ${currentWeek} · ${formatCurrency(currentSummary.spent)} of ${formatCurrency(currentSummary.limit)}`;
+    if (summary.limit > 0) {
+      statusHeaderEl.textContent = `Week ${currentWeek} · ${formatCurrency(summary.spent)} of ${formatCurrency(summary.limit)}`;
     } else {
       statusHeaderEl.textContent = `Week ${currentWeek} · No budget set`;
     }
   }
 
+  // Update percentage badge (like checklist)
+  const pctEl = document.getElementById('dashboard-weekly-percentage');
+  if (pctEl) {
+    pctEl.textContent = summary.limit > 0 ? `${Math.min(summary.pct, 100).toFixed(0)}%` : '';
+    pctEl.style.color = summary.limit > 0 && summary.remaining <= 0 ? 'var(--neon-coral)' : 'var(--neon-violet)';
+  }
+
+  // Update header progress bar (like checklist)
+  const progressBar = document.getElementById('dashboard-weekly-progress-bar');
+  if (progressBar) {
+    progressBar.style.width = summary.limit > 0 ? `${Math.min(summary.pct, 100)}%` : '0%';
+  }
+
+  // Update body content
   const weeklyContainer = document.getElementById('dashboard-weekly-list');
   if (!weeklyContainer) return;
 
