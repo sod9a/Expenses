@@ -904,6 +904,7 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 
 /* DASHBOARD GRID & EXPENSES CHART */
 .weekly-dashboard-card {
+  position: relative;
   padding: 1.15rem 1.35rem;
   margin: 0 0 1.25rem;
   cursor: pointer;
@@ -941,11 +942,13 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
   letter-spacing: -.02em;
 }
 
-.weekly-dashboard-select {
-  width: auto;
+.weekly-dashboard-selected {
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
   min-width: 116px;
   margin-top: .18rem;
-  padding: .46rem .8rem;
+  padding: .46rem .72rem .46rem .85rem;
   background: var(--bg-elevated);
   border: 1.5px solid var(--border-subtle);
   border-radius: var(--r-sm);
@@ -957,9 +960,57 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
   cursor: pointer;
 }
 
-.weekly-dashboard-select:focus {
+.weekly-dashboard-card.open .weekly-dashboard-selected {
   border-color: var(--neon-violet);
   box-shadow: 0 0 0 3px rgba(107,158,199,.18);
+}
+
+.weekly-dashboard-chevron {
+  color: var(--ink-secondary);
+  transition: transform .2s var(--ease);
+}
+
+.weekly-dashboard-card.open .weekly-dashboard-chevron {
+  transform: rotate(180deg);
+}
+
+.weekly-dashboard-menu {
+  position: absolute;
+  top: 4.35rem;
+  left: 1.35rem;
+  z-index: 20;
+  min-width: 132px;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  padding: .4rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-med);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+}
+
+.weekly-dashboard-option {
+  width: 100%;
+  padding: .58rem .75rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--r-sm);
+  color: var(--ink-secondary);
+  font-family: 'Sora', sans-serif;
+  font-size: .86rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t), color var(--t);
+}
+
+.weekly-dashboard-option:hover,
+.weekly-dashboard-option.active {
+  background: rgba(107,158,199,.14);
+  color: var(--ink-primary);
 }
 
 .weekly-dashboard-main {

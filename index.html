@@ -220,20 +220,24 @@
           </div>
         </div>
 
-        <div class="section-card weekly-dashboard-card" id="dashboard-weekly-budget-card" onclick="openDashboardWeeklyBudgetModal()">
+        <div class="section-card weekly-dashboard-card" id="dashboard-weekly-budget-card" onclick="toggleDashboardWeeklyDropdown(event)">
           <div class="weekly-dashboard-header">
             <div>
-              <label class="weekly-dashboard-kicker" for="dashboard-weekly-select">Budget Week</label>
-              <select id="dashboard-weekly-select" class="weekly-dashboard-select" onclick="event.stopPropagation()" onchange="selectDashboardWeeklyBudget()">
-                <option value="1">Week 1</option>
-                <option value="2">Week 2</option>
-                <option value="3">Week 3</option>
-                <option value="4">Week 4</option>
-              </select>
+              <span class="weekly-dashboard-kicker">Budget Week</span>
+              <div class="weekly-dashboard-selected" aria-haspopup="listbox" aria-expanded="false">
+                <span id="dashboard-weekly-selected-text">Week 1</span>
+                <svg class="weekly-dashboard-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
             </div>
             <button class="btn-edit-weekly" onclick="event.stopPropagation(); openDashboardWeeklyBudgetModal()" aria-label="Edit selected week budget" title="Edit selected week budget">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5z"/></svg>
             </button>
+          </div>
+          <div class="weekly-dashboard-menu hidden" id="dashboard-weekly-menu" role="listbox" onclick="event.stopPropagation()">
+            <button type="button" class="weekly-dashboard-option" data-week="1" onclick="selectDashboardWeeklyBudget(1)">Week 1</button>
+            <button type="button" class="weekly-dashboard-option" data-week="2" onclick="selectDashboardWeeklyBudget(2)">Week 2</button>
+            <button type="button" class="weekly-dashboard-option" data-week="3" onclick="selectDashboardWeeklyBudget(3)">Week 3</button>
+            <button type="button" class="weekly-dashboard-option" data-week="4" onclick="selectDashboardWeeklyBudget(4)">Week 4</button>
           </div>
           <div class="weekly-dashboard-main">
             <div>

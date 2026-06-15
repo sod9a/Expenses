@@ -1928,14 +1928,20 @@ function renderDashboardWeeklyBudget() {
 
   const weekNum = getDashboardBudgetWeek();
   const summary = getWeeklyBudgetSummary(weekNum);
-  const selectEl = document.getElementById('dashboard-weekly-select');
+  const selectedTextEl = document.getElementById('dashboard-weekly-selected-text');
+  const selectedDisplayEl = document.querySelector('.weekly-dashboard-selected');
+  const optionEls = document.querySelectorAll('.weekly-dashboard-option');
   const spentEl = document.getElementById('dashboard-weekly-spent');
   const limitEl = document.getElementById('dashboard-weekly-limit');
   const remainingEl = document.getElementById('dashboard-weekly-remaining');
   const progressEl = document.getElementById('dashboard-weekly-progress');
   const statusEl = document.getElementById('dashboard-weekly-status');
 
-  if (selectEl) selectEl.value = String(weekNum);
+  if (selectedTextEl) selectedTextEl.textContent = summary.label;
+  if (selectedDisplayEl) selectedDisplayEl.setAttribute('aria-expanded', card.classList.contains('open') ? 'true' : 'false');
+  optionEls.forEach(opt => {
+    opt.classList.toggle('active', parseInt(opt.dataset.week, 10) === weekNum);
+  });
   if (spentEl) spentEl.textContent = formatCurrency(summary.spent);
   if (limitEl) limitEl.textContent = formatCurrency(summary.limit);
   if (remainingEl) remainingEl.textContent = summary.limit > 0 ? formatCurrency(summary.remaining) : '--';
@@ -1951,15 +1957,42 @@ function renderDashboardWeeklyBudget() {
   }
 }
 
-window.selectDashboardWeeklyBudget = function() {
-  const selectEl = document.getElementById('dashboard-weekly-select');
-  dashboardSelectedWeek = selectEl ? parseInt(selectEl.value, 10) : getCurrentBudgetWeek();
+function closeDashboardWeeklyDropdown() {
+  const menu = document.getElementById('dashboard-weekly-menu');
+  const card = document.getElementById('dashboard-weekly-budget-card');
+  const selectedDisplayEl = document.querySelector('.weekly-dashboard-selected');
+  if (menu) menu.classList.add('hidden');
+  if (card) card.classList.remove('open');
+  if (selectedDisplayEl) selectedDisplayEl.setAttribute('aria-expanded', 'false');
+}
+
+window.toggleDashboardWeeklyDropdown = function(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById('dashboard-weekly-menu');
+  const card = document.getElementById('dashboard-weekly-budget-card');
+  const selectedDisplayEl = document.querySelector('.weekly-dashboard-selected');
+  if (!menu || !card) return;
+
+  const willOpen = menu.classList.contains('hidden');
+  menu.classList.toggle('hidden', !willOpen);
+  card.classList.toggle('open', willOpen);
+  if (selectedDisplayEl) selectedDisplayEl.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+};
+
+window.selectDashboardWeeklyBudget = function(weekNum) {
+  dashboardSelectedWeek = weekNum || getCurrentBudgetWeek();
   renderDashboardWeeklyBudget();
+  closeDashboardWeeklyDropdown();
 };
 
 window.openDashboardWeeklyBudgetModal = function() {
   openWeeklyBudgetModal(getDashboardBudgetWeek());
 };
+
+document.addEventListener('click', function(e) {
+  const card = document.getElementById('dashboard-weekly-budget-card');
+  if (card && !card.contains(e.target)) closeDashboardWeeklyDropdown();
+});
 
 window.openWeeklyBudgetModal = function(weekNum = null) {
   currentEditWeek = weekNum || getCurrentBudgetWeek();
