@@ -1943,26 +1943,15 @@ function renderDashboardWeeklyBudget() {
   const weeklyContainer = document.getElementById('dashboard-weekly-list');
   if (!weeklyContainer) return;
 
-  const weeks = [
-    { num: 1, label: 'Week 1 (1st - 7th)', key: 'week1' },
-    { num: 2, label: 'Week 2 (8th - 14th)', key: 'week2' },
-    { num: 3, label: 'Week 3 (15th - 21st)', key: 'week3' },
-    { num: 4, label: 'Week 4 (22nd - End)', key: 'week4' }
-  ];
+  const weekLabels = ['', 'Week 1 (1st - 7th)', 'Week 2 (8th - 14th)', 'Week 3 (15th - 21st)', 'Week 4 (22nd - End)'];
+  const summary = currentSummary;
+  const remainingColor = summary.limit > 0 && summary.remaining <= 0 ? 'var(--neon-coral)' : 'var(--ink-primary)';
 
-  weeklyContainer.innerHTML = '';
-  weeks.forEach(w => {
-    const summary = getWeeklyBudgetSummary(w.num);
-    const isCurrent = w.num === currentWeek;
-    const remainingColor = summary.limit > 0 && summary.remaining <= 0 ? 'var(--neon-coral)' : 'var(--ink-primary)';
-
-    const div = document.createElement('div');
-    div.className = 'weekly-dashboard-item';
-    div.style = 'display: flex; flex-direction: column; gap: 0.5rem;';
-    div.innerHTML = `
+  weeklyContainer.innerHTML = `
+    <div class="weekly-dashboard-item" style="display: flex; flex-direction: column; gap: 0.5rem;">
       <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <span style="font-weight: 700; font-size: 0.9rem; color: var(--ink-primary);">${w.label} ${isCurrent ? '<span style="color: var(--neon-teal); font-size: 0.75rem; margin-left: 0.5rem; font-weight: 800; text-transform: uppercase;">Current</span>' : ''}</span>
-        <button class="btn-edit-weekly" onclick="event.stopPropagation(); openWeeklyBudgetModal(${w.num})" style="width: 26px; height: 26px;" aria-label="Edit budget for ${w.label}" title="Edit budget for ${w.label}">
+        <span style="font-weight: 700; font-size: 0.9rem; color: var(--ink-primary);">${weekLabels[currentWeek]}</span>
+        <button class="btn-edit-weekly" onclick="event.stopPropagation(); openWeeklyBudgetModal(${currentWeek})" style="width: 26px; height: 26px;" aria-label="Edit budget for current week" title="Edit budget for current week">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5z"/></svg>
         </button>
       </div>
@@ -1984,9 +1973,8 @@ function renderDashboardWeeklyBudget() {
         <div class="budget-progress ${summary.statusClass}" style="width: ${summary.limit > 0 ? summary.pct : 0}%;"></div>
       </div>
       <div class="budget-status ${summary.statusClass}" style="font-size: 0.75rem;">${summary.limit > 0 ? `${summary.statusText} (${summary.pct.toFixed(0)}%)` : 'No budget set'}</div>
-    `;
-    weeklyContainer.appendChild(div);
-  });
+    </div>
+  `;
 }
 
 window.toggleDashboardWeeklyDropdown = function(e) {
