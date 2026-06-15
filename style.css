@@ -919,7 +919,7 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.15rem 1.35rem;
+  padding: 1.1rem 1.4rem;
   cursor: pointer;
   user-select: none;
   transition: background var(--t);
@@ -929,7 +929,39 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
   background: var(--bg-card2);
 }
 
-.weekly-dashboard-kicker,
+.weekly-dashboard-header-left {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+}
+
+.weekly-dashboard-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.weekly-dashboard-title {
+  font-family: 'Sora', sans-serif;
+  font-size: .95rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  margin: 0;
+}
+
+.weekly-dashboard-subtitle {
+  font-size: .72rem;
+  color: var(--ink-muted);
+  font-weight: 500;
+  display: block;
+  margin-top: .1rem;
+}
+
+.weekly-dashboard-header-right {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+
 .weekly-dashboard-label {
   display: block;
   font-size: .68rem;

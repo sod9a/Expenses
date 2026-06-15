@@ -222,17 +222,20 @@
 
         <div class="section-card weekly-dashboard-card" id="dashboard-weekly-budget-card">
           <div class="weekly-dashboard-header" onclick="toggleDashboardWeeklyDropdown(event)">
-            <div>
-              <span class="weekly-dashboard-kicker">Weekly Budgets</span>
-              <h2 id="dashboard-weekly-current-status" style="margin: .12rem 0 0; font-family: 'Sora', sans-serif; font-size: 1.05rem; letter-spacing: -.02em;">Loading...</h2>
+            <div class="weekly-dashboard-header-left">
+              <span class="weekly-dashboard-icon">💰</span>
+              <div>
+                <h2 class="weekly-dashboard-title">Weekly Budget</h2>
+                <span class="weekly-dashboard-subtitle" id="dashboard-weekly-current-status">Loading...</span>
+              </div>
             </div>
-            <div>
-              <svg class="weekly-dashboard-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <div class="weekly-dashboard-header-right">
+              <svg class="weekly-dashboard-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
           </div>
           <div class="weekly-dashboard-body" id="dashboard-weekly-body">
             <div class="weekly-dashboard-body-inner" id="dashboard-weekly-list">
-              <!-- Dynamically populated rows for all 4 weeks -->
+              <!-- Dynamically populated -->
             </div>
           </div>
         </div>

@@ -1934,9 +1934,9 @@ function renderDashboardWeeklyBudget() {
   const statusHeaderEl = document.getElementById('dashboard-weekly-current-status');
   if (statusHeaderEl) {
     if (currentSummary.limit > 0) {
-      statusHeaderEl.textContent = `Week ${currentWeek} (Current): ${formatCurrency(currentSummary.spent)} of ${formatCurrency(currentSummary.limit)}`;
+      statusHeaderEl.textContent = `Week ${currentWeek} · ${formatCurrency(currentSummary.spent)} of ${formatCurrency(currentSummary.limit)}`;
     } else {
-      statusHeaderEl.textContent = `Week ${currentWeek} (Current): No budget set`;
+      statusHeaderEl.textContent = `Week ${currentWeek} · No budget set`;
     }
   }
 
