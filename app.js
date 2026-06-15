@@ -1987,7 +1987,6 @@ function renderDashboardWeeklyBudget() {
   if (!weeklyContainer) return;
 
   const weekLabels = ['', 'Week 1', 'Week 2', 'Week 3', 'Week 4'];
-  const summary = currentSummary;
   const remainingColor = summary.limit > 0 && summary.remaining <= 0 ? 'var(--neon-coral)' : 'var(--ink-primary)';
 
   weeklyContainer.innerHTML = `
