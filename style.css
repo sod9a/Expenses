@@ -118,6 +118,8 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 .auth-switch{margin-top:1rem;text-align:center;font-size:.875rem;color:var(--ink-secondary)}
 .auth-switch span{color:var(--neon-violet);cursor:pointer;font-weight:700}
 .auth-error{margin-top:.75rem;padding:.65rem .9rem;background:rgba(255,77,106,.1);border:1px solid rgba(255,77,106,.25);border-radius:var(--r-sm);color:var(--neon-coral);font-size:.83rem;display:none}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.auth-error.shake{animation:shake .4s ease}
 .btn-face-id{display:flex;align-items:center;justify-content:center;gap:.6rem;width:100%;padding:.85rem;background:var(--bg-elevated);border:1.5px solid var(--neon-violet);border-radius:var(--r-md);color:var(--ink-primary);font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;margin-bottom:.25rem;transition:background var(--t),box-shadow var(--t)}
 .btn-face-id:hover{background:rgba(107,158,199,.1);box-shadow:0 0 0 3px rgba(107,158,199,.2)}
 .btn-face-id .face-id-icon{font-size:1.2rem}

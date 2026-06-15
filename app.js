@@ -286,35 +286,59 @@ function clearAuthErrors() {
 
 function showAuthError(id, msg) {
   const el = document.getElementById(id);
-  el.textContent = msg; el.style.display = 'block';
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+  // Scroll into view so user sees the error
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // Shake animation
+  el.classList.remove('shake');
+  void el.offsetWidth; // force reflow
+  el.classList.add('shake');
 }
 
 // Resolve username to email via Firestore lookup
 async function resolveLoginEmail(input) {
   if (input.includes('@')) return input; // it's already an email
-  // Look up username in 'usernames' collection
-  const snap = await getDocs(query(collection(db, 'usernames'), where('username', '==', input.toLowerCase())));
-  if (snap.empty) return null;
-  return snap.docs[0].data().email;
+  try {
+    // Look up username in 'usernames' collection
+    const snap = await getDocs(query(collection(db, 'usernames'), where('username', '==', input.toLowerCase())));
+    if (snap.empty) return null;
+    return snap.docs[0].data().email;
+  } catch (e) {
+    console.warn('Username lookup failed (permission?):', e.code || e.message);
+    // If Firestore lookup fails (e.g. permission denied), return the input as-is
+    // so Firebase Auth can attempt it directly (works if user typed their email)
+    return null;
+  }
 }
 
 document.getElementById('btn-login').addEventListener('click', async () => {
   const input = document.getElementById('login-email').value.trim();
   const pw = document.getElementById('login-password').value;
+  // Clear previous errors
+  const errEl = document.getElementById('login-error');
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
   if (!input || !pw) return showAuthError('login-error', 'Please fill in all fields.');
   const btn = document.getElementById('btn-login');
   btn.disabled = true; btn.textContent = 'Signing in…';
   try {
-    const email = await resolveLoginEmail(input);
+    let email = await resolveLoginEmail(input);
     if (!email) {
-      showAuthError('login-error', 'No account found with that username.');
-      return;
+      // Username lookup returned null — could be permission issue or unknown username
+      // Try signing in with input directly as email as a fallback
+      if (input.includes('@')) {
+        email = input;
+      } else {
+        showAuthError('login-error', 'No account found with that username. Try signing in with your email address instead.');
+        return;
+      }
     }
     await signInWithEmailAndPassword(auth, email, pw);
     // Save to device keychain so Face ID / Touch ID works next time
     await storeCredential(input, pw);
   } catch (e) {
-    console.error("Login Error details:", e);
+    console.error('Login Error details:', e);
     showAuthError('login-error', friendlyAuthError(e.code || e.message || String(e)));
   } finally { btn.disabled = false; btn.textContent = 'Sign In'; }
 });
