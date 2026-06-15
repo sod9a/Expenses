@@ -220,43 +220,21 @@
           </div>
         </div>
 
-        <div class="section-card weekly-dashboard-card" id="dashboard-weekly-budget-card" onclick="toggleDashboardWeeklyDropdown(event)">
-          <div class="weekly-dashboard-header">
+        <div class="section-card weekly-dashboard-card" id="dashboard-weekly-budget-card">
+          <div class="weekly-dashboard-header" onclick="toggleDashboardWeeklyDropdown(event)">
             <div>
-              <span class="weekly-dashboard-kicker">Budget Week</span>
-              <div class="weekly-dashboard-selected" aria-haspopup="listbox" aria-expanded="false">
-                <span id="dashboard-weekly-selected-text">Week 1</span>
-                <svg class="weekly-dashboard-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
-            </div>
-            <button class="btn-edit-weekly" onclick="event.stopPropagation(); openDashboardWeeklyBudgetModal()" aria-label="Edit selected week budget" title="Edit selected week budget">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5z"/></svg>
-            </button>
-          </div>
-          <div class="weekly-dashboard-menu hidden" id="dashboard-weekly-menu" role="listbox" onclick="event.stopPropagation()">
-            <button type="button" class="weekly-dashboard-option" data-week="1" onclick="selectDashboardWeeklyBudget(1)">Week 1</button>
-            <button type="button" class="weekly-dashboard-option" data-week="2" onclick="selectDashboardWeeklyBudget(2)">Week 2</button>
-            <button type="button" class="weekly-dashboard-option" data-week="3" onclick="selectDashboardWeeklyBudget(3)">Week 3</button>
-            <button type="button" class="weekly-dashboard-option" data-week="4" onclick="selectDashboardWeeklyBudget(4)">Week 4</button>
-          </div>
-          <div class="weekly-dashboard-main">
-            <div>
-              <span class="weekly-dashboard-label">Spent</span>
-              <strong id="dashboard-weekly-spent">$0.00</strong>
+              <span class="weekly-dashboard-kicker">Weekly Budgets</span>
+              <h2 id="dashboard-weekly-current-status" style="margin: .12rem 0 0; font-family: 'Sora', sans-serif; font-size: 1.05rem; letter-spacing: -.02em;">Loading...</h2>
             </div>
             <div>
-              <span class="weekly-dashboard-label">Limit</span>
-              <strong id="dashboard-weekly-limit">$0.00</strong>
-            </div>
-            <div>
-              <span class="weekly-dashboard-label">Remaining</span>
-              <strong id="dashboard-weekly-remaining">$0.00</strong>
+              <svg class="weekly-dashboard-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
           </div>
-          <div class="budget-progress-wrap weekly-dashboard-progress">
-            <div class="budget-progress safe" id="dashboard-weekly-progress" style="width:0%"></div>
+          <div class="weekly-dashboard-body" id="dashboard-weekly-body">
+            <div class="weekly-dashboard-body-inner" id="dashboard-weekly-list">
+              <!-- Dynamically populated rows for all 4 weeks -->
+            </div>
           </div>
-          <div class="budget-status safe" id="dashboard-weekly-status">No budget set</div>
         </div>
 
         <!-- Dashboard Grid for Chart & Checklist -->

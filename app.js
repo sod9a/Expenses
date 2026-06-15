@@ -505,6 +505,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isChartOpen) chartCard.classList.add('open');
     else chartCard.classList.remove('open');
   }
+
+  // Read dashboard weekly budget open state from localStorage
+  const isWeeklyOpen = localStorage.getItem('dashboardWeeklyOpen') !== 'false';
+  const weeklyCard = document.getElementById('dashboard-weekly-budget-card');
+  if (weeklyCard) {
+    if (isWeeklyOpen) weeklyCard.classList.add('open');
+    else weeklyCard.classList.remove('open');
+  }
 });
 
 document.getElementById('btn-forgot').addEventListener('click', async () => {
@@ -1776,7 +1784,6 @@ function renderCategories() {
 }
 
 let currentEditWeek = null;
-let dashboardSelectedWeek = null;
 
 const WEEKLY_BUDGET_DEFAULTS = { week1: 0, week2: 0, week3: 0, week4: 0 };
 const WEEKLY_BUDGET_META = [
@@ -1796,10 +1803,6 @@ function getCurrentBudgetWeek() {
   if (day <= 14) return 2;
   if (day <= 21) return 3;
   return 4;
-}
-
-function getDashboardBudgetWeek() {
-  return dashboardSelectedWeek || getCurrentBudgetWeek();
 }
 
 function getWeeklySpentByWeek() {
@@ -1926,73 +1929,73 @@ function renderDashboardWeeklyBudget() {
   const card = document.getElementById('dashboard-weekly-budget-card');
   if (!card) return;
 
-  const weekNum = getDashboardBudgetWeek();
-  const summary = getWeeklyBudgetSummary(weekNum);
-  const selectedTextEl = document.getElementById('dashboard-weekly-selected-text');
-  const selectedDisplayEl = document.querySelector('.weekly-dashboard-selected');
-  const optionEls = document.querySelectorAll('.weekly-dashboard-option');
-  const spentEl = document.getElementById('dashboard-weekly-spent');
-  const limitEl = document.getElementById('dashboard-weekly-limit');
-  const remainingEl = document.getElementById('dashboard-weekly-remaining');
-  const progressEl = document.getElementById('dashboard-weekly-progress');
-  const statusEl = document.getElementById('dashboard-weekly-status');
+  const currentWeek = getCurrentBudgetWeek();
+  const currentSummary = getWeeklyBudgetSummary(currentWeek);
+  const statusHeaderEl = document.getElementById('dashboard-weekly-current-status');
+  if (statusHeaderEl) {
+    if (currentSummary.limit > 0) {
+      statusHeaderEl.textContent = `Week ${currentWeek} (Current): ${formatCurrency(currentSummary.spent)} of ${formatCurrency(currentSummary.limit)}`;
+    } else {
+      statusHeaderEl.textContent = `Week ${currentWeek} (Current): No budget set`;
+    }
+  }
 
-  if (selectedTextEl) selectedTextEl.textContent = summary.label;
-  if (selectedDisplayEl) selectedDisplayEl.setAttribute('aria-expanded', card.classList.contains('open') ? 'true' : 'false');
-  optionEls.forEach(opt => {
-    opt.classList.toggle('active', parseInt(opt.dataset.week, 10) === weekNum);
+  const weeklyContainer = document.getElementById('dashboard-weekly-list');
+  if (!weeklyContainer) return;
+
+  const weeks = [
+    { num: 1, label: 'Week 1 (1st - 7th)', key: 'week1' },
+    { num: 2, label: 'Week 2 (8th - 14th)', key: 'week2' },
+    { num: 3, label: 'Week 3 (15th - 21st)', key: 'week3' },
+    { num: 4, label: 'Week 4 (22nd - End)', key: 'week4' }
+  ];
+
+  weeklyContainer.innerHTML = '';
+  weeks.forEach(w => {
+    const summary = getWeeklyBudgetSummary(w.num);
+    const isCurrent = w.num === currentWeek;
+    const remainingColor = summary.limit > 0 && summary.remaining <= 0 ? 'var(--neon-coral)' : 'var(--ink-primary)';
+
+    const div = document.createElement('div');
+    div.className = 'weekly-dashboard-item';
+    div.style = 'display: flex; flex-direction: column; gap: 0.5rem;';
+    div.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <span style="font-weight: 700; font-size: 0.9rem; color: var(--ink-primary);">${w.label} ${isCurrent ? '<span style="color: var(--neon-teal); font-size: 0.75rem; margin-left: 0.5rem; font-weight: 800; text-transform: uppercase;">Current</span>' : ''}</span>
+        <button class="btn-edit-weekly" onclick="event.stopPropagation(); openWeeklyBudgetModal(${w.num})" style="width: 26px; height: 26px;" aria-label="Edit budget for ${w.label}" title="Edit budget for ${w.label}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5z"/></svg>
+        </button>
+      </div>
+      <div class="weekly-dashboard-main" style="margin-top: 0; display: flex; justify-content: space-between; gap: 1rem;">
+        <div>
+          <span class="weekly-dashboard-label">Spent</span>
+          <strong style="font-size: 0.95rem;">${formatCurrency(summary.spent)}</strong>
+        </div>
+        <div>
+          <span class="weekly-dashboard-label">Limit</span>
+          <strong style="font-size: 0.95rem;">${formatCurrency(summary.limit)}</strong>
+        </div>
+        <div>
+          <span class="weekly-dashboard-label">Remaining</span>
+          <strong style="font-size: 0.95rem; color: ${remainingColor};">${summary.limit > 0 ? formatCurrency(summary.remaining) : '--'}</strong>
+        </div>
+      </div>
+      <div class="budget-progress-wrap weekly-dashboard-progress" style="margin-top: 0.4rem; margin-bottom: 0;">
+        <div class="budget-progress ${summary.statusClass}" style="width: ${summary.limit > 0 ? summary.pct : 0}%;"></div>
+      </div>
+      <div class="budget-status ${summary.statusClass}" style="font-size: 0.75rem;">${summary.limit > 0 ? `${summary.statusText} (${summary.pct.toFixed(0)}%)` : 'No budget set'}</div>
+    `;
+    weeklyContainer.appendChild(div);
   });
-  if (spentEl) spentEl.textContent = formatCurrency(summary.spent);
-  if (limitEl) limitEl.textContent = formatCurrency(summary.limit);
-  if (remainingEl) remainingEl.textContent = summary.limit > 0 ? formatCurrency(summary.remaining) : '--';
-  if (progressEl) {
-    progressEl.className = `budget-progress ${summary.statusClass}`;
-    progressEl.style.width = `${summary.limit > 0 ? summary.pct : 0}%`;
-  }
-  if (statusEl) {
-    statusEl.className = `budget-status ${summary.statusClass}`;
-    statusEl.textContent = summary.limit > 0
-      ? `${summary.statusText} (${summary.pct.toFixed(0)}%)`
-      : 'No budget set';
-  }
-}
-
-function closeDashboardWeeklyDropdown() {
-  const menu = document.getElementById('dashboard-weekly-menu');
-  const card = document.getElementById('dashboard-weekly-budget-card');
-  const selectedDisplayEl = document.querySelector('.weekly-dashboard-selected');
-  if (menu) menu.classList.add('hidden');
-  if (card) card.classList.remove('open');
-  if (selectedDisplayEl) selectedDisplayEl.setAttribute('aria-expanded', 'false');
 }
 
 window.toggleDashboardWeeklyDropdown = function(e) {
   if (e) e.stopPropagation();
-  const menu = document.getElementById('dashboard-weekly-menu');
   const card = document.getElementById('dashboard-weekly-budget-card');
-  const selectedDisplayEl = document.querySelector('.weekly-dashboard-selected');
-  if (!menu || !card) return;
-
-  const willOpen = menu.classList.contains('hidden');
-  menu.classList.toggle('hidden', !willOpen);
-  card.classList.toggle('open', willOpen);
-  if (selectedDisplayEl) selectedDisplayEl.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  if (!card) return;
+  const isOpen = card.classList.toggle('open');
+  localStorage.setItem('dashboardWeeklyOpen', isOpen);
 };
-
-window.selectDashboardWeeklyBudget = function(weekNum) {
-  dashboardSelectedWeek = weekNum || getCurrentBudgetWeek();
-  renderDashboardWeeklyBudget();
-  closeDashboardWeeklyDropdown();
-};
-
-window.openDashboardWeeklyBudgetModal = function() {
-  openWeeklyBudgetModal(getDashboardBudgetWeek());
-};
-
-document.addEventListener('click', function(e) {
-  const card = document.getElementById('dashboard-weekly-budget-card');
-  if (card && !card.contains(e.target)) closeDashboardWeeklyDropdown();
-});
 
 window.openWeeklyBudgetModal = function(weekNum = null) {
   currentEditWeek = weekNum || getCurrentBudgetWeek();
@@ -2039,7 +2042,6 @@ window.saveWeeklyBudget = async function() {
     }, { merge: true });
     
     userSettings.weeklyBudgets = weeklyBudgets;
-    dashboardSelectedWeek = currentEditWeek;
     showToast(`Week ${currentEditWeek} budget saved!`, 'success');
     closeWeeklyBudgetModal();
     renderBudgets();
