@@ -1943,7 +1943,7 @@ function renderDashboardWeeklyBudget() {
   const weeklyContainer = document.getElementById('dashboard-weekly-list');
   if (!weeklyContainer) return;
 
-  const weekLabels = ['', 'Week 1 (1st - 7th)', 'Week 2 (8th - 14th)', 'Week 3 (15th - 21st)', 'Week 4 (22nd - End)'];
+  const weekLabels = ['', 'Week 1', 'Week 2', 'Week 3', 'Week 4'];
   const summary = currentSummary;
   const remainingColor = summary.limit > 0 && summary.remaining <= 0 ? 'var(--neon-coral)' : 'var(--ink-primary)';
 
