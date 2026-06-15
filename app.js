@@ -313,7 +313,7 @@ async function resolveLoginEmail(input) {
   }
 }
 
-document.getElementById('btn-login').addEventListener('click', async () => {
+window.handleLogin = async function() {
   const input = document.getElementById('login-email').value.trim();
   const pw = document.getElementById('login-password').value;
   // Clear previous errors
@@ -325,23 +325,25 @@ document.getElementById('btn-login').addEventListener('click', async () => {
   try {
     let email = await resolveLoginEmail(input);
     if (!email) {
-      // Username lookup returned null — could be permission issue or unknown username
-      // Try signing in with input directly as email as a fallback
       if (input.includes('@')) {
         email = input;
       } else {
-        showAuthError('login-error', 'No account found with that username. Try signing in with your email address instead.');
+        showAuthError('login-error', 'Username not found. Please try signing in with your email address.');
         return;
       }
     }
     await signInWithEmailAndPassword(auth, email, pw);
-    // Save to device keychain so Face ID / Touch ID works next time
     await storeCredential(input, pw);
   } catch (e) {
-    console.error('Login Error details:', e);
+    console.error('Login Error:', e);
     showAuthError('login-error', friendlyAuthError(e.code || e.message || String(e)));
-  } finally { btn.disabled = false; btn.textContent = 'Sign In'; }
-});
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+};
+
+document.getElementById('btn-login').addEventListener('click', window.handleLogin);
 
 document.getElementById('btn-register').addEventListener('click', async () => {
   const name = document.getElementById('reg-name').value.trim();

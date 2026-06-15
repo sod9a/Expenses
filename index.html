@@ -36,7 +36,7 @@
           <label for="login-password">Password</label>
           <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
         </div>
-        <button id="btn-login" class="btn-primary">Sign In</button>
+        <button id="btn-login" class="btn-primary" onclick="window.handleLogin && window.handleLogin()">Sign In</button>
         <p class="auth-switch" style="margin-top:0.75rem">Forgot password? <span onclick="switchAuth('forgot')">Reset it</span></p>
         <p class="auth-switch">No account? <span onclick="switchAuth('register')">Create one</span></p>
         <div id="login-error" class="auth-error"></div>
@@ -1127,6 +1127,6 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-  <script type="module" src="app.js?v=1.0.5"></script>
+  <script type="module" src="app.js?v=1.0.6"></script>
 </body>
 </html>
