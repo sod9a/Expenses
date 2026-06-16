@@ -256,6 +256,11 @@ document.addEventListener('click', function(e) {
     const catDd = document.getElementById('cat-month-picker-dropdown');
     if (catDd) catDd.classList.add('hidden');
   }
+  // Close CC card switcher dropdown on outside click
+  const ccWrap = document.querySelector('.cc-switcher-wrap');
+  if (ccWrap && !ccWrap.contains(e.target)) {
+    closeCCSwitcher();
+  }
 });
 
 function setGreeting() {
@@ -1627,36 +1632,75 @@ function renderCCTabs() {
   if (!container) return;
   container.innerHTML = '';
 
-  // Wrapper: flex row — scrollable tabs + pinned add button
-  const scrollWrap = document.createElement('div');
-  scrollWrap.className = 'cc-tabs-scroll';
-
-  const addBtn = document.createElement('div');
-  addBtn.className = 'cc-tab-add';
-  addBtn.innerHTML = '<span>＋</span>';
-  addBtn.title = 'Add Card';
-  addBtn.onclick = (e) => {
-    e.stopPropagation();
-    openConfigureCCModal();
-  };
-
   const cards = getCCCards();
+  const activeCard = cards.find(c => c.id === activeCCCardId) || cards[0];
+
+  // ── Trigger button ──────────────────────────────────────────────────────
+  const trigger = document.createElement('div');
+  trigger.className = 'cc-switcher-trigger';
+  trigger.id = 'cc-switcher-trigger';
+  trigger.innerHTML = `
+    <span class="cc-switcher-icon">💳</span>
+    <span class="cc-switcher-label" id="cc-switcher-label">${activeCard ? activeCard.name : 'Select Card'}</span>
+    <svg class="cc-switcher-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  `;
+  trigger.onclick = (e) => { e.stopPropagation(); toggleCCSwitcher(); };
+
+  // ── Dropdown list ───────────────────────────────────────────────────────
+  const dropdown = document.createElement('div');
+  dropdown.className = 'cc-switcher-dropdown hidden';
+  dropdown.id = 'cc-switcher-dropdown';
+
   cards.forEach(card => {
-    const outstanding = getCCCardOutstanding(card.id);
-    const tab = document.createElement('div');
-    tab.className = `cc-tab ${card.id === activeCCCardId ? 'active' : ''}`;
-    tab.textContent = `${card.name} (${formatCurrency(outstanding)})`;
-    tab.onclick = (e) => {
+    const item = document.createElement('div');
+    item.className = `cc-switcher-option ${card.id === activeCCCardId ? 'active' : ''}`;
+    item.innerHTML = `<span class="cc-switcher-opt-name">💳 ${card.name}</span>`;
+    item.onclick = (e) => {
       e.stopPropagation();
       activeCCCardId = card.id;
+      closeCCSwitcher();
       updateSummaryCards();
     };
-    scrollWrap.appendChild(tab);
+    dropdown.appendChild(item);
   });
 
-  container.appendChild(scrollWrap);
-  container.appendChild(addBtn);
+  // Add Card separator + option
+  const sep = document.createElement('div');
+  sep.className = 'cc-switcher-sep';
+  dropdown.appendChild(sep);
+
+  const addItem = document.createElement('div');
+  addItem.className = 'cc-switcher-option add';
+  addItem.innerHTML = `<span>＋ Add Card</span>`;
+  addItem.onclick = (e) => {
+    e.stopPropagation();
+    closeCCSwitcher();
+    openConfigureCCModal();
+  };
+  dropdown.appendChild(addItem);
+
+  // ── Wrapper ─────────────────────────────────────────────────────────────
+  const wrap = document.createElement('div');
+  wrap.className = 'cc-switcher-wrap';
+  wrap.appendChild(trigger);
+  wrap.appendChild(dropdown);
+
+  container.appendChild(wrap);
 }
+
+window.toggleCCSwitcher = function() {
+  const dd = document.getElementById('cc-switcher-dropdown');
+  if (!dd) return;
+  dd.classList.toggle('hidden');
+};
+
+window.closeCCSwitcher = function() {
+  const dd = document.getElementById('cc-switcher-dropdown');
+  if (dd) dd.classList.add('hidden');
+};
 
 
 window.toggleCCSelectGroup = function () {
