@@ -2130,31 +2130,35 @@ function renderDashboardWeeklyBudget() {
   const weekLabels = ['', 'Week 1', 'Week 2', 'Week 3', 'Week 4'];
   const remainingColor = summary.limit > 0 && summary.remaining <= 0 ? 'var(--neon-coral)' : 'var(--ink-primary)';
 
+  const pct = summary.limit > 0 ? Math.min(summary.pct, 100) : 0;
+  const barColor = summary.statusClass === 'danger' ? 'var(--neon-coral)' : summary.statusClass === 'warn' ? 'var(--neon-gold)' : 'linear-gradient(90deg, var(--neon-violet), var(--neon-teal))';
+
   weeklyContainer.innerHTML = `
-    <div class="weekly-dashboard-item" style="display: flex; flex-direction: column; gap: 0.85rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <span style="font-weight: 700; font-size: 0.85rem; color: var(--ink-secondary); text-transform: uppercase; letter-spacing: 0.03em;">Current Week Details</span>
-        <button class="btn-edit-weekly" onclick="event.stopPropagation(); openWeeklyBudgetModal(${currentWeek})" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--ink-secondary); cursor: pointer; transition: all 0.2s;" aria-label="Edit budget for current week" title="Edit budget for current week">
+    <div class="weekly-dashboard-item" style="display: flex; flex-direction: column; gap: 1rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 700; font-size: 0.8rem; color: var(--ink-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Week ${currentWeek} Budget</span>
+        <button class="btn-edit-weekly" onclick="event.stopPropagation(); openWeeklyBudgetModal(${currentWeek})" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--ink-secondary); cursor: pointer; transition: all 0.2s;" aria-label="Edit budget" title="Edit budget">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5z"/></svg>
         </button>
       </div>
-      <div class="weekly-dashboard-main" style="margin-top: 0; display: flex; justify-content: space-between; gap: 1rem; background: var(--bg-elevated); padding: 0.9rem 1.1rem; border-radius: var(--r-md); border: 1px solid var(--border-subtle); box-sizing: border-box; width: 100%;">
-        <div style="flex: 1; min-width: 0;">
-          <span class="weekly-dashboard-label" style="font-size: 0.65rem; text-transform: uppercase; color: var(--ink-muted); font-weight: 700; display: block; letter-spacing: 0.05em;">Spent</span>
-          <strong style="font-size: 1rem; color: var(--ink-primary); display: block; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${formatCurrency(summary.spent)}</strong>
-        </div>
-        <div style="flex: 1; border-left: 1px solid var(--border-subtle); padding-left: 1rem; min-width: 0;">
-          <span class="weekly-dashboard-label" style="font-size: 0.65rem; text-transform: uppercase; color: var(--ink-muted); font-weight: 700; display: block; letter-spacing: 0.05em;">Limit</span>
-          <strong style="font-size: 1rem; color: var(--ink-primary); display: block; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${formatCurrency(summary.limit)}</strong>
-        </div>
-        <div style="flex: 1; border-left: 1px solid var(--border-subtle); padding-left: 1rem; min-width: 0;">
-          <span class="weekly-dashboard-label" style="font-size: 0.65rem; text-transform: uppercase; color: var(--ink-muted); font-weight: 700; display: block; letter-spacing: 0.05em;">Remaining</span>
-          <strong style="font-size: 1rem; color: ${remainingColor}; display: block; margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${summary.limit > 0 ? formatCurrency(summary.remaining) : '--'}</strong>
-        </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 0 0.1rem;">
+        <strong style="font-size: 1.35rem; font-family: 'Sora', sans-serif; font-weight: 800; color: var(--ink-primary);">${formatCurrency(summary.spent)}</strong>
+        <span style="font-size: 0.8rem; color: var(--ink-muted);">of ${summary.limit > 0 ? formatCurrency(summary.limit) : 'no limit'}</span>
       </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--ink-secondary); margin-top: 0.1rem; padding: 0 0.1rem;">
-        <span>Status</span>
-        <span class="${summary.statusClass}" style="font-weight: 600; color: ${summary.statusClass === 'danger' ? 'var(--neon-coral)' : summary.statusClass === 'warn' ? 'var(--neon-gold)' : 'var(--neon-teal)'};">${summary.limit > 0 ? `${summary.statusText} (${summary.pct.toFixed(0)}%)` : 'No budget set'}</span>
+
+      <div style="height: 8px; background: var(--bg-elevated); border-radius: 99px; overflow: hidden; border: 1px solid var(--border-subtle);">
+        <div style="height: 100%; width: ${pct}%; border-radius: 99px; background: ${barColor}; transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1);"></div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; padding: 0 0.1rem;">
+        <span style="color: var(--ink-muted);">Remaining</span>
+        <span style="font-weight: 700; color: ${remainingColor};">${summary.limit > 0 ? formatCurrency(summary.remaining) : '--'}</span>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; padding: 0 0.1rem; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
+        <span style="color: var(--ink-muted);">Status</span>
+        <span style="font-weight: 600; color: ${summary.statusClass === 'danger' ? 'var(--neon-coral)' : summary.statusClass === 'warn' ? 'var(--neon-gold)' : 'var(--neon-teal)'};">${summary.limit > 0 ? `${summary.statusText} · ${pct.toFixed(0)}%` : 'No budget set'}</span>
       </div>
     </div>
   `;
