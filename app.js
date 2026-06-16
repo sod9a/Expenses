@@ -31,7 +31,18 @@ let allTransactions = [];
 let allBudgets = [];
 let allTabung = [];
 let allLoans = [];
-let userSettings = { currency: '$', theme: 'dark', avatarUrl: '', creditLimit: 10000, creditDueDay: 25 };
+let userSettings = { 
+  currency: '$', 
+  theme: 'dark', 
+  avatarUrl: '', 
+  creditLimit: 10000, 
+  creditDueDay: 25,
+  creditCards: [
+    { id: 'legacy-default', name: 'Primary Card', limit: 10000, dueDay: 25 }
+  ]
+};
+let activeCCCardId = 'legacy-default';
+let editingCCCardId = null;
 let grossIncome = 0; // User-defined gross monthly income
 let expensesChart = null;
 let activeFilter = 'all';
@@ -630,6 +641,25 @@ function subscribeToData() {
   unsubscribeSettings = onSnapshot(doc(db, 'settings', currentUser.uid), docSnap => {
     if (docSnap.exists()) {
       userSettings = { ...userSettings, ...docSnap.data() };
+      
+      // Migrate legacy settings to creditCards array if needed
+      if (!userSettings.creditCards || !Array.isArray(userSettings.creditCards) || userSettings.creditCards.length === 0) {
+        const legacyLimit = docSnap.data().creditLimit !== undefined ? docSnap.data().creditLimit : 10000;
+        const legacyDueDay = docSnap.data().creditDueDay !== undefined ? docSnap.data().creditDueDay : 25;
+        userSettings.creditCards = [{
+          id: 'legacy-default',
+          name: 'Primary Card',
+          limit: legacyLimit,
+          dueDay: legacyDueDay
+        }];
+        setDoc(doc(db, 'settings', currentUser.uid), { creditCards: userSettings.creditCards }, { merge: true }).catch(console.error);
+      }
+      
+      const cards = userSettings.creditCards;
+      if (!activeCCCardId || !cards.some(c => c.id === activeCCCardId)) {
+        activeCCCardId = cards[0] ? cards[0].id : 'legacy-default';
+      }
+
       // Load gross income from settings
       if (typeof docSnap.data().grossIncome === 'number') {
         grossIncome = docSnap.data().grossIncome;
@@ -650,7 +680,20 @@ function subscribeToData() {
       if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
     } else {
       // Document doesn't exist yet for new user, reset to default settings and 0 gross income
-      userSettings = { currency: '$', theme: 'dark', avatarUrl: '', creditLimit: 10000, creditDueDay: 25 };
+      userSettings = { 
+        currency: '$', 
+        theme: 'dark', 
+        avatarUrl: '', 
+        creditLimit: 10000, 
+        creditDueDay: 25,
+        creditCards: [{
+          id: 'legacy-default',
+          name: 'Primary Card',
+          limit: 10000,
+          dueDay: 25
+        }]
+      };
+      activeCCCardId = 'legacy-default';
       grossIncome = 0;
       balanceHidden = false;
       applyBalanceVisibility();
@@ -1123,6 +1166,8 @@ window.openModal = function (txId = null) {
   document.getElementById('btn-save-tx').textContent = txId ? 'Update Transaction' : 'Save Transaction';
   document.getElementById('modal-error').style.display = 'none';
 
+  populateCCSelect();
+
   if (txId) {
     const tx = allTransactions.find(t => t.id === txId);
     if (tx) {
@@ -1134,6 +1179,12 @@ window.openModal = function (txId = null) {
       document.getElementById('tx-notes').value = tx.notes || '';
       const pmSelect = document.getElementById('tx-pay-method');
       if (pmSelect) pmSelect.value = tx.paymentMethod || 'cash';
+      
+      const ccSelect = document.getElementById('tx-cc-select');
+      if (ccSelect) {
+        ccSelect.value = tx.cardId || 'legacy-default';
+      }
+      toggleCCSelectGroup();
     }
   } else {
     resetModal();
@@ -1159,6 +1210,7 @@ function resetModal() {
   document.getElementById('tx-notes').value = '';
   const pmSelect = document.getElementById('tx-pay-method');
   if (pmSelect) pmSelect.value = 'cash';
+  toggleCCSelectGroup();
   document.getElementById('modal-error').style.display = 'none';
 }
 
@@ -1171,6 +1223,7 @@ window.setType = function (t) {
   if (pmGroup) {
     pmGroup.style.display = t === 'expense' ? 'block' : 'none';
   }
+  toggleCCSelectGroup();
 };
 
 // ─── Save Transaction ──────────────────────────────────────────────────────
@@ -1184,6 +1237,8 @@ window.saveTransaction = async function () {
   
   const pmSelect = document.getElementById('tx-pay-method');
   const paymentMethod = txType === 'expense' && pmSelect ? pmSelect.value : 'cash';
+  const ccSelect = document.getElementById('tx-cc-select');
+  const cardId = (txType === 'expense' && paymentMethod === 'credit' && ccSelect) ? ccSelect.value : null;
 
   if (!desc) { errEl.textContent = 'Please enter a description.'; errEl.style.display = 'block'; return; }
   if (!amount || amount <= 0) { errEl.textContent = 'Please enter a valid amount.'; errEl.style.display = 'block'; return; }
@@ -1192,7 +1247,7 @@ window.saveTransaction = async function () {
   const btn = document.getElementById('btn-save-tx');
   btn.disabled = true; btn.textContent = 'Saving…';
 
-  const data = { uid: currentUser.uid, type: txType, description: desc, amount, category, date, notes, paymentMethod, updatedAt: serverTimestamp() };
+  const data = { uid: currentUser.uid, type: txType, description: desc, amount, category, date, notes, paymentMethod, cardId: cardId || null, updatedAt: serverTimestamp() };
 
   try {
     if (editingTxId) {
@@ -1532,6 +1587,91 @@ function getCategoryIcon(cat) {
   return icons[cat] || '💡';
 }
 
+function getCCCards() {
+  if (userSettings && Array.isArray(userSettings.creditCards) && userSettings.creditCards.length > 0) {
+    return userSettings.creditCards;
+  }
+  return [{
+    id: 'legacy-default',
+    name: 'Primary Card',
+    limit: userSettings.creditLimit !== undefined ? userSettings.creditLimit : 10000,
+    dueDay: userSettings.creditDueDay !== undefined ? userSettings.creditDueDay : 25
+  }];
+}
+
+function getCCCardOutstanding(cardId) {
+  const cards = getCCCards();
+  const defaultCard = cards[0];
+  const isDefault = defaultCard && cardId === defaultCard.id;
+
+  const expenses = allTransactions
+    .filter(t => t.type === 'expense' && t.paymentMethod === 'credit' && (t.cardId === cardId || (!t.cardId && isDefault)))
+    .reduce((s, t) => s + t.amount, 0);
+
+  const payments = allTransactions
+    .filter(t => t.type === 'expense' && t.category === 'Credit Card Payment' && (t.cardId === cardId || (!t.cardId && isDefault)))
+    .reduce((s, t) => s + t.amount, 0);
+
+  return Math.max(0, expenses - payments);
+}
+
+function getCardNameById(cardId) {
+  const cards = getCCCards();
+  const card = cards.find(c => c.id === cardId);
+  if (card) return card.name;
+  return 'Primary Card';
+}
+
+function renderCCTabs() {
+  const container = document.getElementById('cc-tabs-container');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  const cards = getCCCards();
+  cards.forEach(card => {
+    const outstanding = getCCCardOutstanding(card.id);
+    const tab = document.createElement('div');
+    tab.className = `cc-tab ${card.id === activeCCCardId ? 'active' : ''}`;
+    tab.textContent = `${card.name} (${formatCurrency(outstanding)})`;
+    tab.onclick = (e) => {
+      e.stopPropagation();
+      activeCCCardId = card.id;
+      updateSummaryCards();
+    };
+    container.appendChild(tab);
+  });
+  
+  const addTab = document.createElement('div');
+  addTab.className = 'cc-tab-add';
+  addTab.innerHTML = '<span>＋</span> Add Card';
+  addTab.onclick = (e) => {
+    e.stopPropagation();
+    openConfigureCCModal();
+  };
+  container.appendChild(addTab);
+}
+
+window.toggleCCSelectGroup = function () {
+  const pmSelect = document.getElementById('tx-pay-method');
+  const ccSelectGroup = document.getElementById('tx-cc-select-group');
+  if (pmSelect && ccSelectGroup) {
+    ccSelectGroup.style.display = (pmSelect.value === 'credit' && txType === 'expense') ? 'block' : 'none';
+  }
+};
+
+function populateCCSelect() {
+  const select = document.getElementById('tx-cc-select');
+  if (!select) return;
+  select.innerHTML = '';
+  const cards = getCCCards();
+  cards.forEach(card => {
+    const opt = document.createElement('option');
+    opt.value = card.id;
+    opt.textContent = `${card.name} (Limit: ${formatCurrency(card.limit)})`;
+    select.appendChild(opt);
+  });
+}
+
 function updateSummaryCards() {
   const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
   
@@ -1570,20 +1710,22 @@ function updateSummaryCards() {
   const remaining = balance;
 
   // ─── Credit Card Calculations ───
-  // Credit card transactions are all-time outstanding minus all-time payments
-  const allTimeCCExpenses = allTransactions
-    .filter(t => t.type === 'expense' && t.paymentMethod === 'credit')
-    .reduce((s, t) => s + t.amount, 0);
-    
-  const allTimeCCPayments = allTransactions
-    .filter(t => t.type === 'expense' && t.category === 'Credit Card Payment')
-    .reduce((s, t) => s + t.amount, 0);
+  const cards = getCCCards();
+  if (!activeCCCardId || !cards.some(c => c.id === activeCCCardId)) {
+    activeCCCardId = cards[0] ? cards[0].id : 'legacy-default';
+  }
+  const activeCard = cards.find(c => c.id === activeCCCardId) || cards[0];
 
-  const ccOutstanding = Math.max(0, allTimeCCExpenses - allTimeCCPayments);
-  const ccLimit       = userSettings.creditLimit !== undefined ? userSettings.creditLimit : 10000;
-  const ccDueDay      = userSettings.creditDueDay !== undefined ? userSettings.creditDueDay : 25;
+  const ccOutstanding = getCCCardOutstanding(activeCCCardId);
+  const ccLimit       = activeCard ? activeCard.limit : 10000;
+  const ccDueDay      = activeCard ? activeCard.dueDay : 25;
   const ccAvailable   = Math.max(0, ccLimit - ccOutstanding);
   const ccUtilization = ccLimit > 0 ? Math.min((ccOutstanding / ccLimit) * 100, 100) : 0;
+
+  const ccCardTitleEl = document.querySelector('.cc-dashboard-title');
+  if (ccCardTitleEl && activeCard) {
+    ccCardTitleEl.textContent = `Credit Card (${activeCard.name})`;
+  }
 
   // Desktop summary cards
   document.getElementById('total-income').textContent  = formatCurrency(netIncome);
@@ -1598,6 +1740,7 @@ function updateSummaryCards() {
   if (mobRemaining) mobRemaining.dataset.value = formatCurrency(remaining);
 
   // Render Credit Card Widget Elements
+  renderCCTabs();
   const ccHolderNameEl = document.getElementById('cc-cardholder-name');
   if (ccHolderNameEl && currentUser) {
     ccHolderNameEl.textContent = (currentUser.displayName || currentUser.email.split('@')[0]).toUpperCase();
@@ -1725,6 +1868,11 @@ function buildTransactionItem(tx) {
         <div class="tx-meta">
           <span class="tx-cat">${tx.category}</span>
           <span class="tx-date">${formatDate(tx.date)}</span>
+          ${tx.paymentMethod === 'credit' ? `
+            <span class="tx-method-badge" style="background: rgba(138, 75, 243, 0.12); color: var(--neon-violet); border: 1px solid rgba(138, 75, 243, 0.25); border-radius: 4px; padding: 1px 5px; font-size: 0.68rem; font-weight: 600; margin-left: 4px; display: inline-flex; align-items: center; gap: 2px;">
+              💳 ${getCardNameById(tx.cardId)}
+            </span>
+          ` : ''}
           ${tx.notes ? `<span class="tx-cat">${tx.notes}</span>` : ''}
         </div>
       </div>
@@ -2244,20 +2392,42 @@ window.saveWeeklyBudget = async function() {
 
 // ─── Credit Card Limit Modal ────────────────────────────────────────────────
 window.openSetCCLimitModal = function() {
+  openConfigureCCModal(activeCCCardId);
+};
+
+window.openConfigureCCModal = function(cardId = null) {
+  editingCCCardId = cardId;
   const overlay = document.getElementById('cc-limit-modal-overlay');
   if (!overlay) return;
   overlay.classList.remove('hidden');
 
-  const ccLimit = userSettings.creditLimit !== undefined ? userSettings.creditLimit : 10000;
-  const ccDueDay = userSettings.creditDueDay !== undefined ? userSettings.creditDueDay : 25;
-
+  const titleEl = overlay.querySelector('.modal-header h2');
+  const nameInput = document.getElementById('cc-name-input');
   const limitInput = document.getElementById('cc-limit-input');
   const dueDayInput = document.getElementById('cc-due-day-input');
   const errEl = document.getElementById('cc-limit-modal-error');
+  const deleteBtn = document.getElementById('btn-delete-cc');
 
-  if (limitInput) limitInput.value = ccLimit;
-  if (dueDayInput) dueDayInput.value = ccDueDay;
   if (errEl) errEl.style.display = 'none';
+
+  if (cardId) {
+    if (titleEl) titleEl.textContent = 'Edit Credit Card';
+    const card = getCCCards().find(c => c.id === cardId);
+    if (card) {
+      if (nameInput) nameInput.value = card.name;
+      if (limitInput) limitInput.value = card.limit;
+      if (dueDayInput) dueDayInput.value = card.dueDay;
+    }
+    if (deleteBtn) {
+      deleteBtn.style.display = getCCCards().length > 1 ? 'block' : 'none';
+    }
+  } else {
+    if (titleEl) titleEl.textContent = 'Add Credit Card';
+    if (nameInput) nameInput.value = '';
+    if (limitInput) limitInput.value = 10000;
+    if (dueDayInput) dueDayInput.value = 25;
+    if (deleteBtn) deleteBtn.style.display = 'none';
+  }
 };
 
 window.closeCCLimitModal = function() {
@@ -2270,13 +2440,20 @@ window.closeCCLimitModalOnOverlay = function(e) {
 };
 
 window.saveCCLimitSettings = async function() {
+  const nameInput = document.getElementById('cc-name-input');
   const limitInput = document.getElementById('cc-limit-input');
   const dueDayInput = document.getElementById('cc-due-day-input');
   const errEl = document.getElementById('cc-limit-modal-error');
 
-  const limit = parseFloat(limitInput.value);
-  const dueDay = parseInt(dueDayInput.value, 10);
+  const name = nameInput ? nameInput.value.trim() : '';
+  const limit = limitInput ? parseFloat(limitInput.value) : NaN;
+  const dueDay = dueDayInput ? parseInt(dueDayInput.value, 10) : NaN;
 
+  if (!name) {
+    errEl.textContent = 'Please enter a card name.';
+    errEl.style.display = 'block';
+    return;
+  }
   if (isNaN(limit) || limit < 0) {
     errEl.textContent = 'Please enter a valid credit limit.';
     errEl.style.display = 'block';
@@ -2292,21 +2469,68 @@ window.saveCCLimitSettings = async function() {
   btn.disabled = true; btn.textContent = 'Saving…';
 
   try {
+    const cards = [...getCCCards()];
+    if (editingCCCardId) {
+      const idx = cards.findIndex(c => c.id === editingCCCardId);
+      if (idx !== -1) {
+        cards[idx] = { ...cards[idx], name, limit, dueDay };
+      }
+    } else {
+      const newId = 'card_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+      cards.push({ id: newId, name, limit, dueDay });
+      activeCCCardId = newId;
+    }
+
     await setDoc(doc(db, 'settings', currentUser.uid), {
-      creditLimit: limit,
-      creditDueDay: dueDay
+      creditCards: cards
     }, { merge: true });
 
-    userSettings.creditLimit = limit;
-    userSettings.creditDueDay = dueDay;
-    showToast('Credit card settings updated!', 'success');
+    userSettings.creditCards = cards;
+    showToast(editingCCCardId ? 'Credit card updated!' : 'Credit card added!', 'success');
     closeCCLimitModal();
+    updateSummaryCards();
   } catch (e) {
     console.error(e);
-    errEl.textContent = 'Failed to save settings. Try again.';
+    errEl.textContent = 'Failed to save card. Try again.';
     errEl.style.display = 'block';
   } finally {
-    btn.disabled = false; btn.textContent = 'Save Settings';
+    btn.disabled = false; btn.textContent = 'Save Card';
+  }
+};
+
+window.deleteCCCard = async function() {
+  if (!editingCCCardId) return;
+  const cards = getCCCards();
+  if (cards.length <= 1) {
+    showToast('Cannot delete the only credit card.', 'error');
+    return;
+  }
+
+  const confirmed = confirm('Are you sure you want to delete this credit card? Transactions associated with this card will not be deleted, but they will no longer be grouped under this card.');
+  if (!confirmed) return;
+
+  const btn = document.getElementById('btn-delete-cc');
+  if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+
+  try {
+    const updatedCards = cards.filter(c => c.id !== editingCCCardId);
+    if (activeCCCardId === editingCCCardId) {
+      activeCCCardId = updatedCards[0].id;
+    }
+
+    await setDoc(doc(db, 'settings', currentUser.uid), {
+      creditCards: updatedCards
+    }, { merge: true });
+
+    userSettings.creditCards = updatedCards;
+    showToast('Credit card deleted!', 'success');
+    closeCCLimitModal();
+    updateSummaryCards();
+  } catch (e) {
+    console.error(e);
+    showToast('Failed to delete credit card. Try again.', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Delete'; }
   }
 };
 
@@ -2316,18 +2540,17 @@ window.openPayCCModal = function() {
   if (!overlay) return;
   overlay.classList.remove('hidden');
 
-  // Calculate current outstanding to default value
-  const allTimeCCExpenses = allTransactions
-    .filter(t => t.type === 'expense' && t.paymentMethod === 'credit')
-    .reduce((s, t) => s + t.amount, 0);
-  const allTimeCCPayments = allTransactions
-    .filter(t => t.type === 'expense' && t.category === 'Credit Card Payment')
-    .reduce((s, t) => s + t.amount, 0);
-  const ccOutstanding = Math.max(0, allTimeCCExpenses - allTimeCCPayments);
+  const ccOutstanding = getCCCardOutstanding(activeCCCardId);
 
   const amountInput = document.getElementById('cc-pay-amount-input');
   const dateInput = document.getElementById('cc-pay-date-input');
   const errEl = document.getElementById('cc-pay-modal-error');
+
+  const titleEl = overlay.querySelector('.modal-header h2');
+  const activeCard = getCCCards().find(c => c.id === activeCCCardId);
+  if (titleEl && activeCard) {
+    titleEl.textContent = `Pay ${activeCard.name} Bill`;
+  }
 
   if (amountInput) amountInput.value = ccOutstanding > 0 ? ccOutstanding.toFixed(2) : '';
   if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
@@ -2366,15 +2589,17 @@ window.recordCCPayment = async function() {
   btn.disabled = true; btn.textContent = 'Saving…';
 
   try {
+    const activeCard = getCCCards().find(c => c.id === activeCCCardId) || { name: 'Credit Card' };
     const data = {
       uid: currentUser.uid,
       type: 'expense',
-      description: 'Credit Card Payment',
+      description: `Credit Card Payment (${activeCard.name})`,
       category: 'Credit Card Payment',
       amount: amount,
       date: date,
-      notes: 'Logged via dashboard card payment wizard.',
-      paymentMethod: 'cash', // payments come from liquid cash
+      notes: `Logged via dashboard card payment wizard for ${activeCard.name}.`,
+      paymentMethod: 'cash',
+      cardId: activeCCCardId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };

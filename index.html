@@ -243,6 +243,7 @@
             
             <div class="cc-dashboard-body" id="dashboard-cc-body">
               <div class="cc-dashboard-body-inner">
+                <div class="cc-tabs-container" id="cc-tabs-container"></div>
                 <!-- CC Info Details & Actions -->
                 <div class="cc-details-wrap">
                   <div class="cc-detail-row">
@@ -267,7 +268,7 @@
                   </div>
                   <div class="cc-actions-row">
                     <button class="btn-cc-action primary" onclick="openPayCCModal()">Pay Card</button>
-                    <button class="btn-cc-action secondary" onclick="openSetCCLimitModal()">Set Limit</button>
+                    <button class="btn-cc-action secondary" onclick="openSetCCLimitModal()">Edit Card</button>
                   </div>
                 </div>
               </div>
@@ -698,9 +699,15 @@
         </div>
         <div class="input-group" id="tx-pay-method-group" style="display: none; margin-top: 1rem;">
           <label for="tx-pay-method">Payment Method</label>
-          <select id="tx-pay-method">
+          <select id="tx-pay-method" onchange="toggleCCSelectGroup()">
             <option value="cash">💵 Cash / Debit</option>
             <option value="credit">💳 Credit Card</option>
+          </select>
+        </div>
+        <div class="input-group" id="tx-cc-select-group" style="display: none; margin-top: 1rem;">
+          <label for="tx-cc-select">Select Credit Card</label>
+          <select id="tx-cc-select">
+            <!-- Dynamically populated -->
           </select>
         </div>
         <div class="input-group">
@@ -779,7 +786,7 @@
     </div>
   </div>
 
-  <!-- Configure Credit Limit Modal -->
+  <!-- Configure Credit Card Modal -->
   <div id="cc-limit-modal-overlay" class="modal-overlay hidden" onclick="closeCCLimitModalOnOverlay(event)">
     <div class="modal small-modal">
       <div class="modal-header">
@@ -788,6 +795,10 @@
       </div>
       <div class="modal-body">
         <div id="cc-limit-modal-error" class="auth-error"></div>
+        <div class="input-group" style="margin-bottom: 1rem;">
+          <label for="cc-name-input">Card Name</label>
+          <input type="text" id="cc-name-input" placeholder="e.g. Maybank, CIMB" />
+        </div>
         <div class="input-group">
           <label for="cc-limit-input">Credit Limit</label>
           <div class="amount-input-wrap">
@@ -799,7 +810,10 @@
           <label for="cc-due-day-input">Statement Due Day (of the month)</label>
           <input type="number" id="cc-due-day-input" placeholder="e.g. 25" min="1" max="31" step="1" />
         </div>
-        <button id="btn-save-cc-limit" class="btn-primary" onclick="saveCCLimitSettings()">Save Settings</button>
+        <div class="cc-modal-actions-row" style="display: flex; gap: 0.5rem; margin-top: 1.5rem; width: 100%;">
+          <button id="btn-save-cc-limit" class="btn-primary" onclick="saveCCLimitSettings()" style="flex: 2; margin-top: 0;">Save Card</button>
+          <button id="btn-delete-cc" class="btn-danger" onclick="deleteCCCard()" style="flex: 1; display: none;">Delete</button>
+        </div>
       </div>
     </div>
   </div>

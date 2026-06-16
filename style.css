@@ -1711,3 +1711,59 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
   border-color: var(--ink-muted);
 }
 
+/* ─── CREDIT CARD TABS ─── */
+.cc-tabs-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  padding: 0.2rem 0;
+  -webkit-overflow-scrolling: touch;
+}
+.cc-tabs-container::-webkit-scrollbar {
+  display: none;
+}
+.cc-tab {
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: var(--bg-elevated);
+  color: var(--ink-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cc-tab:hover {
+  border-color: var(--neon-violet);
+  color: var(--ink-primary);
+}
+.cc-tab.active {
+  background: linear-gradient(135deg, var(--neon-violet), rgba(138, 75, 243, 0.4));
+  border-color: var(--neon-violet);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(138, 75, 243, 0.35);
+}
+.cc-tab-add {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px dashed var(--border-subtle);
+  border-radius: 20px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: transparent;
+  color: var(--neon-violet);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.25s var(--ease);
+}
+.cc-tab-add:hover {
+  background: rgba(138, 75, 243, 0.08);
+  border-color: var(--neon-violet);
+}
+
+
