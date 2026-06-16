@@ -1775,9 +1775,8 @@ function updateSummaryCards() {
   const ccUtilization = ccLimit > 0 ? Math.min((ccOutstanding / ccLimit) * 100, 100) : 0;
 
   const ccCardTitleEl = document.querySelector('.cc-dashboard-title');
-  if (ccCardTitleEl && activeCard) {
-    ccCardTitleEl.textContent = `Credit Card (${activeCard.name})`;
-  }
+  if (ccCardTitleEl) ccCardTitleEl.textContent = 'Credit Card';
+
 
   // Desktop summary cards
   document.getElementById('total-income').textContent  = formatCurrency(netIncome);
