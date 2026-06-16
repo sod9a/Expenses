@@ -298,42 +298,6 @@
 
         <!-- Dashboard Grid for Chart & Checklist -->
         <div class="dashboard-grid">
-          <!-- Expenses Circle Chart Card -->
-          <div class="section-card chart-card" id="expenses-chart-card">
-            <div class="chart-header" onclick="toggleChartDropdown()">
-              <div class="chart-header-left">
-                <span class="chart-icon">🍩</span>
-                <div>
-                  <h2>Expenses by Category</h2>
-                  <span class="chart-subtitle" id="chart-month-subtitle">This Month</span>
-                </div>
-              </div>
-              <div class="chart-header-right">
-                <svg class="chart-chevron" id="chart-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
-            </div>
-            <div class="chart-body" id="chart-body">
-              <div class="chart-body-inner">
-                <div class="chart-content">
-                  <div class="chart-canvas-wrap">
-                    <canvas id="expenses-circle-chart"></canvas>
-                    <div class="chart-center-text" id="chart-center-text">
-                      <span class="chart-center-label">Spend So Far</span>
-                      <span class="chart-center-val" id="chart-center-val">RM0.00</span>
-                    </div>
-                  </div>
-                  <div id="chart-empty-state" class="chart-empty-state hidden">
-                    <span>📊</span>
-                    <p>No expense data for this month</p>
-                  </div>
-                  <div id="chart-legend-container" class="chart-legend-container">
-                    <!-- Legend items dynamically loaded here -->
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- Monthly Payment Checklist -->
           <div class="section-card checklist-card" id="checklist-card">
             <div class="checklist-header" onclick="toggleChecklistDropdown()">
@@ -421,6 +385,43 @@
             <p class="page-subtitle">Breakdown by category</p>
           </div>
         </div>
+
+        <!-- Expenses by Category Chart -->
+        <div class="section-card chart-card" id="expenses-chart-card" style="margin-bottom: 1.25rem;">
+          <div class="chart-header" onclick="toggleChartDropdown()">
+            <div class="chart-header-left">
+              <span class="chart-icon">🍩</span>
+              <div>
+                <h2>Expenses by Category</h2>
+                <span class="chart-subtitle" id="chart-month-subtitle">This Month</span>
+              </div>
+            </div>
+            <div class="chart-header-right">
+              <svg class="chart-chevron" id="chart-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div class="chart-body" id="chart-body">
+            <div class="chart-body-inner">
+              <div class="chart-content">
+                <div class="chart-canvas-wrap">
+                  <canvas id="expenses-circle-chart"></canvas>
+                  <div class="chart-center-text" id="chart-center-text">
+                    <span class="chart-center-label">Spend So Far</span>
+                    <span class="chart-center-val" id="chart-center-val">RM0.00</span>
+                  </div>
+                </div>
+                <div id="chart-empty-state" class="chart-empty-state hidden">
+                  <span>📊</span>
+                  <p>No expense data for this month</p>
+                </div>
+                <div id="chart-legend-container" class="chart-legend-container">
+                  <!-- Legend items dynamically loaded here -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Month Picker -->
         <div class="cat-month-picker">
           <button class="cat-month-arrow" id="cat-month-prev" onclick="catMonthShift(-1)">‹</button>

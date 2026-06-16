@@ -525,12 +525,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Read chart open state from localStorage
-  const isChartOpen = localStorage.getItem('chartOpen') !== 'false';
+  // Chart card now lives on categories page — always open by default
   const chartCard = document.getElementById('expenses-chart-card');
-  if (chartCard) {
-    if (isChartOpen) chartCard.classList.add('open');
-    else chartCard.classList.remove('open');
-  }
+  if (chartCard) chartCard.classList.add('open');
 
   // Read dashboard weekly budget open state from localStorage
   const isWeeklyOpen = localStorage.getItem('dashboardWeeklyOpen') !== 'false';
@@ -1024,7 +1021,11 @@ window.navigateTo = function (page, el) {
   const titleEl = document.getElementById('mob-page-title');
   if (titleEl) titleEl.textContent = MOB_PAGE_TITLES[page] || 'ExpenseFlow';
   closeSidebar();
-  if (page === 'categories') renderCategories();
+  if (page === 'categories') {
+    renderCategories();
+    updateExpensesChart();
+    setTimeout(() => { if (expensesChart) expensesChart.resize(); }, 400);
+  }
   if (page === 'budgets') renderBudgets();
   if (page === 'transactions') renderAllTransactions();
   if (page === 'monthly') renderMonthly();
@@ -1307,10 +1308,12 @@ function renderAll() {
   updateSummaryCards();
   renderRecentTransactions();
   renderChecklist();
-  updateExpensesChart();
   renderDashboardWeeklyBudget();
   if (document.getElementById('page-transactions').classList.contains('active')) renderAllTransactions();
-  if (document.getElementById('page-categories').classList.contains('active')) renderCategories();
+  if (document.getElementById('page-categories').classList.contains('active')) {
+    renderCategories();
+    updateExpensesChart();
+  }
   if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
 }
 
