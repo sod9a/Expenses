@@ -1626,7 +1626,20 @@ function renderCCTabs() {
   const container = document.getElementById('cc-tabs-container');
   if (!container) return;
   container.innerHTML = '';
-  
+
+  // Wrapper: flex row — scrollable tabs + pinned add button
+  const scrollWrap = document.createElement('div');
+  scrollWrap.className = 'cc-tabs-scroll';
+
+  const addBtn = document.createElement('div');
+  addBtn.className = 'cc-tab-add';
+  addBtn.innerHTML = '<span>＋</span>';
+  addBtn.title = 'Add Card';
+  addBtn.onclick = (e) => {
+    e.stopPropagation();
+    openConfigureCCModal();
+  };
+
   const cards = getCCCards();
   cards.forEach(card => {
     const outstanding = getCCCardOutstanding(card.id);
@@ -1638,18 +1651,13 @@ function renderCCTabs() {
       activeCCCardId = card.id;
       updateSummaryCards();
     };
-    container.appendChild(tab);
+    scrollWrap.appendChild(tab);
   });
-  
-  const addTab = document.createElement('div');
-  addTab.className = 'cc-tab-add';
-  addTab.innerHTML = '<span>＋</span> Add Card';
-  addTab.onclick = (e) => {
-    e.stopPropagation();
-    openConfigureCCModal();
-  };
-  container.appendChild(addTab);
+
+  container.appendChild(scrollWrap);
+  container.appendChild(addBtn);
 }
+
 
 window.toggleCCSelectGroup = function () {
   const pmSelect = document.getElementById('tx-pay-method');
