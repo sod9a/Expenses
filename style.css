@@ -1454,6 +1454,9 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
   flex-direction: column;
   padding: 1.25rem 1.4rem 1.4rem;
   border-top: 1px solid var(--border-subtle);
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .cc-card-container {
@@ -1718,8 +1721,11 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
   gap: 0.5rem;
   margin-bottom: 1rem;
   overflow-x: auto;
-  padding: 0.2rem 0;
+  padding: 0.2rem 0 0.4rem;
   -webkit-overflow-scrolling: touch;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 .cc-tabs-container::-webkit-scrollbar {
   display: none;
