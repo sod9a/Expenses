@@ -31,7 +31,7 @@ let allTransactions = [];
 let allBudgets = [];
 let allTabung = [];
 let allLoans = [];
-let userSettings = { currency: '$', theme: 'dark', avatarUrl: '' };
+let userSettings = { currency: '$', theme: 'dark', avatarUrl: '', creditLimit: 10000, creditDueDay: 25 };
 let grossIncome = 0; // User-defined gross monthly income
 let expensesChart = null;
 let activeFilter = 'all';
@@ -640,17 +640,19 @@ function subscribeToData() {
       settingsLoaded = true;
       checkForMonthlyReset();
       applySettings();
+      updateSummaryCards();
       renderDashboardWeeklyBudget();
       if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
     } else {
       // Document doesn't exist yet for new user, reset to default settings and 0 gross income
-      userSettings = { currency: '$', theme: 'dark', avatarUrl: '' };
+      userSettings = { currency: '$', theme: 'dark', avatarUrl: '', creditLimit: 10000, creditDueDay: 25 };
       grossIncome = 0;
       balanceHidden = false;
       applyBalanceVisibility();
       settingsLoaded = true;
       checkForMonthlyReset();
       applySettings();
+      updateSummaryCards();
       renderDashboardWeeklyBudget();
       if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
     }
@@ -1121,6 +1123,8 @@ window.openModal = function (txId = null) {
       document.getElementById('tx-category').value = tx.category;
       document.getElementById('tx-date').value = tx.date;
       document.getElementById('tx-notes').value = tx.notes || '';
+      const pmSelect = document.getElementById('tx-pay-method');
+      if (pmSelect) pmSelect.value = tx.paymentMethod || 'cash';
     }
   } else {
     resetModal();
@@ -1144,6 +1148,8 @@ function resetModal() {
   document.getElementById('tx-amount').value = '';
   document.getElementById('tx-category').value = 'General';
   document.getElementById('tx-notes').value = '';
+  const pmSelect = document.getElementById('tx-pay-method');
+  if (pmSelect) pmSelect.value = 'cash';
   document.getElementById('modal-error').style.display = 'none';
 }
 
@@ -1151,6 +1157,11 @@ window.setType = function (t) {
   txType = t;
   document.getElementById('type-income').classList.toggle('active', t === 'income');
   document.getElementById('type-expense').classList.toggle('active', t === 'expense');
+  
+  const pmGroup = document.getElementById('tx-pay-method-group');
+  if (pmGroup) {
+    pmGroup.style.display = t === 'expense' ? 'block' : 'none';
+  }
 };
 
 // ─── Save Transaction ──────────────────────────────────────────────────────
@@ -1161,6 +1172,9 @@ window.saveTransaction = async function () {
   const date = document.getElementById('tx-date').value;
   const notes = document.getElementById('tx-notes').value.trim();
   const errEl = document.getElementById('modal-error');
+  
+  const pmSelect = document.getElementById('tx-pay-method');
+  const paymentMethod = txType === 'expense' && pmSelect ? pmSelect.value : 'cash';
 
   if (!desc) { errEl.textContent = 'Please enter a description.'; errEl.style.display = 'block'; return; }
   if (!amount || amount <= 0) { errEl.textContent = 'Please enter a valid amount.'; errEl.style.display = 'block'; return; }
@@ -1169,7 +1183,7 @@ window.saveTransaction = async function () {
   const btn = document.getElementById('btn-save-tx');
   btn.disabled = true; btn.textContent = 'Saving…';
 
-  const data = { uid: currentUser.uid, type: txType, description: desc, amount, category, date, notes, updatedAt: serverTimestamp() };
+  const data = { uid: currentUser.uid, type: txType, description: desc, amount, category, date, notes, paymentMethod, updatedAt: serverTimestamp() };
 
   try {
     if (editingTxId) {
@@ -1522,15 +1536,47 @@ function updateSummaryCards() {
 
   // Net income = grossIncome from settings + any salary income transactions
   const netIncome = grossIncome + salaryIncome;
-  const expense   = allTransactions.filter(t => t.type === 'expense' && t.date && t.date.startsWith(currentMonthStr)).reduce((s, t) => s + t.amount, 0);
+  
+  // Cash/Debit expenses this month (excludes Credit Card payments and Credit Card purchases)
+  const cashExpense = allTransactions
+    .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && t.category !== 'Credit Card Payment' && t.date && t.date.startsWith(currentMonthStr))
+    .reduce((s, t) => s + t.amount, 0);
+
+  // Credit Card Bill Payments recorded this month
+  const ccPayments = allTransactions
+    .filter(t => t.type === 'expense' && t.category === 'Credit Card Payment' && t.date && t.date.startsWith(currentMonthStr))
+    .reduce((s, t) => s + t.amount, 0);
+
+  // Total actual monthly spending (Cash expenses + Credit card expenses, excluding double-counted bill payments)
+  const totalExpense = allTransactions
+    .filter(t => t.type === 'expense' && t.category !== 'Credit Card Payment' && t.date && t.date.startsWith(currentMonthStr))
+    .reduce((s, t) => s + t.amount, 0);
   
   const carryOver = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : 0;
-  const balance   = carryOver + netIncome + otherIncome - expense;
-  const remaining = carryOver + netIncome + otherIncome - expense;
+  
+  // Cash Balance = Cash inflows minus Cash outflows (cash expenses and cc bill payments)
+  const balance   = carryOver + netIncome + otherIncome - cashExpense - ccPayments;
+  const remaining = balance;
+
+  // ─── Credit Card Calculations ───
+  // Credit card transactions are all-time outstanding minus all-time payments
+  const allTimeCCExpenses = allTransactions
+    .filter(t => t.type === 'expense' && t.paymentMethod === 'credit')
+    .reduce((s, t) => s + t.amount, 0);
+    
+  const allTimeCCPayments = allTransactions
+    .filter(t => t.type === 'expense' && t.category === 'Credit Card Payment')
+    .reduce((s, t) => s + t.amount, 0);
+
+  const ccOutstanding = Math.max(0, allTimeCCExpenses - allTimeCCPayments);
+  const ccLimit       = userSettings.creditLimit !== undefined ? userSettings.creditLimit : 10000;
+  const ccDueDay      = userSettings.creditDueDay !== undefined ? userSettings.creditDueDay : 25;
+  const ccAvailable   = Math.max(0, ccLimit - ccOutstanding);
+  const ccUtilization = ccLimit > 0 ? Math.min((ccOutstanding / ccLimit) * 100, 100) : 0;
 
   // Desktop summary cards
   document.getElementById('total-income').textContent  = formatCurrency(netIncome);
-  document.getElementById('total-expense').textContent = formatCurrency(expense);
+  document.getElementById('total-expense').textContent = formatCurrency(totalExpense);
   document.getElementById('total-balance').textContent = formatCurrency(balance);
   document.getElementById('tx-count').textContent      = allTransactions.length;
 
@@ -1540,7 +1586,67 @@ function updateSummaryCards() {
   if (mobBal)       mobBal.dataset.value       = formatCurrency(netIncome);
   if (mobRemaining) mobRemaining.dataset.value = formatCurrency(remaining);
 
+  // Render Credit Card Widget Elements
+  const ccHolderNameEl = document.getElementById('cc-cardholder-name');
+  if (ccHolderNameEl && currentUser) {
+    ccHolderNameEl.textContent = (currentUser.displayName || currentUser.email.split('@')[0]).toUpperCase();
+  }
+  
+  const ccOutstandingEl = document.getElementById('cc-outstanding-val');
+  const ccAvailableEl   = document.getElementById('cc-available-val');
+  const ccLimitEl       = document.getElementById('cc-limit-display');
+  const ccDueDayEl      = document.getElementById('cc-due-day-val');
+  const ccUtilBarEl     = document.getElementById('cc-utilization-bar');
+  const ccUtilPctEl     = document.getElementById('cc-utilization-pct');
+  const ccDueBoxEl      = document.getElementById('cc-due-info-box');
+
+  if (ccOutstandingEl) {
+    ccOutstandingEl.dataset.value = formatCurrency(ccOutstanding);
+    ccOutstandingEl.classList.add('masked-val');
+  }
+  if (ccAvailableEl) {
+    ccAvailableEl.dataset.value = formatCurrency(ccAvailable);
+    ccAvailableEl.classList.add('masked-val');
+  }
+  if (ccLimitEl) {
+    ccLimitEl.textContent = `Limit: ${formatCurrency(ccLimit)}`;
+  }
+  if (ccDueDayEl) {
+    ccDueDayEl.textContent = `${ccDueDay}${getOrdinalSuffix(ccDueDay)}`;
+  }
+  if (ccUtilBarEl) {
+    ccUtilBarEl.style.width = `${ccUtilization}%`;
+    if (ccOutstanding > 0 && ccUtilization >= 80) {
+      ccUtilBarEl.style.backgroundImage = 'none';
+      ccUtilBarEl.style.backgroundColor = 'var(--neon-coral)';
+    } else {
+      ccUtilBarEl.style.backgroundImage = 'linear-gradient(90deg, var(--neon-violet), var(--neon-teal))';
+    }
+  }
+  if (ccUtilPctEl) {
+    ccUtilPctEl.textContent = `${ccUtilization.toFixed(0)}% Used`;
+  }
+  if (ccDueBoxEl) {
+    if (ccOutstanding > 0) {
+      ccDueBoxEl.classList.add('warning');
+      ccDueBoxEl.innerHTML = `⚠️ Outstanding balance due on the <strong>${ccDueDay}${getOrdinalSuffix(ccDueDay)}</strong>`;
+    } else {
+      ccDueBoxEl.classList.remove('warning');
+      ccDueBoxEl.innerHTML = `✅ Card fully paid. Next billing cycle.`;
+    }
+  }
+
   applyBalanceVisibility();
+}
+
+function getOrdinalSuffix(day) {
+  if (day > 3 && day < 21) return 'th';
+  switch (day % 10) {
+    case 1:  return 'st';
+    case 2:  return 'nd';
+    case 3:  return 'rd';
+    default: return 'th';
+  }
 }
 
 let balanceHidden = localStorage.getItem('balanceHidden') === 'true';
@@ -2083,6 +2189,155 @@ window.saveWeeklyBudget = async function() {
     const btn = document.getElementById('btn-save-weekly-budget');
     btn.disabled = false;
     btn.textContent = 'Save Budget';
+  }
+};
+
+// ─── Credit Card Limit Modal ────────────────────────────────────────────────
+window.openSetCCLimitModal = function() {
+  const overlay = document.getElementById('cc-limit-modal-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('hidden');
+
+  const ccLimit = userSettings.creditLimit !== undefined ? userSettings.creditLimit : 10000;
+  const ccDueDay = userSettings.creditDueDay !== undefined ? userSettings.creditDueDay : 25;
+
+  const limitInput = document.getElementById('cc-limit-input');
+  const dueDayInput = document.getElementById('cc-due-day-input');
+  const errEl = document.getElementById('cc-limit-modal-error');
+
+  if (limitInput) limitInput.value = ccLimit;
+  if (dueDayInput) dueDayInput.value = ccDueDay;
+  if (errEl) errEl.style.display = 'none';
+};
+
+window.closeCCLimitModal = function() {
+  const overlay = document.getElementById('cc-limit-modal-overlay');
+  if (overlay) overlay.classList.add('hidden');
+};
+
+window.closeCCLimitModalOnOverlay = function(e) {
+  if (e.target.id === 'cc-limit-modal-overlay') closeCCLimitModal();
+};
+
+window.saveCCLimitSettings = async function() {
+  const limitInput = document.getElementById('cc-limit-input');
+  const dueDayInput = document.getElementById('cc-due-day-input');
+  const errEl = document.getElementById('cc-limit-modal-error');
+
+  const limit = parseFloat(limitInput.value);
+  const dueDay = parseInt(dueDayInput.value, 10);
+
+  if (isNaN(limit) || limit < 0) {
+    errEl.textContent = 'Please enter a valid credit limit.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) {
+    errEl.textContent = 'Please enter a valid due day between 1 and 31.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('btn-save-cc-limit');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    await setDoc(doc(db, 'settings', currentUser.uid), {
+      creditLimit: limit,
+      creditDueDay: dueDay
+    }, { merge: true });
+
+    userSettings.creditLimit = limit;
+    userSettings.creditDueDay = dueDay;
+    showToast('Credit card settings updated!', 'success');
+    closeCCLimitModal();
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = 'Failed to save settings. Try again.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save Settings';
+  }
+};
+
+// ─── Credit Card Pay Modal ──────────────────────────────────────────────────
+window.openPayCCModal = function() {
+  const overlay = document.getElementById('cc-pay-modal-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('hidden');
+
+  // Calculate current outstanding to default value
+  const allTimeCCExpenses = allTransactions
+    .filter(t => t.type === 'expense' && t.paymentMethod === 'credit')
+    .reduce((s, t) => s + t.amount, 0);
+  const allTimeCCPayments = allTransactions
+    .filter(t => t.type === 'expense' && t.category === 'Credit Card Payment')
+    .reduce((s, t) => s + t.amount, 0);
+  const ccOutstanding = Math.max(0, allTimeCCExpenses - allTimeCCPayments);
+
+  const amountInput = document.getElementById('cc-pay-amount-input');
+  const dateInput = document.getElementById('cc-pay-date-input');
+  const errEl = document.getElementById('cc-pay-modal-error');
+
+  if (amountInput) amountInput.value = ccOutstanding > 0 ? ccOutstanding.toFixed(2) : '';
+  if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+  if (errEl) errEl.style.display = 'none';
+};
+
+window.closeCCPayModal = function() {
+  const overlay = document.getElementById('cc-pay-modal-overlay');
+  if (overlay) overlay.classList.add('hidden');
+};
+
+window.closeCCPayModalOnOverlay = function(e) {
+  if (e.target.id === 'cc-pay-modal-overlay') closeCCPayModal();
+};
+
+window.recordCCPayment = async function() {
+  const amountInput = document.getElementById('cc-pay-amount-input');
+  const dateInput = document.getElementById('cc-pay-date-input');
+  const errEl = document.getElementById('cc-pay-modal-error');
+
+  const amount = parseFloat(amountInput.value);
+  const date = dateInput.value;
+
+  if (isNaN(amount) || amount <= 0) {
+    errEl.textContent = 'Please enter a valid payment amount.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!date) {
+    errEl.textContent = 'Please select a payment date.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('btn-save-cc-pay');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    const data = {
+      uid: currentUser.uid,
+      type: 'expense',
+      description: 'Credit Card Payment',
+      category: 'Credit Card Payment',
+      amount: amount,
+      date: date,
+      notes: 'Logged via dashboard card payment wizard.',
+      paymentMethod: 'cash', // payments come from liquid cash
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+
+    await addDoc(collection(db, 'transactions'), data);
+    showToast('Payment recorded successfully!', 'success');
+    closeCCPayModal();
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = 'Failed to record payment. Try again.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Record Payment';
   }
 };
 

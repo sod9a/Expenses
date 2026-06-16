@@ -220,26 +220,79 @@
           </div>
         </div>
 
-        <div class="section-card weekly-dashboard-card" id="dashboard-weekly-budget-card">
-          <div class="weekly-dashboard-header" onclick="toggleDashboardWeeklyDropdown(event)">
-            <div class="weekly-dashboard-header-left">
-              <span class="weekly-dashboard-icon">💰</span>
-              <div>
-                <h2 class="weekly-dashboard-title">Weekly Budget</h2>
-                <span class="weekly-dashboard-subtitle" id="dashboard-weekly-current-status">Loading...</span>
+        <div class="dashboard-mid-grid">
+          <!-- Credit Card Widget -->
+          <div class="section-card cc-dashboard-card" id="dashboard-cc-card">
+            <div class="cc-card-container">
+              <!-- Visual Virtual Credit Card -->
+              <div class="virtual-card">
+                <div class="vc-glowing-bg"></div>
+                <div class="vc-top">
+                  <span class="vc-brand">FLOW CARD</span>
+                  <svg class="vc-contactless" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8.58a6 6 0 0 1 0 6.84"/><path d="M10.14 5a12 12 0 0 1 0 14"/><path d="M15.28 1.42a18 18 0 0 1 0 21.16"/></svg>
+                </div>
+                <div class="vc-chip"></div>
+                <div class="vc-number">•••• •••• •••• 8848</div>
+                <div class="vc-bottom">
+                  <div class="vc-holder">
+                    <span class="vc-label">CARDHOLDER</span>
+                    <span class="vc-val" id="cc-cardholder-name">Loading...</span>
+                  </div>
+                  <div class="vc-expiry">
+                    <span class="vc-label">EXPIRES</span>
+                    <span class="vc-val">12/30</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- CC Info Details & Actions -->
+              <div class="cc-details-wrap">
+                <div class="cc-detail-row">
+                  <div>
+                    <span class="cc-detail-label">Outstanding</span>
+                    <strong class="cc-detail-val" id="cc-outstanding-val">RM0.00</strong>
+                  </div>
+                  <div style="border-left: 1px solid var(--border-subtle); padding-left: 0.85rem;">
+                    <span class="cc-detail-label">Available Limit</span>
+                    <strong class="cc-detail-val secondary" id="cc-available-val">RM0.00</strong>
+                  </div>
+                </div>
+                <div class="cc-progress-wrap">
+                  <div class="cc-progress-bar" id="cc-utilization-bar" style="width: 0%"></div>
+                </div>
+                <div class="cc-util-status-row">
+                  <span id="cc-utilization-pct">0% Used</span>
+                  <span id="cc-limit-display">Limit: RM0.00</span>
+                </div>
+                <div class="cc-due-info" id="cc-due-info-box">
+                  Statement due day: <span id="cc-due-day-val" style="font-weight: 700;">25th</span>
+                </div>
+                <div class="cc-actions-row">
+                  <button class="btn-cc-action primary" onclick="openPayCCModal()">Pay Card</button>
+                  <button class="btn-cc-action secondary" onclick="openSetCCLimitModal()">Set Limit</button>
+                </div>
               </div>
             </div>
-            <div class="weekly-dashboard-header-right">
-              <span class="weekly-dashboard-percentage" id="dashboard-weekly-percentage"></span>
-              <svg class="weekly-dashboard-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+
+          <!-- Weekly Budget Card -->
+          <div class="section-card weekly-dashboard-card" id="dashboard-weekly-budget-card" style="margin-bottom: 0;">
+            <div class="weekly-dashboard-header" onclick="toggleDashboardWeeklyDropdown(event)">
+              <div class="weekly-dashboard-header-left">
+                <span class="weekly-dashboard-icon">💰</span>
+                <div>
+                  <h2 class="weekly-dashboard-title">Weekly Budget</h2>
+                  <span class="weekly-dashboard-subtitle" id="dashboard-weekly-current-status">Loading...</span>
+                </div>
+              </div>
+              <div class="weekly-dashboard-header-right">
+                <svg class="weekly-dashboard-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
             </div>
-          </div>
-          <div class="weekly-dashboard-progress-wrap">
-            <div class="weekly-dashboard-progress-bar" id="dashboard-weekly-progress-bar" style="width:0%"></div>
-          </div>
-          <div class="weekly-dashboard-body" id="dashboard-weekly-body">
-            <div class="weekly-dashboard-body-inner" id="dashboard-weekly-list">
-              <!-- Dynamically populated -->
+            <div class="weekly-dashboard-body" id="dashboard-weekly-body">
+              <div class="weekly-dashboard-body-inner" id="dashboard-weekly-list">
+                <!-- Dynamically populated -->
+              </div>
             </div>
           </div>
         </div>
@@ -643,6 +696,13 @@
             <input type="date" id="tx-date" />
           </div>
         </div>
+        <div class="input-group" id="tx-pay-method-group" style="display: none; margin-top: 1rem;">
+          <label for="tx-pay-method">Payment Method</label>
+          <select id="tx-pay-method">
+            <option value="cash">💵 Cash / Debit</option>
+            <option value="credit">💳 Credit Card</option>
+          </select>
+        </div>
         <div class="input-group">
           <label for="tx-notes">Notes (optional)</label>
           <textarea id="tx-notes" placeholder="Any extra details..."></textarea>
@@ -715,6 +775,59 @@
           </div>
         </div>
         <button id="btn-save-weekly-budget" class="btn-primary" onclick="saveWeeklyBudget()">Save Budget</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Configure Credit Limit Modal -->
+  <div id="cc-limit-modal-overlay" class="modal-overlay hidden" onclick="closeCCLimitModalOnOverlay(event)">
+    <div class="modal small-modal">
+      <div class="modal-header">
+        <h2>Configure Credit Card</h2>
+        <button class="modal-close" onclick="closeCCLimitModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="cc-limit-modal-error" class="auth-error"></div>
+        <div class="input-group">
+          <label for="cc-limit-input">Credit Limit</label>
+          <div class="amount-input-wrap">
+            <span class="currency-symbol dynamic-currency">$</span>
+            <input type="number" id="cc-limit-input" placeholder="0.00" min="0" step="1" inputmode="decimal" />
+          </div>
+        </div>
+        <div class="input-group" style="margin-top: 1rem;">
+          <label for="cc-due-day-input">Statement Due Day (of the month)</label>
+          <input type="number" id="cc-due-day-input" placeholder="e.g. 25" min="1" max="31" step="1" />
+        </div>
+        <button id="btn-save-cc-limit" class="btn-primary" onclick="saveCCLimitSettings()">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pay Credit Card Modal -->
+  <div id="cc-pay-modal-overlay" class="modal-overlay hidden" onclick="closeCCPayModalOnOverlay(event)">
+    <div class="modal small-modal">
+      <div class="modal-header">
+        <h2>Pay Credit Card Bill</h2>
+        <button class="modal-close" onclick="closeCCPayModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="cc-pay-modal-error" class="auth-error"></div>
+        <p style="color:var(--ink-secondary); margin-bottom:1rem; font-size:.88rem; line-height:1.5;">
+          This will record a payment from your Cash/Debit balance to reduce your credit card outstanding balance.
+        </p>
+        <div class="input-group">
+          <label for="cc-pay-amount-input">Payment Amount</label>
+          <div class="amount-input-wrap">
+            <span class="currency-symbol dynamic-currency">$</span>
+            <input type="number" id="cc-pay-amount-input" placeholder="0.00" min="0.01" step="0.01" inputmode="decimal" />
+          </div>
+        </div>
+        <div class="input-group" style="margin-top: 1rem;">
+          <label for="cc-pay-date-input">Payment Date</label>
+          <input type="date" id="cc-pay-date-input" />
+        </div>
+        <button id="btn-save-cc-pay" class="btn-primary" onclick="recordCCPayment()">Record Payment</button>
       </div>
     </div>
   </div>
