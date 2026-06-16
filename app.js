@@ -539,6 +539,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isWeeklyOpen) weeklyCard.classList.add('open');
     else weeklyCard.classList.remove('open');
   }
+
+  // Read dashboard CC card open state from localStorage
+  const isCCOpen = localStorage.getItem('dashboardCCOpen') !== 'false';
+  const ccCard = document.querySelector('.cc-dashboard-card');
+  if (ccCard) {
+    if (isCCOpen) ccCard.classList.add('open');
+    else ccCard.classList.remove('open');
+  }
 });
 
 document.getElementById('btn-forgot').addEventListener('click', async () => {
@@ -1636,6 +1644,33 @@ function updateSummaryCards() {
     }
   }
 
+  // Update Collapsible Dropdown Header Elements
+  const headerStatusEl = document.getElementById('dashboard-cc-current-status');
+  if (headerStatusEl) {
+    if (ccOutstanding > 0) {
+      headerStatusEl.textContent = `Outstanding: ${formatCurrency(ccOutstanding)} · Available: ${formatCurrency(ccAvailable)}`;
+    } else {
+      headerStatusEl.textContent = `Fully Paid · Available: ${formatCurrency(ccAvailable)}`;
+    }
+  }
+
+  const headerPctEl = document.getElementById('dashboard-cc-percentage');
+  if (headerPctEl) {
+    headerPctEl.textContent = `${ccUtilization.toFixed(0)}%`;
+    headerPctEl.style.color = ccOutstanding > 0 && ccAvailable <= 0 ? 'var(--neon-coral)' : 'var(--neon-violet)';
+  }
+
+  const headerProgressBar = document.getElementById('dashboard-cc-progress-bar');
+  if (headerProgressBar) {
+    headerProgressBar.style.width = `${ccUtilization}%`;
+    if (ccOutstanding > 0 && ccUtilization >= 80) {
+      headerProgressBar.style.backgroundImage = 'none';
+      headerProgressBar.style.backgroundColor = 'var(--neon-coral)';
+    } else {
+      headerProgressBar.style.backgroundImage = 'linear-gradient(90deg, var(--neon-violet), var(--neon-teal))';
+    }
+  }
+
   applyBalanceVisibility();
 }
 
@@ -2131,6 +2166,14 @@ window.toggleDashboardWeeklyDropdown = function(e) {
   if (!card) return;
   const isOpen = card.classList.toggle('open');
   localStorage.setItem('dashboardWeeklyOpen', isOpen);
+};
+
+window.toggleDashboardCCDropdown = function(e) {
+  if (e) e.stopPropagation();
+  const card = document.querySelector('.cc-dashboard-card');
+  if (!card) return;
+  const isOpen = card.classList.toggle('open');
+  localStorage.setItem('dashboardCCOpen', isOpen);
 };
 
 window.openWeeklyBudgetModal = function(weekNum = null) {

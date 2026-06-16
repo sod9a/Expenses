@@ -223,53 +223,75 @@
         <div class="dashboard-mid-grid">
           <!-- Credit Card Widget -->
           <div class="section-card cc-dashboard-card" id="dashboard-cc-card">
-            <div class="cc-card-container">
-              <!-- Visual Virtual Credit Card -->
-              <div class="virtual-card">
-                <div class="vc-glowing-bg"></div>
-                <div class="vc-top">
-                  <span class="vc-brand">FLOW CARD</span>
-                  <svg class="vc-contactless" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8.58a6 6 0 0 1 0 6.84"/><path d="M10.14 5a12 12 0 0 1 0 14"/><path d="M15.28 1.42a18 18 0 0 1 0 21.16"/></svg>
-                </div>
-                <div class="vc-chip"></div>
-                <div class="vc-number">•••• •••• •••• 8848</div>
-                <div class="vc-bottom">
-                  <div class="vc-holder">
-                    <span class="vc-label">CARDHOLDER</span>
-                    <span class="vc-val" id="cc-cardholder-name">Loading...</span>
-                  </div>
-                  <div class="vc-expiry">
-                    <span class="vc-label">EXPIRES</span>
-                    <span class="vc-val">12/30</span>
-                  </div>
+            <div class="cc-dashboard-header" onclick="toggleDashboardCCDropdown(event)">
+              <div class="cc-dashboard-header-left">
+                <span class="cc-dashboard-icon">💳</span>
+                <div>
+                  <h2 class="cc-dashboard-title">Credit Card</h2>
+                  <span class="cc-dashboard-subtitle" id="dashboard-cc-current-status">Loading...</span>
                 </div>
               </div>
-              
-              <!-- CC Info Details & Actions -->
-              <div class="cc-details-wrap">
-                <div class="cc-detail-row">
-                  <div>
-                    <span class="cc-detail-label">Outstanding</span>
-                    <strong class="cc-detail-val" id="cc-outstanding-val">RM0.00</strong>
+              <div class="cc-dashboard-header-right">
+                <span class="cc-dashboard-percentage" id="dashboard-cc-percentage">0%</span>
+                <svg class="cc-dashboard-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+            
+            <div class="cc-dashboard-progress-wrap">
+              <div class="cc-dashboard-progress-bar" id="dashboard-cc-progress-bar" style="width:0%"></div>
+            </div>
+            
+            <div class="cc-dashboard-body" id="dashboard-cc-body">
+              <div class="cc-dashboard-body-inner">
+                <div class="cc-card-container">
+                  <!-- Visual Virtual Credit Card -->
+                  <div class="virtual-card">
+                    <div class="vc-glowing-bg"></div>
+                    <div class="vc-top">
+                      <span class="vc-brand">FLOW CARD</span>
+                      <svg class="vc-contactless" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8.58a6 6 0 0 1 0 6.84"/><path d="M10.14 5a12 12 0 0 1 0 14"/><path d="M15.28 1.42a18 18 0 0 1 0 21.16"/></svg>
+                    </div>
+                    <div class="vc-chip"></div>
+                    <div class="vc-number">•••• •••• •••• 8848</div>
+                    <div class="vc-bottom">
+                      <div class="vc-holder">
+                        <span class="vc-label">CARDHOLDER</span>
+                        <span class="vc-val" id="cc-cardholder-name">Loading...</span>
+                      </div>
+                      <div class="vc-expiry">
+                        <span class="vc-label">EXPIRES</span>
+                        <span class="vc-val">12/30</span>
+                      </div>
+                    </div>
                   </div>
-                  <div style="border-left: 1px solid var(--border-subtle); padding-left: 0.85rem;">
-                    <span class="cc-detail-label">Available Limit</span>
-                    <strong class="cc-detail-val secondary" id="cc-available-val">RM0.00</strong>
+                  
+                  <!-- CC Info Details & Actions -->
+                  <div class="cc-details-wrap">
+                    <div class="cc-detail-row">
+                      <div>
+                        <span class="cc-detail-label">Outstanding</span>
+                        <strong class="cc-detail-val" id="cc-outstanding-val">RM0.00</strong>
+                      </div>
+                      <div style="border-left: 1px solid var(--border-subtle); padding-left: 0.85rem;">
+                        <span class="cc-detail-label">Available Limit</span>
+                        <strong class="cc-detail-val secondary" id="cc-available-val">RM0.00</strong>
+                      </div>
+                    </div>
+                    <div class="cc-progress-wrap">
+                      <div class="cc-progress-bar" id="cc-utilization-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="cc-util-status-row">
+                      <span id="cc-utilization-pct">0% Used</span>
+                      <span id="cc-limit-display">Limit: RM0.00</span>
+                    </div>
+                    <div class="cc-due-info" id="cc-due-info-box">
+                      Statement due day: <span id="cc-due-day-val" style="font-weight: 700;">25th</span>
+                    </div>
+                    <div class="cc-actions-row">
+                      <button class="btn-cc-action primary" onclick="openPayCCModal()">Pay Card</button>
+                      <button class="btn-cc-action secondary" onclick="openSetCCLimitModal()">Set Limit</button>
+                    </div>
                   </div>
-                </div>
-                <div class="cc-progress-wrap">
-                  <div class="cc-progress-bar" id="cc-utilization-bar" style="width: 0%"></div>
-                </div>
-                <div class="cc-util-status-row">
-                  <span id="cc-utilization-pct">0% Used</span>
-                  <span id="cc-limit-display">Limit: RM0.00</span>
-                </div>
-                <div class="cc-due-info" id="cc-due-info-box">
-                  Statement due day: <span id="cc-due-day-val" style="font-weight: 700;">25th</span>
-                </div>
-                <div class="cc-actions-row">
-                  <button class="btn-cc-action primary" onclick="openPayCCModal()">Pay Card</button>
-                  <button class="btn-cc-action secondary" onclick="openSetCCLimitModal()">Set Limit</button>
                 </div>
               </div>
             </div>
