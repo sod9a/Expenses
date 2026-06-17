@@ -35,10 +35,10 @@ let userSettings = {
   currency: '$', 
   theme: 'dark', 
   avatarUrl: '', 
-  creditLimit: 10000, 
-  creditDueDay: 25,
+  creditPoolLimit: 2000, 
+  creditPoolDueDay: 25,
   creditCards: [
-    { id: 'legacy-default', name: 'Primary Card', limit: 10000, dueDay: 25 }
+    { id: 'legacy-default', name: 'Primary Card' }
   ]
 };
 let activeCCCardId = 'legacy-default';
@@ -647,19 +647,32 @@ function subscribeToData() {
     if (docSnap.exists()) {
       userSettings = { ...userSettings, ...docSnap.data() };
       
-      // Migrate legacy settings to creditCards array if needed
+      // Migrate legacy per-card limit/dueDay → shared pool
       if (!userSettings.creditCards || !Array.isArray(userSettings.creditCards) || userSettings.creditCards.length === 0) {
-        const legacyLimit = docSnap.data().creditLimit !== undefined ? docSnap.data().creditLimit : 10000;
+        const legacyLimit  = docSnap.data().creditLimit  !== undefined ? docSnap.data().creditLimit  : 2000;
         const legacyDueDay = docSnap.data().creditDueDay !== undefined ? docSnap.data().creditDueDay : 25;
-        userSettings.creditCards = [{
-          id: 'legacy-default',
-          name: 'Primary Card',
-          limit: legacyLimit,
-          dueDay: legacyDueDay
-        }];
-        setDoc(doc(db, 'settings', currentUser.uid), { creditCards: userSettings.creditCards }, { merge: true }).catch(console.error);
+        userSettings.creditCards       = [{ id: 'legacy-default', name: 'Primary Card' }];
+        userSettings.creditPoolLimit   = legacyLimit;
+        userSettings.creditPoolDueDay  = legacyDueDay;
+        setDoc(doc(db, 'settings', currentUser.uid), {
+          creditCards: userSettings.creditCards,
+          creditPoolLimit: userSettings.creditPoolLimit,
+          creditPoolDueDay: userSettings.creditPoolDueDay
+        }, { merge: true }).catch(console.error);
+      } else if (!userSettings.creditPoolLimit) {
+        // Promote first card's limit to pool if pool not yet set
+        const firstCard = userSettings.creditCards[0];
+        userSettings.creditPoolLimit  = (firstCard && firstCard.limit)  ? firstCard.limit  : 2000;
+        userSettings.creditPoolDueDay = (firstCard && firstCard.dueDay) ? firstCard.dueDay : 25;
+        // Strip limit/dueDay from individual cards
+        userSettings.creditCards = userSettings.creditCards.map(({ id, name }) => ({ id, name }));
+        setDoc(doc(db, 'settings', currentUser.uid), {
+          creditCards: userSettings.creditCards,
+          creditPoolLimit: userSettings.creditPoolLimit,
+          creditPoolDueDay: userSettings.creditPoolDueDay
+        }, { merge: true }).catch(console.error);
       }
-      
+
       const cards = userSettings.creditCards;
       if (!activeCCCardId || !cards.some(c => c.id === activeCCCardId)) {
         activeCCCardId = cards[0] ? cards[0].id : 'legacy-default';
@@ -684,19 +697,14 @@ function subscribeToData() {
       renderDashboardWeeklyBudget();
       if (document.getElementById('page-budgets').classList.contains('active')) renderBudgets();
     } else {
-      // Document doesn't exist yet for new user, reset to default settings and 0 gross income
+      // Document doesn't exist yet for new user — start with pool defaults
       userSettings = { 
         currency: '$', 
         theme: 'dark', 
         avatarUrl: '', 
-        creditLimit: 10000, 
-        creditDueDay: 25,
-        creditCards: [{
-          id: 'legacy-default',
-          name: 'Primary Card',
-          limit: 10000,
-          dueDay: 25
-        }]
+        creditPoolLimit: 2000, 
+        creditPoolDueDay: 25,
+        creditCards: [{ id: 'legacy-default', name: 'Primary Card' }]
       };
       activeCCCardId = 'legacy-default';
       grossIncome = 0;
@@ -1761,18 +1769,21 @@ function updateSummaryCards() {
   const balance   = carryOver + netIncome + otherIncome - cashExpense - ccPayments;
   const remaining = balance;
 
-  // ─── Credit Card Calculations ───
+  // ─── Credit Card Calculations (shared pool) ───
   const cards = getCCCards();
   if (!activeCCCardId || !cards.some(c => c.id === activeCCCardId)) {
     activeCCCardId = cards[0] ? cards[0].id : 'legacy-default';
   }
-  const activeCard = cards.find(c => c.id === activeCCCardId) || cards[0];
 
+  // Selected card's own spending (shown in Outstanding field)
   const ccOutstanding = getCCCardOutstanding(activeCCCardId);
-  const ccLimit       = activeCard ? activeCard.limit : 10000;
-  const ccDueDay      = activeCard ? activeCard.dueDay : 25;
-  const ccAvailable   = Math.max(0, ccLimit - ccOutstanding);
-  const ccUtilization = ccLimit > 0 ? Math.min((ccOutstanding / ccLimit) * 100, 100) : 0;
+  // All cards' combined outstanding (used for available/utilization vs shared pool)
+  const ccTotalOutstanding = cards.reduce((sum, c) => sum + getCCCardOutstanding(c.id), 0);
+  // Shared pool settings
+  const ccLimit    = userSettings.creditPoolLimit  || 2000;
+  const ccDueDay   = userSettings.creditPoolDueDay || 25;
+  const ccAvailable    = Math.max(0, ccLimit - ccTotalOutstanding);
+  const ccUtilization  = ccLimit > 0 ? Math.min((ccTotalOutstanding / ccLimit) * 100, 100) : 0;
 
   const ccCardTitleEl = document.querySelector('.cc-dashboard-title');
   if (ccCardTitleEl) ccCardTitleEl.textContent = 'Credit Card';
@@ -1832,7 +1843,7 @@ function updateSummaryCards() {
     ccUtilPctEl.textContent = `${ccUtilization.toFixed(0)}% Used`;
   }
   if (ccDueBoxEl) {
-    if (ccOutstanding > 0) {
+    if (ccTotalOutstanding > 0) {
       ccDueBoxEl.classList.add('warning');
       ccDueBoxEl.innerHTML = `⚠️ Outstanding balance due on the <strong>${ccDueDay}${getOrdinalSuffix(ccDueDay)}</strong>`;
     } else {
@@ -1844,8 +1855,8 @@ function updateSummaryCards() {
   // Update Collapsible Dropdown Header Elements
   const headerStatusEl = document.getElementById('dashboard-cc-current-status');
   if (headerStatusEl) {
-    if (ccOutstanding > 0) {
-      headerStatusEl.textContent = `Outstanding: ${formatCurrency(ccOutstanding)} · Available: ${formatCurrency(ccAvailable)}`;
+    if (ccTotalOutstanding > 0) {
+      headerStatusEl.textContent = `Outstanding: ${formatCurrency(ccTotalOutstanding)} · Available: ${formatCurrency(ccAvailable)}`;
     } else {
       headerStatusEl.textContent = `Fully Paid · Available: ${formatCurrency(ccAvailable)}`;
     }
@@ -1854,7 +1865,7 @@ function updateSummaryCards() {
   const headerPctEl = document.getElementById('dashboard-cc-percentage');
   if (headerPctEl) {
     headerPctEl.textContent = `${ccUtilization.toFixed(0)}%`;
-    headerPctEl.style.color = ccOutstanding > 0 && ccAvailable <= 0 ? 'var(--neon-coral)' : 'var(--neon-violet)';
+    headerPctEl.style.color = ccTotalOutstanding > 0 && ccAvailable <= 0 ? 'var(--neon-coral)' : 'var(--neon-violet)';
   }
 
   const headerProgressBar = document.getElementById('dashboard-cc-progress-bar');
@@ -2452,31 +2463,27 @@ window.openConfigureCCModal = function(cardId = null) {
   if (!overlay) return;
   overlay.classList.remove('hidden');
 
-  const titleEl = overlay.querySelector('.modal-header h2');
-  const nameInput = document.getElementById('cc-name-input');
+  const titleEl    = overlay.querySelector('.modal-header h2');
+  const nameInput  = document.getElementById('cc-name-input');
   const limitInput = document.getElementById('cc-limit-input');
-  const dueDayInput = document.getElementById('cc-due-day-input');
-  const errEl = document.getElementById('cc-limit-modal-error');
-  const deleteBtn = document.getElementById('btn-delete-cc');
+  const dueDayInput= document.getElementById('cc-due-day-input');
+  const errEl      = document.getElementById('cc-limit-modal-error');
+  const deleteBtn  = document.getElementById('btn-delete-cc');
 
   if (errEl) errEl.style.display = 'none';
+
+  // Pool values are always pre-filled from shared settings
+  if (limitInput)  limitInput.value  = userSettings.creditPoolLimit  || 2000;
+  if (dueDayInput) dueDayInput.value = userSettings.creditPoolDueDay || 25;
 
   if (cardId) {
     if (titleEl) titleEl.textContent = 'Edit Credit Card';
     const card = getCCCards().find(c => c.id === cardId);
-    if (card) {
-      if (nameInput) nameInput.value = card.name;
-      if (limitInput) limitInput.value = card.limit;
-      if (dueDayInput) dueDayInput.value = card.dueDay;
-    }
-    if (deleteBtn) {
-      deleteBtn.style.display = getCCCards().length > 1 ? 'block' : 'none';
-    }
+    if (card && nameInput) nameInput.value = card.name;
+    if (deleteBtn) deleteBtn.style.display = getCCCards().length > 1 ? 'block' : 'none';
   } else {
     if (titleEl) titleEl.textContent = 'Add Credit Card';
     if (nameInput) nameInput.value = '';
-    if (limitInput) limitInput.value = 10000;
-    if (dueDayInput) dueDayInput.value = 25;
     if (deleteBtn) deleteBtn.style.display = 'none';
   }
 };
@@ -2491,58 +2498,59 @@ window.closeCCLimitModalOnOverlay = function(e) {
 };
 
 window.saveCCLimitSettings = async function() {
-  const nameInput = document.getElementById('cc-name-input');
+  const nameInput  = document.getElementById('cc-name-input');
   const limitInput = document.getElementById('cc-limit-input');
-  const dueDayInput = document.getElementById('cc-due-day-input');
-  const errEl = document.getElementById('cc-limit-modal-error');
+  const dueDayInput= document.getElementById('cc-due-day-input');
+  const errEl      = document.getElementById('cc-limit-modal-error');
 
-  const name = nameInput ? nameInput.value.trim() : '';
-  const limit = limitInput ? parseFloat(limitInput.value) : NaN;
-  const dueDay = dueDayInput ? parseInt(dueDayInput.value, 10) : NaN;
+  const name   = nameInput  ? nameInput.value.trim() : '';
+  const limit  = limitInput  ? parseFloat(limitInput.value)       : NaN;
+  const dueDay = dueDayInput ? parseInt(dueDayInput.value, 10)    : NaN;
 
   if (!name) {
     errEl.textContent = 'Please enter a card name.';
-    errEl.style.display = 'block';
-    return;
+    errEl.style.display = 'block'; return;
   }
   if (isNaN(limit) || limit < 0) {
-    errEl.textContent = 'Please enter a valid credit limit.';
-    errEl.style.display = 'block';
-    return;
+    errEl.textContent = 'Please enter a valid shared credit limit.';
+    errEl.style.display = 'block'; return;
   }
   if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) {
-    errEl.textContent = 'Please enter a valid due day between 1 and 31.';
-    errEl.style.display = 'block';
-    return;
+    errEl.textContent = 'Please enter a valid due day (1–31).';
+    errEl.style.display = 'block'; return;
   }
 
   const btn = document.getElementById('btn-save-cc-limit');
   btn.disabled = true; btn.textContent = 'Saving…';
 
   try {
-    const cards = [...getCCCards()];
+    // Cards store only id + name — limit/dueDay live on the shared pool
+    const cards = [...getCCCards()].map(({ id, name: n }) => ({ id, name: n }));
     if (editingCCCardId) {
       const idx = cards.findIndex(c => c.id === editingCCCardId);
-      if (idx !== -1) {
-        cards[idx] = { ...cards[idx], name, limit, dueDay };
-      }
+      if (idx !== -1) cards[idx].name = name;
     } else {
       const newId = 'card_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-      cards.push({ id: newId, name, limit, dueDay });
+      cards.push({ id: newId, name });
       activeCCCardId = newId;
     }
 
     await setDoc(doc(db, 'settings', currentUser.uid), {
-      creditCards: cards
+      creditCards:      cards,
+      creditPoolLimit:  limit,
+      creditPoolDueDay: dueDay
     }, { merge: true });
 
-    userSettings.creditCards = cards;
+    userSettings.creditCards      = cards;
+    userSettings.creditPoolLimit  = limit;
+    userSettings.creditPoolDueDay = dueDay;
+
     showToast(editingCCCardId ? 'Credit card updated!' : 'Credit card added!', 'success');
     closeCCLimitModal();
     updateSummaryCards();
   } catch (e) {
     console.error(e);
-    errEl.textContent = 'Failed to save card. Try again.';
+    errEl.textContent = 'Failed to save. Try again.';
     errEl.style.display = 'block';
   } finally {
     btn.disabled = false; btn.textContent = 'Save Card';

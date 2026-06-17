@@ -797,20 +797,24 @@
         <div id="cc-limit-modal-error" class="auth-error"></div>
         <div class="input-group" style="margin-bottom: 1rem;">
           <label for="cc-name-input">Card Name</label>
-          <input type="text" id="cc-name-input" placeholder="e.g. Maybank, CIMB" />
+          <input type="text" id="cc-name-input" placeholder="e.g. CashBack, Shell Visa" />
         </div>
-        <div class="input-group">
-          <label for="cc-limit-input">Credit Limit</label>
-          <div class="amount-input-wrap">
-            <span class="currency-symbol dynamic-currency">$</span>
-            <input type="number" id="cc-limit-input" placeholder="0.00" min="0" step="1" inputmode="decimal" />
+        <div style="background: var(--bg-elevated); border-radius: 10px; padding: 0.9rem 1rem; margin-bottom: 1rem;">
+          <p style="font-size:0.78rem; color:var(--ink-muted); margin:0 0 0.75rem; text-transform:uppercase; letter-spacing:.05em; font-weight:700;">Shared Credit Pool</p>
+          <p style="font-size:0.8rem; color:var(--ink-secondary); margin:0 0 0.9rem;">These settings apply across all your cards — they share one credit limit and due date.</p>
+          <div class="input-group" style="margin-bottom: 0.75rem;">
+            <label for="cc-limit-input">Total Credit Limit</label>
+            <div class="amount-input-wrap">
+              <span class="currency-symbol dynamic-currency">$</span>
+              <input type="number" id="cc-limit-input" placeholder="0.00" min="0" step="1" inputmode="decimal" />
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="cc-due-day-input">Statement Due Day (of the month)</label>
+            <input type="number" id="cc-due-day-input" placeholder="e.g. 25" min="1" max="31" step="1" />
           </div>
         </div>
-        <div class="input-group" style="margin-top: 1rem;">
-          <label for="cc-due-day-input">Statement Due Day (of the month)</label>
-          <input type="number" id="cc-due-day-input" placeholder="e.g. 25" min="1" max="31" step="1" />
-        </div>
-        <div class="cc-modal-actions-row" style="display: flex; gap: 0.5rem; margin-top: 1.5rem; width: 100%;">
+        <div class="cc-modal-actions-row" style="display: flex; gap: 0.5rem; margin-top: 0.5rem; width: 100%;">
           <button id="btn-save-cc-limit" class="btn-primary" onclick="saveCCLimitSettings()" style="flex: 2; margin-top: 0;">Save Card</button>
           <button id="btn-delete-cc" class="btn-danger" onclick="deleteCCCard()" style="flex: 1; display: none;">Delete</button>
         </div>
