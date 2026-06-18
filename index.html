@@ -275,26 +275,7 @@
             </div>
           </div>
 
-          <!-- Weekly Budget Card -->
-          <div class="section-card weekly-dashboard-card" id="dashboard-weekly-budget-card" style="margin-bottom: 0;">
-            <div class="weekly-dashboard-header" onclick="toggleDashboardWeeklyDropdown(event)">
-              <div class="weekly-dashboard-header-left">
-                <span class="weekly-dashboard-icon">💰</span>
-                <div>
-                  <h2 class="weekly-dashboard-title">Weekly Budget</h2>
-                  <span class="weekly-dashboard-subtitle" id="dashboard-weekly-current-status">Loading...</span>
-                </div>
-              </div>
-              <div class="weekly-dashboard-header-right">
-                <svg class="weekly-dashboard-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
-            </div>
-            <div class="weekly-dashboard-body" id="dashboard-weekly-body">
-              <div class="weekly-dashboard-body-inner" id="dashboard-weekly-list">
-                <!-- Dynamically populated -->
-              </div>
-            </div>
-          </div>
+
         </div>
 
         <!-- Dashboard Grid for Chart & Checklist -->
@@ -454,16 +435,7 @@
         </div>
         <button class="mob-page-fab" onclick="openBudgetModal()">+ Set Budget</button>
 
-        <!-- Weekly Budgets Section -->
-        <div style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; margin-top: 1.5rem; flex-wrap: wrap;">
-          <span style="font-size: 1.25rem;">📅</span>
-          <h2 style="font-family:'Sora',sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--ink-primary); margin: 0;">Weekly Budgets</h2>
-          <button class="btn-secondary budget-heading-action" onclick="openWeeklyBudgetModal()">+ Weekly Budget</button>
-        </div>
-        
-        <div id="weekly-budgets-list" class="categories-grid weekly-budgets-grid" style="margin-bottom: 2rem;">
-          <!-- Dynamic Weekly budget cards -->
-        </div>
+
 
         <div style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
           <span style="font-size: 1.25rem;">🎯</span>
@@ -756,35 +728,7 @@
     </div>
   </div>
 
-  <!-- Weekly Budget Modal -->
-  <div id="weekly-budget-modal-overlay" class="modal-overlay hidden" onclick="closeWeeklyBudgetModalOnOverlay(event)">
-    <div class="modal small-modal">
-      <div class="modal-header">
-        <h2 id="weekly-budget-title">Set Weekly Budget</h2>
-        <button class="modal-close" onclick="closeWeeklyBudgetModal()">✕</button>
-      </div>
-      <div class="modal-body">
-        <p id="weekly-budget-helper" style="color:var(--ink-secondary);margin-bottom:1rem;font-size:.88rem;line-height:1.5;">Choose a week and enter the budget limit for that week of the month.</p>
-        <div class="input-group">
-          <label for="weekly-budget-week">Week</label>
-          <select id="weekly-budget-week" onchange="updateWeeklyBudgetModalFromSelect()">
-            <option value="1">Week 1</option>
-            <option value="2">Week 2</option>
-            <option value="3">Week 3</option>
-            <option value="4">Week 4</option>
-          </select>
-        </div>
-        <div class="input-group">
-          <label>Weekly Limit</label>
-          <div class="amount-input-wrap">
-            <span class="currency-symbol dynamic-currency">$</span>
-            <input type="number" id="weekly-budget-limit" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
-          </div>
-        </div>
-        <button id="btn-save-weekly-budget" class="btn-primary" onclick="saveWeeklyBudget()">Save Budget</button>
-      </div>
-    </div>
-  </div>
+
 
   <!-- Configure Credit Card Modal -->
   <div id="cc-limit-modal-overlay" class="modal-overlay hidden" onclick="closeCCLimitModalOnOverlay(event)">
