@@ -1727,7 +1727,7 @@ function populateCCSelect() {
   cards.forEach(card => {
     const opt = document.createElement('option');
     opt.value = card.id;
-    opt.textContent = `${card.name} (Limit: ${formatCurrency(card.limit)})`;
+    opt.textContent = card.name;
     select.appendChild(opt);
   });
 }
