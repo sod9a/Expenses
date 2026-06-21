@@ -329,7 +329,11 @@
         </div>
         <button class="mob-page-fab" onclick="openModal()">+ Add Transaction</button>
         <div class="filter-bar">
-          <input type="text" id="search-tx" class="search-input" placeholder="Search transactions..." oninput="searchTransactions()" />
+          <select id="filter-payment-method" class="filter-select" onchange="filterPaymentMethodChange()">
+            <option value="all">💳 All Payments</option>
+            <option value="cash">💵 Paid by Cash</option>
+            <option value="credit">💳 Paid by Credit Card</option>
+          </select>
           <div class="filter-row-2">
             <div class="filter-buttons">
               <button class="filter-btn active" onclick="filterTransactions('all',this)">All</button>

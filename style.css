@@ -268,7 +268,10 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 /* FILTER */
 .filter-bar{display:flex;gap:.75rem;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center}
 .search-input{flex:1;min-width:180px;padding:.7rem 1.2rem;border-radius:30px;border:1.5px solid var(--border-subtle);background:var(--bg-card);color:var(--ink-primary);font-family:'DM Sans',sans-serif;font-size:16px;outline:none;transition:all var(--t)}
+.filter-select{flex:1;min-width:180px;padding:.7rem 1.2rem;border-radius:30px;border:1.5px solid var(--border-subtle);background:var(--bg-card);color:var(--ink-primary);font-family:'DM Sans',sans-serif;font-size:16px;outline:none;transition:all var(--t);cursor:pointer;appearance:none;-webkit-appearance:none;-moz-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%238e94a5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");background-repeat:no-repeat;background-position:right 1.2rem center;background-size:14px;padding-right:2.8rem}
+.filter-select option{background:var(--bg-surface);color:var(--ink-primary);padding:10px}
 .search-input:focus{border-color:var(--neon-violet);box-shadow:0 0 0 3px rgba(107,158,199,.15)}
+.filter-select:focus{border-color:var(--neon-violet);box-shadow:0 0 0 3px rgba(124,92,252,0.15)}
 .filter-row-2{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;justify-content:space-between}
 .filter-buttons{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
 .filter-btn{padding:.5rem 1rem;border-radius:30px;border:1.5px solid var(--border-subtle);background:transparent;color:var(--ink-secondary);font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all var(--t);letter-spacing:.02em}
@@ -696,6 +699,7 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
   /* ─── FILTERS — clean single row ─── */
   .filter-bar{flex-direction:column;gap:.55rem;margin-bottom:1rem;width:100%;overflow:visible;padding-bottom:0}
   .search-input{width:100%;min-width:0;font-size:15px;box-sizing:border-box}
+  .filter-select{width:100%;min-width:0;font-size:15px;box-sizing:border-box}
   .filter-row-2{display:flex;align-items:center;gap:.5rem;width:100%}
   /* Segmented pill: All | Income | Expense */
   .filter-buttons{display:flex;align-items:center;gap:0;background:var(--bg-elevated);border-radius:30px;padding:.2rem;flex:1}

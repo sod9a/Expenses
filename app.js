@@ -1981,15 +1981,13 @@ function getFilteredTransactions() {
   const monthVal = selCombined ? selCombined.value : '';
   if (monthVal) list = list.filter(t => t.date && t.date.startsWith(monthVal));
   
-  const searchInput = document.getElementById('search-tx');
-  if (searchInput) {
-    const search = searchInput.value.toLowerCase().trim();
-    if (search) {
-      list = list.filter(t => 
-        (t.description || '').toLowerCase().includes(search) || 
-        (t.category || '').toLowerCase().includes(search) ||
-        (t.notes || '').toLowerCase().includes(search)
-      );
+  const pmFilterEl = document.getElementById('filter-payment-method');
+  if (pmFilterEl) {
+    const pmVal = pmFilterEl.value; // 'all', 'cash', 'credit'
+    if (pmVal === 'cash') {
+      list = list.filter(t => t.paymentMethod !== 'credit');
+    } else if (pmVal === 'credit') {
+      list = list.filter(t => t.paymentMethod === 'credit');
     }
   }
   return list;
@@ -2013,7 +2011,7 @@ window.filterTransactions = function (type, el) {
   renderAllTransactions();
 };
 
-window.searchTransactions = function () {
+window.filterPaymentMethodChange = function () {
   renderAllTransactions();
 };
 
