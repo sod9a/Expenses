@@ -1065,6 +1065,8 @@ const MOB_PAGE_TITLES = {
 };
 
 window.navigateTo = function (page, el) {
+  // Pages housed under "More" should highlight More tab in bottom-nav
+  const moreSubPages = ['monthly','budgets','categories','settings','loans'];
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1138,10 +1140,14 @@ window.closeMoreMenu = function() {
   if (!overlay) return;
   overlay.classList.remove('open');
   setTimeout(() => overlay.classList.add('hidden'), 280);
-  // Remove active state from More tab
-  document.querySelectorAll('.bottom-nav .nav-item').forEach(i => {
-    if (i.dataset.page === 'more') i.classList.remove('active');
-  });
+  // Remove active state from More tab (keep it if we navigated to a More sub-page)
+  const activePage = document.querySelector('.page.active');
+  const moreSubPages = ['monthly','budgets','categories','settings','loans'];
+  if (!activePage || !moreSubPages.includes(activePage.id.replace('page-',''))) {
+    document.querySelectorAll('.bottom-nav .nav-item').forEach(i => {
+      if (i.dataset.page === 'more') i.classList.remove('active');
+    });
+  }
 };
 
 // Close dropdown when clicking outside
