@@ -605,7 +605,11 @@ function subscribeToData() {
     orderBy('date', 'desc')
   );
   unsubscribeListener = onSnapshot(q, (snap) => {
-    allTransactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allTransactions = snap.docs.map(d => {
+      const data = d.data();
+      if (data.category === 'Food & Dining') data.category = 'Food';
+      return { id: d.id, ...data };
+    });
     // Local sort: Date descending, then createdAt descending to ensure newest additions are at the top
     allTransactions.sort((a, b) => {
       if (a.date !== b.date) return new Date(b.date) - new Date(a.date);
@@ -627,7 +631,11 @@ function subscribeToData() {
   // (avoids composite index requirement for a second where clause)
   const bq = query(collection(db, 'budgets'), where('uid', '==', currentUser.uid));
   unsubscribeBudgets = onSnapshot(bq, snap => {
-    const allDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const allDocs = snap.docs.map(d => {
+      const data = d.data();
+      if (data.category === 'Food & Dining') data.category = 'Food';
+      return { id: d.id, ...data };
+    });
     allBudgets = allDocs.filter(d => !d.isChecklist);
     allChecklist = allDocs.filter(d => !!d.isChecklist);
     allChecklist.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
