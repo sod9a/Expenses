@@ -1924,7 +1924,7 @@ function buildTransactionItem(tx) {
   wrapper.className = 'transaction-wrapper';
   
   wrapper.innerHTML = `
-    <div class="transaction-item" ontouchstart="handleSwipeStart(event)" ontouchmove="handleSwipeMove(event)" ontouchend="handleSwipeEnd(event)">
+    <div class="transaction-item" style="cursor: pointer;" ontouchstart="handleSwipeStart(event)" ontouchmove="handleSwipeMove(event)" ontouchend="handleSwipeEnd(event)" onclick="openTxDetails('${tx.id}', event)">
       <div class="tx-icon ${tx.type}">${getCategoryIcon(tx.category)}</div>
       <div class="tx-info">
         <div class="tx-desc">${tx.description}</div>
@@ -2631,7 +2631,7 @@ function renderMonthly() {
 
     // Transaction list
     const txListHtml = mTx.map(t => `
-      <div class="mth-tx-item">
+      <div class="mth-tx-item" style="cursor: pointer;" onclick="openTxDetails('${t.id}', event)">
         <div class="mth-tx-icon-wrap ${t.type}">${getCategoryIcon(t.category)}</div>
         <div class="mth-tx-info">
           <span class="mth-tx-desc">${t.description}</span>
@@ -3983,4 +3983,110 @@ window.removeModalAvatar = async function() {
   } catch(err) {
     showToast('Failed to remove image', 'error');
   }
+};
+
+
+// 📑 Transaction Details Modal Functions
+let activeTxDetailId = null;
+
+function formatFullDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+window.openTxDetails = function (txId, event) {
+  // If clicking on active swipe buttons or target, ignore opening details
+  if (event.target.closest('.swipe-actions') || event.target.closest('.tx-btn')) return;
+  
+  // If the transaction item is currently swiped open, close it instead of opening details
+  const item = event.currentTarget;
+  if (item && item.style.transform && item.style.transform !== 'translateX(0px)') {
+    const style = window.getComputedStyle(item);
+    const matrix = new DOMMatrix(style.transform);
+    if (matrix.m41 < -10) { // Swiped left by more than 10px
+      item.style.transform = 'translateX(0px)';
+      return;
+    }
+  }
+
+  const tx = allTransactions.find(t => t.id === txId);
+  if (!tx) return;
+
+  activeTxDetailId = txId;
+
+  // Set Hero Content
+  const iconEl = document.getElementById('tx-details-icon');
+  if (iconEl) {
+    iconEl.textContent = getCategoryIcon(tx.category);
+    iconEl.className = `tx-icon ${tx.type}`;
+  }
+
+  const descEl = document.getElementById('tx-details-desc');
+  if (descEl) descEl.textContent = tx.description;
+
+  const catEl = document.getElementById('tx-details-cat');
+  if (catEl) catEl.textContent = tx.category;
+
+  const amountEl = document.getElementById('tx-details-amount');
+  if (amountEl) {
+    amountEl.className = `tx-amount ${tx.type}`;
+    amountEl.textContent = (tx.type === 'income' ? '+' : '-') + formatCurrency(tx.amount);
+  }
+
+  // Set Details List
+  const dateEl = document.getElementById('tx-details-date');
+  if (dateEl) dateEl.textContent = formatFullDate(tx.date);
+
+  const methodEl = document.getElementById('tx-details-method');
+  if (methodEl) {
+    if (tx.paymentMethod === 'credit') {
+      methodEl.innerHTML = `Credit Card <span class="tx-method-badge" style="background: rgba(138, 75, 243, 0.12); color: var(--neon-violet); border: 1px solid rgba(138, 75, 243, 0.25); border-radius: 4px; padding: 1px 5px; font-size: 0.68rem; font-weight: 600; margin-left: 4px; display: inline-flex; align-items: center; gap: 2px;">💳 ${getCardNameById(tx.cardId)}</span>`;
+    } else {
+      methodEl.textContent = tx.paymentMethod ? tx.paymentMethod.toUpperCase() : 'CASH';
+    }
+  }
+
+  // Set Notes
+  const notesEl = document.getElementById('tx-details-notes');
+  if (notesEl) {
+    if (tx.notes && tx.notes.trim()) {
+      notesEl.textContent = tx.notes;
+      notesEl.style.fontStyle = 'normal';
+      notesEl.style.color = 'var(--ink-primary)';
+    } else {
+      notesEl.textContent = 'No extra details or notes.';
+      notesEl.style.fontStyle = 'italic';
+      notesEl.style.color = 'var(--ink-muted)';
+    }
+  }
+
+  const overlay = document.getElementById('tx-details-overlay');
+  if (overlay) overlay.classList.remove('hidden');
+};
+
+window.closeTxDetailsModal = function () {
+  const overlay = document.getElementById('tx-details-overlay');
+  if (overlay) overlay.classList.add('hidden');
+  activeTxDetailId = null;
+};
+
+window.closeTxDetailsOnOverlay = function (e) {
+  if (e.target.id === 'tx-details-overlay') {
+    closeTxDetailsModal();
+  }
+};
+
+window.editTxFromDetails = function () {
+  if (!activeTxDetailId) return;
+  const id = activeTxDetailId;
+  closeTxDetailsModal();
+  openModal(id);
+};
+
+window.deleteTxFromDetails = function () {
+  if (!activeTxDetailId) return;
+  const id = activeTxDetailId;
+  closeTxDetailsModal();
+  promptDelete(id);
 };

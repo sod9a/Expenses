@@ -244,9 +244,9 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 
 /* TRANSACTIONS */
 .transaction-wrapper{position:relative;overflow:hidden;border-radius:var(--r-lg);border:1px solid var(--border-subtle);background:var(--bg-card);margin-bottom:.65rem;transition:border-color var(--t)}
-.transaction-item{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.1rem;background:var(--bg-card-solid);transition:transform .3s cubic-bezier(.22,1,.36,1),background var(--t);position:relative;z-index:2;border-radius:var(--r-lg);will-change:transform}
+.transaction-item{cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:1rem 1.1rem;background:var(--bg-card-solid);transition:transform .3s cubic-bezier(.22,1,.36,1),background var(--t);position:relative;z-index:2;border-radius:var(--r-lg);will-change:transform}
 .transaction-item:active{background:var(--bg-card2)}
-@media(min-width:769px){.transaction-wrapper:hover .transaction-item{transform:translateX(-140px)}.transaction-wrapper:hover{border-color:rgba(107,158,199,.3)}}
+@media(min-width:769px){.transaction-wrapper:hover .transaction-item{cursor:pointer;transform:translateX(-140px)}.transaction-wrapper:hover{border-color:rgba(107,158,199,.3)}}
 .tx-icon{width:44px;height:44px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:rgba(107,158,199,.1);margin-right:.9rem}
 .tx-icon.income{background:rgba(107,158,199,.1)}
 .tx-info{flex:1;min-width:0}
@@ -520,7 +520,7 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 
 /* Transaction list */
 .mth-tx-list{display:flex;flex-direction:column;gap:.35rem}
-.mth-tx-item{display:flex;align-items:center;gap:.7rem;padding:.6rem .65rem;background:var(--bg-elevated);border-radius:11px;transition:background .15s}
+.mth-tx-item{cursor:pointer;display:flex;align-items:center;gap:.7rem;padding:.6rem .65rem;background:var(--bg-elevated);border-radius:11px;transition:background .15s}
 .mth-tx-item:hover{background:rgba(255,255,255,.05)}
 .mth-tx-icon-wrap{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0}
 .mth-tx-icon-wrap.income{background:rgba(107,158,199,.12)}
@@ -681,7 +681,7 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 
   /* ─── TRANSACTION ITEMS ─── */
   .transaction-wrapper{border-radius:18px;margin-bottom:.5rem;border:1px solid rgba(255,255,255,.06);background:var(--bg-card);overflow:hidden}
-  .transaction-item{padding:.85rem .95rem;border-radius:18px;display:flex;align-items:center}
+  .transaction-item{cursor:pointer;padding:.85rem .95rem;border-radius:18px;display:flex;align-items:center}
   .tx-icon{width:40px;height:40px;border-radius:12px;font-size:1.15rem;margin-right:.75rem;flex-shrink:0}
   .tx-info{flex:1;min-width:0;overflow:hidden}
   .tx-desc{font-size:.87rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
@@ -749,7 +749,7 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
   .mob-page-fab:active{transform:scale(.97)}
 
   /* ─── TRANSACTION ITEM — fix amount clipping ─── */
-  .transaction-item{display:flex;align-items:center;gap:0;padding:.85rem .95rem}
+  .transaction-item{cursor:pointer;display:flex;align-items:center;gap:0;padding:.85rem .95rem}
   .tx-info{flex:1;min-width:0;max-width:calc(100% - 110px);overflow:hidden}
   .tx-desc{font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tx-right{flex-shrink:0;min-width:72px;max-width:100px;display:flex;flex-direction:column;align-items:flex-end;gap:.2rem;margin-left:.5rem}
