@@ -1437,6 +1437,7 @@ function updateExpensesChart() {
   const data = sortedCategories.map(x => x[1]);
 
   const categoryColors = {
+    'Food': '#FF5E7E',
     'Food & Dining': '#FF5E7E',
     'Housing': '#3B82F6',
     'Rent': '#3B82F6',
@@ -1582,6 +1583,7 @@ function formatDate(dateStr) {
 
 function getCategoryIcon(cat) {
   const icons = {
+    'Food': '🍔',
     'Food & Dining': '🍔', 'Housing': '🏠', 'Rent': '🏠', 'Transport': '🚗',
     'Shopping': '🛍️', 'Groceries': '🛒', 'Bills': '🧾', 
     'Entertainment': '🎬', 'Health': '💊', 'Clothing': '👕', 
@@ -3731,7 +3733,7 @@ function matchCategory(name) {
     return 'Rent';
   }
   if (lowercaseName.includes('food') || lowercaseName.includes('makan') || lowercaseName.includes('dinner') || lowercaseName.includes('lunch') || lowercaseName.includes('restoran') || lowercaseName.includes('cafe')) {
-    return 'Food & Dining';
+    return 'Food';
   }
   if (lowercaseName.includes('car') || lowercaseName.includes('kereta') || lowercaseName.includes('petrol') || lowercaseName.includes('fuel') || lowercaseName.includes('toll') || lowercaseName.includes('transport') || lowercaseName.includes('mrt') || lowercaseName.includes('grab')) {
     return 'Transport';
