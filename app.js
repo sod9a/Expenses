@@ -531,6 +531,7 @@ window.faceIdLogin = async function () {
 document.addEventListener('DOMContentLoaded', () => {
   showFaceIdButton();
   tryAutoSignIn(); // Attempt silent auto-login on every page load
+  initAmountInputMasks();
   
   // Read checklist open state from localStorage
   const isChecklistOpen = localStorage.getItem('checklistOpen') !== 'false';
@@ -904,10 +905,10 @@ function applySettings() {
   document.getElementById('setting-currency').value = userSettings.currency;
   document.getElementById('setting-theme').value = userSettings.theme;
   const grossInput = document.getElementById('setting-gross-income');
-  if (grossInput) grossInput.value = grossIncome || '';
+  if (grossInput) setAmountInputValue('setting-gross-income', grossIncome || '');
 
   const carryInput = document.getElementById('setting-carry-over');
-  if (carryInput) carryInput.value = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : '';
+  if (carryInput) setAmountInputValue('setting-carry-over', typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : '');
   
   // Sync Profile & Settings Modal elements reactively
   const modalCurrencySelect = document.getElementById('modal-setting-currency');
@@ -917,10 +918,10 @@ function applySettings() {
   if (modalThemeSelect) modalThemeSelect.value = userSettings.theme;
   
   const modalGrossInput = document.getElementById('modal-setting-gross-income');
-  if (modalGrossInput) modalGrossInput.value = grossIncome || '';
+  if (modalGrossInput) setAmountInputValue('modal-setting-gross-income', grossIncome || '');
 
   const modalCarryInput = document.getElementById('modal-setting-carry-over');
-  if (modalCarryInput) modalCarryInput.value = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : '';
+  if (modalCarryInput) setAmountInputValue('modal-setting-carry-over', typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : '');
   
   const modalPreviewImg = document.getElementById('modal-avatar-preview-img');
   const modalPreviewInitials = document.getElementById('modal-avatar-preview-initials');
@@ -977,7 +978,7 @@ window.saveSettings = async function () {
 // ─── GROSS INCOME ────────────────────────────────────────────────────────────
 window.openGrossIncomeModal = function() {
   const input = document.getElementById('gross-income-input');
-  if (input && grossIncome > 0) input.value = grossIncome;
+  if (input && grossIncome > 0) setAmountInputValue('gross-income-input', grossIncome);
   document.getElementById('gross-income-overlay').classList.remove('hidden');
   setTimeout(() => input && input.focus(), 100);
 };
@@ -1192,7 +1193,7 @@ window.openModal = function (txId = null) {
     if (tx) {
       setType(tx.type);
       document.getElementById('tx-description').value = tx.description;
-      document.getElementById('tx-amount').value = tx.amount;
+      setAmountInputValue('tx-amount', tx.amount);
       document.getElementById('tx-category').value = tx.category;
       document.getElementById('tx-date').value = tx.date;
       document.getElementById('tx-notes').value = tx.notes || '';
@@ -1224,7 +1225,7 @@ window.closeModalOnOverlay = function (e) {
 function resetModal() {
   setType('income');
   document.getElementById('tx-description').value = '';
-  document.getElementById('tx-amount').value = '';
+  setAmountInputValue('tx-amount', '');
   document.getElementById('tx-category').value = 'General';
   document.getElementById('tx-notes').value = '';
   const pmSelect = document.getElementById('tx-pay-method');
@@ -1320,7 +1321,7 @@ window.openBudgetModal = function (budgetId = null) {
     if (existing) categoryEl.value = existing.category;
     else categoryEl.selectedIndex = 0;
   }
-  if (limitEl) limitEl.value = existing ? existing.limit : '';
+  if (limitEl) setAmountInputValue('budget-limit', existing ? existing.limit : '');
   if (saveBtn) saveBtn.textContent = existing ? 'Update Budget' : 'Save Budget';
 
   document.getElementById('budget-modal-overlay').classList.remove('hidden');
@@ -1588,6 +1589,49 @@ function formatCurrency(n) {
   const formatted = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   return userSettings.currency + formatted;
 }
+
+window.setAmountInputValue = function(idOrEl, value) {
+  const inputEl = typeof idOrEl === 'string' ? document.getElementById(idOrEl) : idOrEl;
+  if (!inputEl) return;
+  
+  const num = parseFloat(value);
+  if (isNaN(num)) {
+    inputEl.value = '';
+  } else {
+    inputEl.value = num.toFixed(2);
+  }
+};
+
+window.initAmountInputMasks = function() {
+  const inputs = document.querySelectorAll('.amount-input-wrap input, .checklist-amount-wrap input');
+  
+  inputs.forEach(inputEl => {
+    inputEl.type = 'text';
+    inputEl.inputMode = 'decimal';
+    
+    const format = (val) => {
+      let digits = val.replace(/\D/g, '');
+      if (!digits) return '';
+      let parsed = parseInt(digits, 10);
+      if (isNaN(parsed)) return '';
+      return (parsed / 100).toFixed(2);
+    };
+    
+    inputEl.addEventListener('input', function() {
+      inputEl.value = format(inputEl.value);
+    });
+
+    inputEl.addEventListener('blur', function() {
+      if (inputEl.value) {
+        inputEl.value = format(inputEl.value);
+      }
+    });
+
+    if (inputEl.value) {
+      inputEl.value = format(inputEl.value);
+    }
+  });
+};
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -2201,7 +2245,7 @@ window.openConfigureCCModal = function(cardId = null) {
   if (errEl) errEl.style.display = 'none';
 
   // Pool values are always pre-filled from shared settings
-  if (limitInput)  limitInput.value  = userSettings.creditPoolLimit  || 2000;
+  if (limitInput)  setAmountInputValue('cc-limit-input', userSettings.creditPoolLimit  || 2000);
   if (dueDayInput) dueDayInput.value = userSettings.creditPoolDueDay || 25;
 
   if (cardId) {
@@ -2339,7 +2383,7 @@ window.openPayCCModal = function() {
     titleEl.textContent = `Pay ${activeCard.name} Bill`;
   }
 
-  if (amountInput) amountInput.value = ccOutstanding > 0 ? ccOutstanding.toFixed(2) : '';
+  if (amountInput) setAmountInputValue('cc-pay-amount-input', ccOutstanding > 0 ? ccOutstanding : '');
   if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
   if (errEl) errEl.style.display = 'none';
 };
@@ -2708,15 +2752,15 @@ window.openTabungModal = function(tabungId = null) {
     const t = allTabung.find(x => x.id === tabungId);
     if (t) {
       document.getElementById('tabung-name').value = t.name;
-      document.getElementById('tabung-target').value = t.target;
-      document.getElementById('tabung-saved').value = t.saved;
+      setAmountInputValue('tabung-target', t.target);
+      setAmountInputValue('tabung-saved', t.saved);
       document.getElementById('tabung-emoji').value = t.emoji || '🎯';
       document.getElementById('tabung-deadline').value = t.deadline || '';
     }
   } else {
     document.getElementById('tabung-name').value = '';
-    document.getElementById('tabung-target').value = '';
-    document.getElementById('tabung-saved').value = '0';
+    setAmountInputValue('tabung-target', '');
+    setAmountInputValue('tabung-saved', '0');
     document.getElementById('tabung-emoji').value = '🎯';
     document.getElementById('tabung-deadline').value = '';
   }
@@ -2882,16 +2926,16 @@ window.openLoanModal = function(loanId = null) {
       setLoanType(l.loanType || 'owe');
       document.getElementById('loan-person').value = l.person;
       document.getElementById('loan-desc').value = l.desc;
-      document.getElementById('loan-total').value = l.total;
-      document.getElementById('loan-paid').value = l.paid;
+      setAmountInputValue('loan-total', l.total);
+      setAmountInputValue('loan-paid', l.paid);
       document.getElementById('loan-due').value = l.due || '';
     }
   } else {
     setLoanType('owe');
     document.getElementById('loan-person').value = '';
     document.getElementById('loan-desc').value = '';
-    document.getElementById('loan-total').value = '';
-    document.getElementById('loan-paid').value = '0';
+    setAmountInputValue('loan-total', '');
+    setAmountInputValue('loan-paid', '0');
     document.getElementById('loan-due').value = '';
   }
   document.getElementById('loan-modal-overlay').classList.remove('hidden');
@@ -3850,10 +3894,10 @@ window.openProfileSettingsModal = function() {
   if (themeSelect) themeSelect.value = userSettings.theme;
   
   const grossInput = document.getElementById('modal-setting-gross-income');
-  if (grossInput) grossInput.value = grossIncome || '';
+  if (grossInput) setAmountInputValue('modal-setting-gross-income', grossIncome || '');
   
   const carryInput = document.getElementById('modal-setting-carry-over');
-  if (carryInput) carryInput.value = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : '';
+  if (carryInput) setAmountInputValue('modal-setting-carry-over', typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : '');
   
   // Sync avatar picture
   const previewImg = document.getElementById('modal-avatar-preview-img');
