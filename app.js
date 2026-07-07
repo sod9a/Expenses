@@ -2021,9 +2021,9 @@ function getFilteredTransactions() {
   if (pmFilterEl) {
     const pmVal = pmFilterEl.value; // 'all', 'cash', 'credit'
     if (pmVal === 'cash') {
-      list = list.filter(t => t.paymentMethod !== 'credit' && !t.cardId);
+      list = list.filter(t => t.paymentMethod !== 'credit' && (!t.cardId || t.category === 'Credit Card Payment'));
     } else if (pmVal === 'credit') {
-      list = list.filter(t => t.paymentMethod === 'credit' || t.cardId);
+      list = list.filter(t => (t.paymentMethod === 'credit' || t.cardId) && t.category !== 'Credit Card Payment');
     }
   }
   return list;
