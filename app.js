@@ -1986,7 +1986,7 @@ function buildTransactionItem(tx) {
       </div>
       <div class="tx-right">
         <span class="tx-amount ${tx.type}">${tx.type === 'income' ? '+' : '-'}${formatCurrency(tx.amount)}</span>
-        ${(tx.paymentMethod === 'credit' || tx.cardId) ? `<span class="tx-cc-label">💳 ${getCardNameById(tx.cardId)}</span>` : ''}
+        ${(tx.paymentMethod === 'credit' || tx.cardId) && tx.category !== 'Credit Card Payment' ? `<span class="tx-cc-label">💳 ${getCardNameById(tx.cardId)}</span>` : ''}
       </div>
     </div>
   `;
@@ -2421,7 +2421,7 @@ window.recordCCPayment = async function() {
       amount: amount,
       date: date,
       notes: `Logged via dashboard card payment wizard for ${activeCard.name}.`,
-      paymentMethod: 'credit',
+      paymentMethod: 'cash',
       cardId: activeCCCardId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -4030,7 +4030,7 @@ window.openTxDetails = function (txId, event) {
 
   const methodEl = document.getElementById('tx-details-method');
   if (methodEl) {
-    if (tx.paymentMethod === 'credit' || tx.cardId) {
+    if ((tx.paymentMethod === 'credit' || tx.cardId) && tx.category !== 'Credit Card Payment') {
       methodEl.innerHTML = `Credit Card <span class="tx-method-badge" style="background: rgba(138, 75, 243, 0.12); color: var(--neon-violet); border: 1px solid rgba(138, 75, 243, 0.25); border-radius: 4px; padding: 1px 5px; font-size: 0.68rem; font-weight: 600; margin-left: 4px; display: inline-flex; align-items: center; gap: 2px;">💳 ${getCardNameById(tx.cardId)}</span>`;
     } else {
       methodEl.textContent = tx.paymentMethod ? tx.paymentMethod.toUpperCase() : 'CASH';
