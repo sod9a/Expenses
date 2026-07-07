@@ -252,10 +252,11 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
 .tx-info{flex:1;min-width:0}
 .tx-desc{font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tx-meta{font-size:.75rem;color:var(--ink-secondary);display:flex;gap:.5rem;margin-top:.2rem;flex-wrap:wrap}
-.tx-right{display:flex;align-items:center;gap:1rem;flex-shrink:0}
+.tx-right{display:flex;flex-direction:column;align-items:flex-end;gap:.2rem;flex-shrink:0}
 .tx-amount{font-family:'Sora',sans-serif;font-weight:700;font-size:1rem;letter-spacing:-.02em}
 .tx-amount.income{color:var(--neon-teal)}
 .tx-amount.expense{color:var(--neon-coral)}
+.tx-cc-label{font-size:.68rem;font-weight:600;color:var(--neon-violet);background:rgba(138,75,243,.12);border:1px solid rgba(138,75,243,.25);border-radius:4px;padding:1px 5px;white-space:nowrap;display:inline-flex;align-items:center;gap:2px}
 .swipe-actions{position:absolute;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:flex-end;padding:0 .75rem;gap:.5rem;z-index:1;width:100%}
 .tx-btn{font-size:.8rem;padding:.5rem .85rem;border-radius:30px;cursor:pointer;color:white;border:none;font-weight:700;font-family:'DM Sans',sans-serif}
 .tx-btn.edit{background:var(--bg-elevated);color:var(--ink-primary);border:1px solid var(--border-med)}

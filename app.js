@@ -1981,16 +1981,12 @@ function buildTransactionItem(tx) {
         <div class="tx-meta">
           <span class="tx-cat">${tx.category}</span>
           <span class="tx-date">${formatDate(tx.date)}</span>
-          ${(tx.paymentMethod === 'credit' || tx.cardId) ? `
-            <span class="tx-method-badge" style="background: rgba(138, 75, 243, 0.12); color: var(--neon-violet); border: 1px solid rgba(138, 75, 243, 0.25); border-radius: 4px; padding: 1px 5px; font-size: 0.68rem; font-weight: 600; margin-left: 4px; display: inline-flex; align-items: center; gap: 2px;">
-              💳 ${getCardNameById(tx.cardId)}
-            </span>
-          ` : ''}
           ${tx.notes ? `<span class="tx-cat">${tx.notes}</span>` : ''}
         </div>
       </div>
       <div class="tx-right">
         <span class="tx-amount ${tx.type}">${tx.type === 'income' ? '+' : '-'}${formatCurrency(tx.amount)}</span>
+        ${(tx.paymentMethod === 'credit' || tx.cardId) ? `<span class="tx-cc-label">💳 ${getCardNameById(tx.cardId)}</span>` : ''}
       </div>
     </div>
   `;
@@ -2025,9 +2021,9 @@ function getFilteredTransactions() {
   if (pmFilterEl) {
     const pmVal = pmFilterEl.value; // 'all', 'cash', 'credit'
     if (pmVal === 'cash') {
-      list = list.filter(t => t.paymentMethod !== 'credit');
+      list = list.filter(t => t.paymentMethod !== 'credit' && !t.cardId);
     } else if (pmVal === 'credit') {
-      list = list.filter(t => t.paymentMethod === 'credit');
+      list = list.filter(t => t.paymentMethod === 'credit' || t.cardId);
     }
   }
   return list;
