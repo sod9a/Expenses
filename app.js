@@ -39,7 +39,10 @@ let userSettings = {
   creditPoolDueDay: 25,
   creditCards: [
     { id: 'legacy-default', name: 'Primary Card' }
-  ]
+  ],
+  mykasihAllowance: 50,
+  mykasihBaseBalance: 50,
+  mykasihLastTopupMonth: ''
 };
 let activeCCCardId = 'legacy-default';
 let editingCCCardId = null;
@@ -706,7 +709,10 @@ function subscribeToData() {
         avatarUrl: '', 
         creditPoolLimit: 2000, 
         creditPoolDueDay: 25,
-        creditCards: [{ id: 'legacy-default', name: 'Primary Card' }]
+        creditCards: [{ id: 'legacy-default', name: 'Primary Card' }],
+        mykasihAllowance: 50,
+        mykasihBaseBalance: 50,
+        mykasihLastTopupMonth: ''
       };
       activeCCCardId = 'legacy-default';
       grossIncome = 0;
@@ -1799,9 +1805,9 @@ function updateSummaryCards() {
   // Net income = grossIncome from settings + any salary income transactions
   const netIncome = grossIncome + salaryIncome;
   
-  // Cash/Debit expenses this month (excludes Credit Card payments and Credit Card purchases)
+  // Cash/Debit expenses this month (excludes Credit Card payments, Credit Card purchases, and MyKasih purchases)
   const cashExpense = allTransactions
-    .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && t.category !== 'Credit Card Payment' && t.date && t.date.startsWith(currentMonthStr))
+    .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && t.paymentMethod !== 'mykasih' && t.category !== 'Credit Card Payment' && t.date && t.date.startsWith(currentMonthStr))
     .reduce((s, t) => s + t.amount, 0);
 
   // Credit Card Bill Payments recorded this month
@@ -1930,6 +1936,49 @@ function updateSummaryCards() {
     }
   }
 
+  // ─── MyKasih Calculations ───
+  const mykasihAllowance = typeof userSettings.mykasihAllowance === 'number' ? userSettings.mykasihAllowance : 50;
+  const mykasihBaseBalance = typeof userSettings.mykasihBaseBalance === 'number' ? userSettings.mykasihBaseBalance : 50;
+  let lastTopup = userSettings.mykasihLastTopupMonth;
+  let bonusTopups = 0;
+  const now = new Date();
+  const currentMonthStrVal = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  if (!lastTopup) {
+    userSettings.mykasihLastTopupMonth = currentMonthStrVal;
+  } else if (lastTopup !== currentMonthStrVal) {
+    const [lastY, lastM] = lastTopup.split('-').map(Number);
+    const monthsDiff = (now.getFullYear() - lastY) * 12 + (now.getMonth() + 1 - lastM);
+    if (monthsDiff > 0) {
+      bonusTopups = monthsDiff * mykasihAllowance;
+    }
+  }
+
+  const totalMyKasihExpenses = allTransactions
+    .filter(t => t.type === 'expense' && t.paymentMethod === 'mykasih')
+    .reduce((s, t) => s + t.amount, 0);
+
+  const mykasihSpentThisMonth = allTransactions
+    .filter(t => t.type === 'expense' && t.paymentMethod === 'mykasih' && t.date && t.date.startsWith(currentMonthStrVal))
+    .reduce((s, t) => s + t.amount, 0);
+
+  const currentMyKasihBal = Math.max(0, mykasihBaseBalance + bonusTopups - totalMyKasihExpenses);
+
+  const mykasihBalEl = document.getElementById('mykasih-balance-val');
+  const mykasihSpentEl = document.getElementById('mykasih-spent-val');
+  const mykasihSubEl = document.getElementById('mykasih-status-subtitle');
+  if (mykasihBalEl) {
+    mykasihBalEl.dataset.value = formatCurrency(currentMyKasihBal);
+    mykasihBalEl.classList.add('masked-val');
+  }
+  if (mykasihSpentEl) {
+    mykasihSpentEl.dataset.value = formatCurrency(mykasihSpentThisMonth);
+    mykasihSpentEl.classList.add('masked-val');
+  }
+  if (mykasihSubEl) {
+    mykasihSubEl.textContent = `${formatCurrency(mykasihAllowance)} auto top-up monthly`;
+  }
+
   applyBalanceVisibility();
 }
 
@@ -1987,6 +2036,7 @@ function buildTransactionItem(tx) {
       <div class="tx-right">
         <span class="tx-amount ${tx.type}">${tx.type === 'income' ? '+' : '-'}${formatCurrency(tx.amount)}</span>
         ${(tx.paymentMethod === 'credit' || tx.cardId) && tx.category !== 'Credit Card Payment' ? `<span class="tx-cc-label">💳 ${getCardNameById(tx.cardId)}</span>` : ''}
+        ${tx.paymentMethod === 'mykasih' ? `<span class="tx-cc-label" style="background:rgba(16,185,129,0.12); border-color:rgba(16,185,129,0.3); color:var(--neon-teal);">🎁 MyKasih</span>` : ''}
       </div>
     </div>
   `;
@@ -2019,11 +2069,13 @@ function getFilteredTransactions() {
   
   const pmFilterEl = document.getElementById('filter-payment-method');
   if (pmFilterEl) {
-    const pmVal = pmFilterEl.value; // 'all', 'cash', 'credit'
+    const pmVal = pmFilterEl.value; // 'all', 'cash', 'credit', 'mykasih'
     if (pmVal === 'cash') {
-      list = list.filter(t => t.paymentMethod !== 'credit' && (!t.cardId || t.category === 'Credit Card Payment'));
+      list = list.filter(t => t.paymentMethod !== 'credit' && t.paymentMethod !== 'mykasih' && (!t.cardId || t.category === 'Credit Card Payment'));
     } else if (pmVal === 'credit') {
       list = list.filter(t => (t.paymentMethod === 'credit' || t.cardId) && t.category !== 'Credit Card Payment');
+    } else if (pmVal === 'mykasih') {
+      list = list.filter(t => t.paymentMethod === 'mykasih');
     }
   }
   return list;
@@ -4032,6 +4084,8 @@ window.openTxDetails = function (txId, event) {
   if (methodEl) {
     if ((tx.paymentMethod === 'credit' || tx.cardId) && tx.category !== 'Credit Card Payment') {
       methodEl.innerHTML = `Credit Card <span class="tx-method-badge" style="background: rgba(138, 75, 243, 0.12); color: var(--neon-violet); border: 1px solid rgba(138, 75, 243, 0.25); border-radius: 4px; padding: 1px 5px; font-size: 0.68rem; font-weight: 600; margin-left: 4px; display: inline-flex; align-items: center; gap: 2px;">💳 ${getCardNameById(tx.cardId)}</span>`;
+    } else if (tx.paymentMethod === 'mykasih') {
+      methodEl.innerHTML = `MyKasih <span class="tx-method-badge" style="background: rgba(16, 185, 129, 0.12); color: var(--neon-teal); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 4px; padding: 1px 5px; font-size: 0.68rem; font-weight: 600; margin-left: 4px; display: inline-flex; align-items: center; gap: 2px;">🎁 MyKasih</span>`;
     } else {
       methodEl.textContent = tx.paymentMethod ? tx.paymentMethod.toUpperCase() : 'CASH';
     }
@@ -4079,4 +4133,106 @@ window.deleteTxFromDetails = function () {
   const id = activeTxDetailId;
   closeTxDetailsModal();
   promptDelete(id);
+};
+
+// ─── MyKasih Functions ──────────────────────────────────────────────────────
+window.openEditMyKasihModal = function() {
+  const currentMonthStrVal = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  let lastTopup = userSettings.mykasihLastTopupMonth;
+  let bonusTopups = 0;
+  const allowance = typeof userSettings.mykasihAllowance === 'number' ? userSettings.mykasihAllowance : 50;
+  const baseBalance = typeof userSettings.mykasihBaseBalance === 'number' ? userSettings.mykasihBaseBalance : 50;
+
+  if (lastTopup && lastTopup !== currentMonthStrVal) {
+    const [lastY, lastM] = lastTopup.split('-').map(Number);
+    const monthsDiff = (new Date().getFullYear() - lastY) * 12 + (new Date().getMonth() + 1 - lastM);
+    if (monthsDiff > 0) bonusTopups = monthsDiff * allowance;
+  }
+
+  const totalMyKasihExpenses = allTransactions
+    .filter(t => t.type === 'expense' && t.paymentMethod === 'mykasih')
+    .reduce((s, t) => s + t.amount, 0);
+
+  const curBal = Math.max(0, baseBalance + bonusTopups - totalMyKasihExpenses);
+
+  const balInput = document.getElementById('mykasih-balance-input');
+  const allowInput = document.getElementById('mykasih-allowance-input');
+  const errEl = document.getElementById('mykasih-modal-error');
+  if (errEl) errEl.style.display = 'none';
+
+  if (balInput) setAmountInputValue('mykasih-balance-input', curBal);
+  if (allowInput) setAmountInputValue('mykasih-allowance-input', allowance);
+
+  const modal = document.getElementById('mykasih-modal-overlay');
+  if (modal) modal.classList.remove('hidden');
+};
+
+window.closeMyKasihModal = function() {
+  const modal = document.getElementById('mykasih-modal-overlay');
+  if (modal) modal.classList.add('hidden');
+};
+
+window.closeMyKasihModalOnOverlay = function(e) {
+  if (e.target.id === 'mykasih-modal-overlay') closeMyKasihModal();
+};
+
+window.saveMyKasihSettings = async function() {
+  const balInput = document.getElementById('mykasih-balance-input');
+  const allowInput = document.getElementById('mykasih-allowance-input');
+  const errEl = document.getElementById('mykasih-modal-error');
+
+  const newBal = balInput ? parseFloat(balInput.value) : 50;
+  const newAllowance = allowInput ? parseFloat(allowInput.value) : 50;
+
+  if (isNaN(newBal) || newBal < 0) {
+    if (errEl) { errEl.textContent = 'Please enter a valid balance.'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (isNaN(newAllowance) || newAllowance < 0) {
+    if (errEl) { errEl.textContent = 'Please enter a valid monthly allowance.'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  const totalMyKasihExpenses = allTransactions
+    .filter(t => t.type === 'expense' && t.paymentMethod === 'mykasih')
+    .reduce((s, t) => s + t.amount, 0);
+
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const newBaseBalance = newBal + totalMyKasihExpenses;
+
+  const btn = document.getElementById('btn-save-mykasih');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+
+  try {
+    if (currentUser) {
+      await setDoc(doc(db, 'settings', currentUser.uid), {
+        mykasihBaseBalance: newBaseBalance,
+        mykasihAllowance: newAllowance,
+        mykasihLastTopupMonth: currentMonthStr
+      }, { merge: true });
+    }
+
+    userSettings.mykasihBaseBalance = newBaseBalance;
+    userSettings.mykasihAllowance = newAllowance;
+    userSettings.mykasihLastTopupMonth = currentMonthStr;
+
+    showToast('MyKasih settings saved!', 'success');
+    closeMyKasihModal();
+    updateSummaryCards();
+  } catch(e) {
+    console.error(e);
+    if (errEl) { errEl.textContent = 'Failed to save settings.'; errEl.style.display = 'block'; }
+    showToast('Error saving MyKasih settings', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save MyKasih Settings'; }
+  }
+};
+
+window.openAddMyKasihTxModal = function() {
+  openModal();
+  setType('expense');
+  const pmSelect = document.getElementById('tx-pay-method');
+  if (pmSelect) pmSelect.value = 'mykasih';
+  toggleCCSelectGroup();
 };

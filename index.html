@@ -275,7 +275,37 @@
             </div>
           </div>
 
-
+          <!-- MyKasih Dashboard Card -->
+          <div class="section-card mykasih-dashboard-card" id="dashboard-mykasih-card" style="margin-top: 1.25rem;">
+            <div class="mykasih-dashboard-header" style="padding: 1.1rem 1.4rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle);">
+              <div class="mykasih-dashboard-header-left" style="display: flex; align-items: center; gap: 0.85rem;">
+                <span style="font-size: 1.6rem; line-height: 1;">🎁</span>
+                <div>
+                  <h2 style="font-family:'Sora',sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--ink-primary); margin: 0;">MyKasih</h2>
+                  <span id="mykasih-status-subtitle" style="font-size: 0.72rem; color: var(--ink-secondary); display: block; margin-top: 2px;">RM50.00 auto top-up monthly</span>
+                </div>
+              </div>
+              <div class="mykasih-dashboard-header-right">
+                <button class="btn-cc-action secondary" onclick="openEditMyKasihModal()" style="padding: 0.35rem 0.8rem; font-size: 0.78rem;">✏️ Edit</button>
+              </div>
+            </div>
+            
+            <div class="mykasih-details-wrap" style="padding: 1.1rem 1.4rem;">
+              <div class="mykasih-detail-row" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <span style="font-size: 0.75rem; color: var(--ink-secondary); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; display: block;">MyKasih Balance</span>
+                  <strong class="masked-val" id="mykasih-balance-val" style="display: block; font-size: 1.45rem; font-family: 'Sora', sans-serif; color: var(--neon-teal); margin-top: 0.2rem;">RM50.00</strong>
+                </div>
+                <div style="text-align: right;">
+                  <span style="font-size: 0.75rem; color: var(--ink-secondary); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; display: block;">Spent This Month</span>
+                  <strong class="masked-val" id="mykasih-spent-val" style="display: block; font-size: 1.15rem; font-family: 'Sora', sans-serif; color: var(--neon-coral); margin-top: 0.2rem;">RM0.00</strong>
+                </div>
+              </div>
+              <div style="margin-top: 1rem;">
+                <button class="btn-primary" onclick="openAddMyKasihTxModal()" style="margin-top: 0; padding: 0.75rem; font-size: 0.88rem;">+ Add MyKasih Expense</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Dashboard Grid for Chart & Checklist -->
@@ -333,6 +363,7 @@
             <option value="all">💳 All Payments</option>
             <option value="cash">💵 Paid by Cash</option>
             <option value="credit">💳 Paid by Credit Card</option>
+            <option value="mykasih">🎁 Paid by MyKasih</option>
           </select>
           <div class="filter-row-2">
             <div class="filter-buttons">
@@ -683,6 +714,7 @@
           <select id="tx-pay-method" onchange="toggleCCSelectGroup()">
             <option value="cash">💵 Cash / Debit</option>
             <option value="credit">💳 Credit Card</option>
+            <option value="mykasih">🎁 MyKasih</option>
           </select>
         </div>
         <div class="input-group" id="tx-cc-select-group" style="display: none; margin-top: 1rem;">
@@ -1247,6 +1279,37 @@
           </div>
         </div>
         <button class="btn-primary" onclick="recordLoanPayment()">Record Payment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Configure MyKasih Modal -->
+  <div id="mykasih-modal-overlay" class="modal-overlay hidden" onclick="closeMyKasihModalOnOverlay(event)">
+    <div class="modal small-modal">
+      <div class="modal-header">
+        <h2>Configure MyKasih</h2>
+        <button class="modal-close" onclick="closeMyKasihModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="mykasih-modal-error" class="auth-error"></div>
+        <p style="color:var(--ink-secondary); margin-bottom:1rem; font-size:.88rem; line-height:1.5;">
+          MyKasih automatically adds <strong>RM50.00</strong> every month. You can edit your balance or monthly allowance amount below.
+        </p>
+        <div class="input-group">
+          <label for="mykasih-balance-input">Current MyKasih Balance</label>
+          <div class="amount-input-wrap">
+            <span class="currency-symbol dynamic-currency">$</span>
+            <input type="text" id="mykasih-balance-input" placeholder="50.00" inputmode="decimal" />
+          </div>
+        </div>
+        <div class="input-group" style="margin-top: 1rem;">
+          <label for="mykasih-allowance-input">Monthly Allowance Amount</label>
+          <div class="amount-input-wrap">
+            <span class="currency-symbol dynamic-currency">$</span>
+            <input type="text" id="mykasih-allowance-input" placeholder="50.00" inputmode="decimal" />
+          </div>
+        </div>
+        <button id="btn-save-mykasih" class="btn-primary" onclick="saveMyKasihSettings()" style="margin-top: 1rem;">Save MyKasih Settings</button>
       </div>
     </div>
   </div>
