@@ -558,6 +558,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isCCOpen) ccCard.classList.add('open');
     else ccCard.classList.remove('open');
   }
+
+  const isMyKasihOpen = localStorage.getItem('mykasihOpen') !== 'false';
+  const mykasihCard = document.getElementById('dashboard-mykasih-card');
+  if (mykasihCard) {
+    if (isMyKasihOpen) mykasihCard.classList.add('open');
+    else mykasihCard.classList.remove('open');
+  }
 });
 
 document.getElementById('btn-forgot').addEventListener('click', async () => {
@@ -1924,9 +1931,14 @@ function updateSummaryCards() {
 
   const currentMyKasihBal = Math.max(0, mykasihBaseBalance + bonusTopups - totalMyKasihExpenses);
 
+  const mykasihHeaderBalEl = document.getElementById('mykasih-header-balance');
   const mykasihBalEl = document.getElementById('mykasih-balance-val');
   const mykasihSpentEl = document.getElementById('mykasih-spent-val');
   const mykasihSubEl = document.getElementById('mykasih-status-subtitle');
+  if (mykasihHeaderBalEl) {
+    mykasihHeaderBalEl.dataset.value = formatCurrency(currentMyKasihBal);
+    mykasihHeaderBalEl.classList.add('masked-val');
+  }
   if (mykasihBalEl) {
     mykasihBalEl.dataset.value = formatCurrency(currentMyKasihBal);
     mykasihBalEl.classList.add('masked-val');
@@ -2224,6 +2236,14 @@ window.toggleDashboardCCDropdown = function(e) {
   if (!card) return;
   const isOpen = card.classList.toggle('open');
   localStorage.setItem('dashboardCCOpen', isOpen);
+};
+
+window.toggleMyKasihDropdown = function(e) {
+  if (e) e.stopPropagation();
+  const card = document.getElementById('dashboard-mykasih-card');
+  if (!card) return;
+  const isOpen = card.classList.toggle('open');
+  localStorage.setItem('mykasihOpen', isOpen);
 };
 
 

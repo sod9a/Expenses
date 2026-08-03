@@ -1691,3 +1691,119 @@ input[type="date"]::-webkit-date-and-time-value,input[type="month"]::-webkit-dat
   background: var(--border-subtle);
   margin: 0.25rem 0;
 }
+
+/* ─── MyKasih Dashboard Card Dropdown ───────────────────────────────────── */
+.mykasih-dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.4rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--t);
+}
+.mykasih-dashboard-header:hover {
+  background: var(--bg-card2);
+}
+.mykasih-dashboard-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+.mykasih-dashboard-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.mykasih-dashboard-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+  margin: 0;
+}
+.mykasih-dashboard-subtitle {
+  font-size: 0.72rem;
+  color: var(--ink-secondary);
+  display: block;
+  margin-top: 2px;
+}
+.mykasih-dashboard-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.mykasih-dashboard-balance-summary {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--neon-teal);
+}
+.mykasih-dashboard-chevron {
+  color: var(--ink-secondary);
+  transition: transform .3s var(--ease);
+  flex-shrink: 0;
+}
+.mykasih-dashboard-card.open .mykasih-dashboard-chevron {
+  transform: rotate(180deg);
+}
+.mykasih-dashboard-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  opacity: 0;
+  transition: grid-template-rows .38s var(--ease), opacity .28s var(--ease);
+}
+.mykasih-dashboard-card.open .mykasih-dashboard-body {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.mykasih-dashboard-body-inner {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.1rem 1.4rem 1.4rem;
+  border-top: 1px solid var(--border-subtle);
+}
+.mykasih-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mykasih-detail-label {
+  font-size: 0.75rem;
+  color: var(--ink-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  display: block;
+}
+.mykasih-balance-val {
+  display: block;
+  font-size: 1.45rem;
+  font-family: 'Sora', sans-serif;
+  color: var(--neon-teal);
+  margin-top: 0.2rem;
+}
+.mykasih-spent-val {
+  display: block;
+  font-size: 1.15rem;
+  font-family: 'Sora', sans-serif;
+  color: var(--neon-coral);
+  margin-top: 0.2rem;
+}
+.mykasih-actions-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.mykasih-actions-row .btn-primary {
+  flex: 2;
+  margin-top: 0;
+  padding: 0.75rem;
+  font-size: 0.88rem;
+}
+.mykasih-actions-row .btn-secondary {
+  flex: 1;
+  padding: 0.75rem;
+  font-size: 0.85rem;
+}
