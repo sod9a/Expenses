@@ -753,8 +753,8 @@ async function checkForMonthlyReset() {
   const lastProcessedMonth = userSettings.lastProcessedMonth;
   const migrationVersion = userSettings.migrationVersion || 0;
   
-  // One-time migration to version 2 to correct users who had settings initialized under the first deployment
-  if (migrationVersion < 2) {
+  // One-time migration to version 3 to correct users who had non-cash expenses included in carryover
+  if (migrationVersion < 3) {
     isResettingMonth = true;
     try {
       const prevGross = typeof userSettings.grossIncome === 'number' ? userSettings.grossIncome : 0;
@@ -768,11 +768,11 @@ async function checkForMonthlyReset() {
         prevMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth()+1).padStart(2,'0')}`;
       }
       
-      console.log(`Running one-time migration to version 2. Previous month: ${prevMonth}`);
+      console.log(`Running one-time migration to version 3. Previous month: ${prevMonth}`);
       
-      // Calculate previous month's ending balance
+      // Calculate previous month's ending cash balance (ONLY cash/debit expenses, excluding Credit Card & MyKasih purchases)
       const prevExpenses = allTransactions
-        .filter(t => t.type === 'expense' && t.date && t.date.startsWith(prevMonth))
+        .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && t.paymentMethod !== 'mykasih' && t.date && t.date.startsWith(prevMonth))
         .reduce((sum, t) => sum + t.amount, 0);
         
       const prevIncome = allTransactions
@@ -781,7 +781,7 @@ async function checkForMonthlyReset() {
         
       const prevRemaining = prevCarry + prevGross + prevIncome - prevExpenses;
       
-      console.log(`Migration calc: carry=${prevCarry}, gross=${prevGross}, inc=${prevIncome}, exp=${prevExpenses} => remaining=${prevRemaining}`);
+      console.log(`Migration v3 calc: carry=${prevCarry}, gross=${prevGross}, inc=${prevIncome}, exp=${prevExpenses} => remaining=${prevRemaining}`);
       
       // Wipe out checklist if transitioning to a new month
       if (prevMonth !== currentMonthStr) {
@@ -789,12 +789,12 @@ async function checkForMonthlyReset() {
         await Promise.all(deletePromises);
       }
       
-      // Save settings with version 2
+      // Save settings with version 3
       await setDoc(doc(db, 'settings', currentUser.uid), {
         grossIncome: 0,
         carryOverBalance: prevRemaining,
         lastProcessedMonth: currentMonthStr,
-        migrationVersion: 2
+        migrationVersion: 3
       }, { merge: true });
       
       // Sync local state
@@ -802,11 +802,11 @@ async function checkForMonthlyReset() {
       userSettings.grossIncome = 0;
       userSettings.carryOverBalance = prevRemaining;
       userSettings.lastProcessedMonth = currentMonthStr;
-      userSettings.migrationVersion = 2;
+      userSettings.migrationVersion = 3;
       
       showToast('Account synchronized and remaining balance carried over!', 'success');
     } catch (e) {
-      console.error("Error during version 2 migration:", e);
+      console.error("Error during version 3 migration:", e);
     } finally {
       isResettingMonth = false;
     }
@@ -819,12 +819,12 @@ async function checkForMonthlyReset() {
     try {
       showToast('Processing new month transitions...', 'info');
       
-      // 1. Calculate previous month's ending remaining balance
+      // 1. Calculate previous month's ending remaining balance (ONLY cash/debit expenses, excluding Credit Card & MyKasih purchases)
       const prevGross = typeof userSettings.grossIncome === 'number' ? userSettings.grossIncome : 0;
       const prevCarry = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : 0;
       
       const prevExpenses = allTransactions
-        .filter(t => t.type === 'expense' && t.date && t.date.startsWith(lastProcessedMonth))
+        .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && t.paymentMethod !== 'mykasih' && t.date && t.date.startsWith(lastProcessedMonth))
         .reduce((sum, t) => sum + t.amount, 0);
         
       const prevIncome = allTransactions
