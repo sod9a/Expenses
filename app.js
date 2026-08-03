@@ -753,58 +753,18 @@ async function checkForMonthlyReset() {
   const lastProcessedMonth = userSettings.lastProcessedMonth;
   const migrationVersion = userSettings.migrationVersion || 0;
   
-  // One-time migration to version 3 to correct users who had non-cash expenses included in carryover
+  // One-time migration to version 3 to upgrade schema without overwriting user carryover balance settings
   if (migrationVersion < 3) {
     isResettingMonth = true;
     try {
-      const prevGross = typeof userSettings.grossIncome === 'number' ? userSettings.grossIncome : 0;
-      const prevCarry = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : 0;
-      
-      // Determine what the previous active month was
-      let prevMonth = lastProcessedMonth;
-      if (!prevMonth || prevMonth === currentMonthStr) {
-        const now = new Date();
-        const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        prevMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth()+1).padStart(2,'0')}`;
-      }
-      
-      console.log(`Running one-time migration to version 3. Previous month: ${prevMonth}`);
-      
-      // Calculate previous month's ending cash balance (ONLY cash/debit expenses, excluding Credit Card & MyKasih purchases)
-      const prevExpenses = allTransactions
-        .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && t.paymentMethod !== 'mykasih' && t.date && t.date.startsWith(prevMonth))
-        .reduce((sum, t) => sum + t.amount, 0);
-        
-      const prevIncome = allTransactions
-        .filter(t => t.type === 'income' && t.date && t.date.startsWith(prevMonth))
-        .reduce((sum, t) => sum + t.amount, 0);
-        
-      const prevRemaining = prevCarry + prevGross + prevIncome - prevExpenses;
-      
-      console.log(`Migration v3 calc: carry=${prevCarry}, gross=${prevGross}, inc=${prevIncome}, exp=${prevExpenses} => remaining=${prevRemaining}`);
-      
-      // Wipe out checklist if transitioning to a new month
-      if (prevMonth !== currentMonthStr) {
-        const deletePromises = allChecklist.map(item => deleteDoc(doc(db, 'budgets', item.id)));
-        await Promise.all(deletePromises);
-      }
-      
-      // Save settings with version 3
+      console.log(`Running one-time migration to version 3. Upgrading schema.`);
       await setDoc(doc(db, 'settings', currentUser.uid), {
-        grossIncome: 0,
-        carryOverBalance: prevRemaining,
-        lastProcessedMonth: currentMonthStr,
+        lastProcessedMonth: userSettings.lastProcessedMonth || currentMonthStr,
         migrationVersion: 3
       }, { merge: true });
       
-      // Sync local state
-      grossIncome = 0;
-      userSettings.grossIncome = 0;
-      userSettings.carryOverBalance = prevRemaining;
-      userSettings.lastProcessedMonth = currentMonthStr;
+      userSettings.lastProcessedMonth = userSettings.lastProcessedMonth || currentMonthStr;
       userSettings.migrationVersion = 3;
-      
-      showToast('Account synchronized and remaining balance carried over!', 'success');
     } catch (e) {
       console.error("Error during version 3 migration:", e);
     } finally {
@@ -969,10 +929,13 @@ window.saveSettings = async function () {
       currency, 
       theme, 
       grossIncome: grossVal,
-      carryOverBalance: carryVal 
+      carryOverBalance: carryVal,
+      migrationVersion: 3
     }, { merge: true });
     grossIncome = grossVal;
+    userSettings.grossIncome = grossVal;
     userSettings.carryOverBalance = carryVal;
+    userSettings.migrationVersion = 3;
     showToast('Settings saved!', 'success');
     updateSummaryCards();
   } catch(e) {
