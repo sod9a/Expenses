@@ -799,20 +799,17 @@ async function checkForMonthlyReset() {
       const deletePromises = allChecklist.map(item => deleteDoc(doc(db, 'budgets', item.id)));
       await Promise.all(deletePromises);
       
-      // 3. Reset gross income to 0, save new carryOverBalance, and update lastProcessedMonth
+      // 3. Preserve gross income (do not wipe to 0), save new carryOverBalance, and update lastProcessedMonth
       await setDoc(doc(db, 'settings', currentUser.uid), {
-        grossIncome: 0,
         carryOverBalance: prevRemaining,
         lastProcessedMonth: currentMonthStr
       }, { merge: true });
       
       // Update local variables in sync
-      grossIncome = 0;
-      userSettings.grossIncome = 0;
       userSettings.carryOverBalance = prevRemaining;
       userSettings.lastProcessedMonth = currentMonthStr;
       
-      showToast('Welcome to a new month! Net income reset to 0, checklist wiped, and remaining balance carried over.', 'success');
+      showToast('Welcome to a new month! Checklist wiped and remaining balance carried over.', 'success');
     } catch (e) {
       console.error("Error during monthly reset:", e);
       showToast('Failed to complete monthly reset transitions.', 'error');
