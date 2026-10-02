@@ -791,12 +791,12 @@ async function checkForMonthlyReset() {
       const prevCarry = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : 0;
       
       const prevExpenses = allTransactions
-        .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && t.paymentMethod !== 'mykasih' && t.date && t.date.startsWith(lastProcessedMonth))
-        .reduce((sum, t) => sum + t.amount, 0);
+        .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && !t.cardId && t.paymentMethod !== 'mykasih' && t.category !== 'Credit Card Payment' && t.date && t.date.startsWith(lastProcessedMonth))
+        .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
         
       const prevIncome = allTransactions
         .filter(t => t.type === 'income' && t.date && t.date.startsWith(lastProcessedMonth))
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
         
       const prevRemaining = prevCarry + prevGross + prevIncome - prevExpenses;
       
@@ -1175,13 +1175,17 @@ window.openModal = function (txId = null) {
       
       const ccSelect = document.getElementById('tx-cc-select');
       if (ccSelect) {
-        ccSelect.value = tx.cardId || 'legacy-default';
+        ccSelect.value = tx.cardId || activeCCCardId || 'legacy-default';
       }
       toggleCCSelectGroup();
     }
   } else {
     resetModal();
     document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+    const ccSelect = document.getElementById('tx-cc-select');
+    if (ccSelect && activeCCCardId) {
+      ccSelect.value = activeCCCardId;
+    }
   }
 };
 
@@ -1203,6 +1207,10 @@ function resetModal() {
   document.getElementById('tx-notes').value = '';
   const pmSelect = document.getElementById('tx-pay-method');
   if (pmSelect) pmSelect.value = 'cash';
+  const ccSelect = document.getElementById('tx-cc-select');
+  if (ccSelect && activeCCCardId) {
+    ccSelect.value = activeCCCardId;
+  }
   toggleCCSelectGroup();
   document.getElementById('modal-error').style.display = 'none';
 }
@@ -1638,16 +1646,44 @@ function getCCCards() {
 
 function getCCCardOutstanding(cardId) {
   const cards = getCCCards();
+  const targetCard = cards.find(c => c.id === cardId);
+  const targetName = targetCard ? targetCard.name : null;
   const defaultCard = cards[0];
   const isDefault = defaultCard && cardId === defaultCard.id;
 
   const expenses = allTransactions
-    .filter(t => t.type === 'expense' && t.paymentMethod === 'credit' && (t.cardId === cardId || (!t.cardId && isDefault)))
-    .reduce((s, t) => s + t.amount, 0);
+    .filter(t => {
+      if (t.type !== 'expense') return false;
+      if (t.category === 'Credit Card Payment') return false;
+
+      // Treat as credit card if paymentMethod is credit OR if cardId is specified
+      const isCredit = t.paymentMethod === 'credit' || !!t.cardId;
+      if (!isCredit) return false;
+
+      // Card matching:
+      // 1. Direct ID match
+      if (t.cardId === cardId) return true;
+      // 2. Direct Name match (in case cardId was stored as card name or card was re-created)
+      if (targetName && (t.cardId === targetName || getCardNameById(t.cardId) === targetName)) return true;
+      // 3. Fallback to default card if no cardId is specified
+      if (!t.cardId && isDefault) return true;
+
+      return false;
+    })
+    .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
 
   const payments = allTransactions
-    .filter(t => t.type === 'expense' && t.category === 'Credit Card Payment' && (t.cardId === cardId || (!t.cardId && isDefault)))
-    .reduce((s, t) => s + t.amount, 0);
+    .filter(t => {
+      if (t.type !== 'expense') return false;
+      if (t.category !== 'Credit Card Payment') return false;
+
+      if (t.cardId === cardId) return true;
+      if (targetName && (t.cardId === targetName || getCardNameById(t.cardId) === targetName)) return true;
+      if (!t.cardId && isDefault) return true;
+
+      return false;
+    })
+    .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
 
   return Math.max(0, expenses - payments);
 }
@@ -1656,6 +1692,8 @@ function getCardNameById(cardId) {
   const cards = getCCCards();
   const card = cards.find(c => c.id === cardId);
   if (card) return card.name;
+  const cardByName = cards.find(c => c.name === cardId);
+  if (cardByName) return cardByName.name;
   return 'Primary Card';
 }
 
@@ -1762,30 +1800,30 @@ function updateSummaryCards() {
   // Sum current month's income transactions categorized as "Salary" (case-insensitive)
   const salaryIncome = allTransactions
     .filter(t => t.type === 'income' && t.category && t.category.toLowerCase() === 'salary' && t.date && t.date.startsWith(currentMonthStr))
-    .reduce((s, t) => s + t.amount, 0);
+    .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
 
   // Sum current month's other income transactions (excluding "Salary")
   const otherIncome = allTransactions
     .filter(t => t.type === 'income' && (!t.category || t.category.toLowerCase() !== 'salary') && t.date && t.date.startsWith(currentMonthStr))
-    .reduce((s, t) => s + t.amount, 0);
+    .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
 
   // Net income = grossIncome from settings + any salary income transactions
   const netIncome = grossIncome + salaryIncome;
   
   // Cash/Debit expenses this month (excludes Credit Card payments, Credit Card purchases, and MyKasih purchases)
   const cashExpense = allTransactions
-    .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && t.paymentMethod !== 'mykasih' && t.category !== 'Credit Card Payment' && t.date && t.date.startsWith(currentMonthStr))
-    .reduce((s, t) => s + t.amount, 0);
+    .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && !t.cardId && t.paymentMethod !== 'mykasih' && t.category !== 'Credit Card Payment' && t.date && t.date.startsWith(currentMonthStr))
+    .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
 
   // Credit Card Bill Payments recorded this month
   const ccPayments = allTransactions
     .filter(t => t.type === 'expense' && t.category === 'Credit Card Payment' && t.date && t.date.startsWith(currentMonthStr))
-    .reduce((s, t) => s + t.amount, 0);
+    .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
 
   // Total actual monthly spending (Cash expenses + Credit card expenses, excluding double-counted bill payments)
   const totalExpense = allTransactions
     .filter(t => t.type === 'expense' && t.category !== 'Credit Card Payment' && t.date && t.date.startsWith(currentMonthStr))
-    .reduce((s, t) => s + t.amount, 0);
+    .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
   
   const carryOver = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : 0;
   
@@ -1801,8 +1839,17 @@ function updateSummaryCards() {
 
   // Selected card's own spending (shown in Outstanding field)
   const ccOutstanding = getCCCardOutstanding(activeCCCardId);
-  // All cards' combined outstanding (used for available/utilization vs shared pool)
-  const ccTotalOutstanding = cards.reduce((sum, c) => sum + getCCCardOutstanding(c.id), 0);
+  // All cards' combined outstanding across all credit transactions (used for available/utilization vs shared pool)
+  const allCCExpenses = allTransactions
+    .filter(t => t.type === 'expense' && t.category !== 'Credit Card Payment' && (t.paymentMethod === 'credit' || !!t.cardId))
+    .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  const allCCPayments = allTransactions
+    .filter(t => t.type === 'expense' && t.category === 'Credit Card Payment')
+    .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  const ccTotalOutstanding = Math.max(
+    cards.reduce((sum, c) => sum + getCCCardOutstanding(c.id), 0),
+    Math.max(0, allCCExpenses - allCCPayments)
+  );
   // Shared pool settings
   const ccLimit    = userSettings.creditPoolLimit  || 2000;
   const ccDueDay   = userSettings.creditPoolDueDay || 25;
