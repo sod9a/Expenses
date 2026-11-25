@@ -77,6 +77,10 @@ let settingsLoaded = false;
 let dashSelectedYear  = new Date().getFullYear();
 let dashSelectedMonth = new Date().getMonth(); // 0-indexed
 
+// Budgets Month Selection State (SpendWise Budgets Month Switcher)
+let budgetSelectedYear  = new Date().getFullYear();
+let budgetSelectedMonth = new Date().getMonth(); // 0-indexed
+
 // Categories Month Selection State
 let catSelectedYear  = new Date().getFullYear();
 let catSelectedMonth = new Date().getMonth(); // 0-indexed
@@ -1026,7 +1030,7 @@ const MOB_PAGE_TITLES = {
   dashboard: 'ExpenseFlow',
   transactions: 'Transactions',
   categories: 'Categories',
-  budgets: 'Budgets',
+  budgets: 'Budgets & Categories',
   monthly: 'Monthly Report',
   tabung: 'Savings',
   loans: 'Loans',
@@ -2721,47 +2725,108 @@ window.recordCCPayment = async function() {
   }
 };
 
+window.budgetMonthShift = function (delta) {
+  haptic();
+  budgetSelectedMonth += delta;
+  if (budgetSelectedMonth < 0) { budgetSelectedMonth = 11; budgetSelectedYear--; }
+  if (budgetSelectedMonth > 11) { budgetSelectedMonth = 0; budgetSelectedYear++; }
+  renderBudgets();
+};
+
 function renderBudgets() {
   const container = document.getElementById('budgets-list');
   if (!container) return;
-  
-  if (!allBudgets.length) {
-    container.innerHTML = '<div class="empty-state"><span>🎯</span><p>No budgets set. Create one to start tracking!</p></div>';
+
+  const monthLabel = document.getElementById('budget-month-label');
+  if (monthLabel) {
+    const d = new Date(budgetSelectedYear, budgetSelectedMonth, 1);
+    monthLabel.textContent = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  const currentMonthStr = `${budgetSelectedYear}-${String(budgetSelectedMonth + 1).padStart(2, '0')}`;
+
+  // Calculate per-budget spending and overall monthly budget totals
+  let totalBudget = 0;
+  let totalSpent = 0;
+  const rows = allBudgets.map(b => {
+    const limit = parseFloat(b.limit) || 0;
+    const spent = allTransactions
+      .filter(t => t.type === 'expense' && t.category === b.category && t.date && t.date.startsWith(currentMonthStr))
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+    totalBudget += limit;
+    totalSpent += spent;
+    const pct = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
+    let statusClass = 'safe';
+    if (limit > 0 && spent > limit) statusClass = 'danger';
+    else if (limit > 0 && (spent / limit) >= 0.8) statusClass = 'warn';
+    return { b, limit, spent, pct, statusClass };
+  });
+
+  // Update Total Monthly Budget Summary Card
+  const ratioEl = document.getElementById('sw-budget-total-ratio');
+  const barEl   = document.getElementById('sw-budget-total-bar');
+  const trackEl = document.getElementById('sw-budget-total-track');
+  const remEl   = document.getElementById('sw-budget-total-rem');
+  const overallPct = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
+  let overallClass = 'safe';
+  if (totalBudget > 0 && totalSpent > totalBudget) overallClass = 'danger';
+  else if (totalBudget > 0 && (totalSpent / totalBudget) >= 0.8) overallClass = 'warn';
+
+  if (ratioEl) {
+    ratioEl.textContent = `${formatCurrency(totalSpent)} / ${formatCurrency(totalBudget)}`;
+    ratioEl.className = `sw-budget-summary-ratio ${overallClass}`;
+  }
+  if (barEl) {
+    barEl.style.width = `${overallPct}%`;
+    barEl.className = `sw-budget-fill ${overallClass}`;
+  }
+  if (trackEl) {
+    trackEl.className = `sw-budget-track large ${overallClass}`;
+  }
+  if (remEl) {
+    const remaining = totalBudget - totalSpent;
+    if (remaining >= 0) {
+      remEl.textContent = `${formatCurrency(remaining)} remaining this month`;
+      remEl.className = 'sw-budget-summary-rem';
+    } else {
+      remEl.textContent = `Over budget by ${formatCurrency(-remaining)}`;
+      remEl.className = 'sw-budget-summary-rem danger';
+    }
+  }
+
+  if (!rows.length) {
+    container.innerHTML = `
+      <div class="sw-empty-card">
+        <div class="sw-empty-title">No budgets set yet</div>
+        <div class="sw-empty-sub">Tap "+ Set Budget" above to add monthly spending limits.</div>
+      </div>
+    `;
     return;
   }
-  
-  const now = new Date();
-  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}`;
-  
+
+  const editSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
+  const trashSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+
   container.innerHTML = '';
-  allBudgets.forEach(b => {
-    const spent = allTransactions
-      .filter(t => t.type === 'expense' && t.category === b.category && t.date.startsWith(currentMonthStr))
-      .reduce((sum, t) => sum + t.amount, 0);
-      
-    const pct = Math.min((spent / b.limit) * 100, 100);
-    let statusClass = 'safe';
-    let statusText = 'Looking good!';
-    if (pct >= 100) { statusClass = 'danger'; statusText = 'Over budget!'; }
-    else if (pct >= 80) { statusClass = 'warn'; statusText = 'Nearing limit'; }
-    
+  rows.forEach(({ b, limit, spent, pct, statusClass }) => {
+    const meta = getSpendwiseCategoryMeta(b.category, 'expense');
     const div = document.createElement('div');
-    div.className = 'budget-card';
+    div.className = 'sw-budget-card';
     div.innerHTML = `
-      <div class="budget-header">
-        <span class="budget-cat">${getCategoryIcon(b.category)} ${b.category}</span>
-        <button class="btn-edit-budget" onclick="event.stopPropagation();openBudgetModal('${b.id}')" aria-label="Edit budget" title="Edit budget">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5z"/></svg>
-        </button>
-        <button class="btn-del-budget" onclick="event.stopPropagation();deleteBudget('${b.id}')">✕</button>
+      <div class="sw-budget-top">
+        <div class="sw-budget-icon" style="background:${meta.bg};color:${meta.color};">${meta.icon}</div>
+        <div class="sw-budget-info">
+          <div class="sw-budget-name">${escapeHtml(b.category)}</div>
+          <div class="sw-budget-sub">${formatCurrency(spent)} of ${formatCurrency(limit)}</div>
+        </div>
+        <div class="sw-budget-actions">
+          <button type="button" class="sw-budget-icon-btn" onclick="event.stopPropagation();haptic();openBudgetModal('${b.id}')" aria-label="Edit budget" title="Edit budget">${editSvg}</button>
+          <button type="button" class="sw-budget-icon-btn danger" onclick="event.stopPropagation();haptic();deleteBudget('${b.id}')" aria-label="Delete budget" title="Delete budget">${trashSvg}</button>
+        </div>
       </div>
-      <div class="budget-amounts">
-        <strong>${formatCurrency(spent)}</strong> spent of ${formatCurrency(b.limit)}
+      <div class="sw-budget-track ${statusClass}">
+        <div class="sw-budget-fill ${statusClass}" style="width:${pct}%"></div>
       </div>
-      <div class="budget-progress-wrap" style="margin-top:0.8rem">
-        <div class="budget-progress ${statusClass}" style="width:${pct}%"></div>
-      </div>
-      <div class="budget-status ${statusClass}">${statusText} (${pct.toFixed(0)}%)</div>
     `;
     div.addEventListener('click', () => openBudgetChart(b, spent, pct, statusClass));
     container.appendChild(div);

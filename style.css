@@ -724,6 +724,162 @@ input[type="month"]::-webkit-date-and-time-value { text-align: left; min-height:
 }
 .sw-chip-select option { background: var(--bg-surface); color: var(--ink-primary); }
 
+/* ─── SPENDWISE BUDGETS & CATEGORIES PAGE ─────────────────────────────────── */
+.sw-budget-summary-card {
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sw-budget-summary-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sw-budget-summary-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+.sw-budget-summary-ratio {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sw-budget-summary-ratio.safe { color: var(--income); }
+.sw-budget-summary-ratio.warn { color: var(--warning); }
+.sw-budget-summary-ratio.danger { color: var(--expense); }
+.sw-budget-summary-rem {
+  font-size: 0.8rem;
+  color: var(--ink-secondary);
+}
+.sw-budget-summary-rem.danger { color: var(--expense); font-weight: 600; }
+
+.sw-budget-header-row {
+  margin-bottom: 12px;
+}
+.sw-budget-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1.25px solid var(--border-med);
+  background: transparent;
+  color: var(--primary-ink);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--t), transform 0.14s;
+  -webkit-tap-highlight-color: transparent;
+}
+.sw-budget-pill-btn:active { transform: scale(0.96); background: var(--bg-elevated); }
+
+.sw-budget-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sw-budget-card {
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 0.14s, background var(--t);
+  -webkit-tap-highlight-color: transparent;
+}
+.sw-budget-card:active { transform: scale(0.99); }
+.sw-budget-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sw-budget-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sw-budget-icon svg { width: 20px; height: 20px; }
+.sw-budget-info { flex: 1; min-width: 0; }
+.sw-budget-name {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sw-budget-sub {
+  font-size: 0.8rem;
+  color: var(--ink-secondary);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+.sw-budget-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.sw-budget-icon-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--t), color var(--t);
+}
+.sw-budget-icon-btn:hover,
+.sw-budget-icon-btn:active { background: var(--bg-elevated); }
+.sw-budget-icon-btn.danger { color: var(--ink-secondary); }
+.sw-budget-icon-btn.danger:hover,
+.sw-budget-icon-btn.danger:active { background: rgba(220, 38, 38, 0.12); color: var(--expense); }
+
+.sw-budget-track {
+  width: 100%;
+  height: 7px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(22, 163, 74, 0.16);
+}
+.sw-budget-track.large { height: 10px; border-radius: 5px; }
+.sw-budget-track.warn { background: rgba(217, 119, 6, 0.18); }
+.sw-budget-track.danger { background: rgba(220, 38, 38, 0.16); }
+.sw-budget-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.38s var(--ease);
+}
+.sw-budget-fill.safe { background: var(--income); }
+.sw-budget-fill.warn { background: var(--warning); }
+.sw-budget-fill.danger { background: var(--expense); }
+
 /* ─── SPENDWISE HOME: EMERALD HERO BALANCE CARD ───────────────────────────── */
 .mob-hero-card.sw-hero-card {
   background: linear-gradient(135deg, #0f766e 0%, #0e9488 100%);
