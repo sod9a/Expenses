@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.0.4" />
+  <link rel="stylesheet" href="style.css?v=1.1.0" />
 </head>
 <body>
 
@@ -91,51 +91,8 @@
     </div>
   </div>
 
-  <!-- Main App -->
+  <!-- Main App (Mobile-Only) -->
   <div id="app" class="app hidden">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <span class="logo-icon">💸</span>
-        <span class="logo-text">ExpenseFlow</span>
-      </div>
-      <nav class="sidebar-nav">
-        <a href="#" class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard',this)">
-          <span class="nav-icon">📊</span> Dashboard
-        </a>
-        <a href="#" class="nav-item" data-page="transactions" onclick="navigateTo('transactions',this)">
-          <span class="nav-icon">📋</span> Transactions
-        </a>
-        <a href="#" class="nav-item" data-page="categories" onclick="navigateTo('categories',this)">
-          <span class="nav-icon">🏷️</span> Categories
-        </a>
-        <a href="#" class="nav-item" data-page="budgets" onclick="navigateTo('budgets',this)">
-          <span class="nav-icon">🎯</span> Budgets
-        </a>
-        <a href="#" class="nav-item" data-page="monthly" onclick="navigateTo('monthly',this)">
-          <span class="nav-icon">📅</span> Monthly Report
-        </a>
-        <a href="#" class="nav-item" data-page="tabung" onclick="navigateTo('tabung',this)">
-          <span class="nav-icon">🪙</span> Savings
-        </a>
-        <a href="#" class="nav-item" data-page="loans" onclick="navigateTo('loans',this)">
-          <span class="nav-icon">🏦</span> Loan
-        </a>
-        <a href="#" class="nav-item" data-page="settings" onclick="navigateTo('settings',this)">
-          <span class="nav-icon">⚙️</span> Settings
-        </a>
-      </nav>
-      <div class="sidebar-footer">
-        <div class="user-info">
-          <div class="user-avatar" id="user-avatar">U</div>
-          <div class="user-details">
-            <span id="user-name-display">User</span>
-            <span id="user-email-display" class="user-email">user@email.com</span>
-          </div>
-        </div>
-        <button class="btn-logout" onclick="logoutUser()">Sign Out</button>
-      </div>
-    </aside>
-
     <header class="mobile-header" id="mobile-header">
       <div class="mob-header-left mobile-profile-container">
         <div class="mob-avatar-btn" id="mobile-user-avatar" onclick="toggleProfileDropdown(event)">U</div>
@@ -154,14 +111,6 @@
     <main class="main-content">
       <!-- Dashboard -->
       <section id="page-dashboard" class="page active">
-        <div class="page-header">
-          <div>
-            <h1 id="greeting">Good morning! 👋</h1>
-            <p class="page-subtitle">Here's your financial summary</p>
-          </div>
-          <button class="btn-add-tx" onclick="openModal()">+ Add Transaction</button>
-        </div>
-
         <!-- Mobile Hero Card -->
         <div class="mob-hero-card" id="mob-hero-card">
           <div class="mob-hero-top">
@@ -188,37 +137,6 @@
         </div>
 
 
-
-        <div class="summary-grid">
-          <div class="summary-card balance">
-            <div class="card-icon">💰</div>
-            <div class="card-info">
-              <span class="card-label">Net Balance</span>
-              <span class="card-value" id="total-balance">$0.00</span>
-            </div>
-          </div>
-          <div class="summary-card income">
-            <div class="card-icon">📈</div>
-            <div class="card-info">
-              <span class="card-label">Net Income</span>
-              <span class="card-value" id="total-income">$0.00</span>
-            </div>
-          </div>
-          <div class="summary-card expense">
-            <div class="card-icon">📉</div>
-            <div class="card-info">
-              <span class="card-label">Total Expenses</span>
-              <span class="card-value" id="total-expense">$0.00</span>
-            </div>
-          </div>
-          <div class="summary-card count">
-            <div class="card-icon">🧾</div>
-            <div class="card-info">
-              <span class="card-label">Transactions</span>
-              <span class="card-value" id="tx-count">0</span>
-            </div>
-          </div>
-        </div>
 
         <div class="dashboard-mid-grid">
           <!-- Credit Card Widget -->
@@ -356,13 +274,6 @@
 
       <!-- Transactions -->
       <section id="page-transactions" class="page">
-        <div class="page-header">
-          <div>
-            <h1>Transactions</h1>
-            <p class="page-subtitle">All your income and expenses</p>
-          </div>
-          <button class="btn-add-tx" onclick="openModal()">+ Add Transaction</button>
-        </div>
         <button class="mob-page-fab" onclick="openModal()">+ Add Transaction</button>
         <div class="filter-bar">
           <select id="filter-payment-method" class="filter-select" onchange="filterPaymentMethodChange()">
@@ -402,13 +313,6 @@
 
       <!-- Categories -->
       <section id="page-categories" class="page">
-        <div class="page-header">
-          <div>
-            <h1>Categories</h1>
-            <p class="page-subtitle">Breakdown by category</p>
-          </div>
-        </div>
-
         <!-- Expenses by Category Chart -->
         <div class="section-card chart-card" id="expenses-chart-card" style="margin-bottom: 1.25rem;">
           <div class="chart-header" onclick="toggleChartDropdown()">
@@ -467,13 +371,6 @@
 
       <!-- Budgets -->
       <section id="page-budgets" class="page">
-        <div class="page-header">
-          <div>
-            <h1>Budgets</h1>
-            <p class="page-subtitle">Manage monthly spending limits</p>
-          </div>
-          <button class="btn-add-tx" onclick="openBudgetModal()">+ Set Budget</button>
-        </div>
         <button class="mob-page-fab" onclick="openBudgetModal()">+ Set Budget</button>
 
 
@@ -505,13 +402,6 @@
 
       <!-- Tabung (Savings) -->
       <section id="page-tabung" class="page">
-        <div class="page-header">
-          <div>
-            <h1>🪙 Tabung</h1>
-            <p class="page-subtitle">Track your savings goals</p>
-          </div>
-          <button class="btn-add-tx" onclick="openTabungModal()">+ New Tabung</button>
-        </div>
         <button class="mob-page-fab" onclick="openTabungModal()">+ New Tabung</button>
         <div id="tabung-list" class="categories-grid">
           <div class="empty-state"><span>🪙</span><p>No tabung yet. Create your first savings goal!</p></div>
@@ -520,13 +410,6 @@
 
       <!-- Loans / Hutang -->
       <section id="page-loans" class="page">
-        <div class="page-header">
-          <div>
-            <h1>🏦 Hutang / Loan</h1>
-            <p class="page-subtitle">Track your debts and loans</p>
-          </div>
-          <button class="btn-add-tx" onclick="openLoanModal()">+ Add Loan</button>
-        </div>
         <button class="mob-page-fab" onclick="openLoanModal()">+ Add Loan</button>
         <div class="summary-grid" style="margin-bottom:1.5rem;" id="loan-summary-cards"></div>
         <div id="loan-list" class="categories-grid">
@@ -536,13 +419,7 @@
 
       <!-- Settings -->
       <section id="page-settings" class="page">
-        <div class="page-header">
-          <div>
-            <h1>Settings</h1>
-            <p class="page-subtitle">Customize your experience</p>
-          </div>
-        </div>
-        <div class="section-card" style="max-width: 500px; margin: 0 auto;">
+        <div class="section-card">
           <div class="modal-body">
             <div class="input-group">
               <label for="setting-currency">Currency Symbol</label>
@@ -642,23 +519,23 @@
         <div class="more-menu-handle"></div>
         <p class="more-menu-label">More Options</p>
         <div class="more-menu-grid">
-          <button class="more-menu-item" onclick="haptic();navigateTo('monthly',document.querySelector('[data-page=monthly]'));closeMoreMenu()">
+          <button class="more-menu-item" onclick="haptic();navigateTo('monthly');closeMoreMenu()">
             <div class="more-menu-icon">📅</div>
             <span>Monthly</span>
           </button>
-          <button class="more-menu-item" onclick="haptic();navigateTo('budgets',document.querySelector('[data-page=budgets]'));closeMoreMenu()">
+          <button class="more-menu-item" onclick="haptic();navigateTo('budgets');closeMoreMenu()">
             <div class="more-menu-icon">🎯</div>
             <span>Budgets</span>
           </button>
-          <button class="more-menu-item" onclick="haptic();navigateTo('categories',document.querySelector('[data-page=categories]'));closeMoreMenu()">
+          <button class="more-menu-item" onclick="haptic();navigateTo('categories');closeMoreMenu()">
             <div class="more-menu-icon">🏷️</div>
             <span>Categories</span>
           </button>
-          <button class="more-menu-item" onclick="haptic();navigateTo('loans',document.querySelector('[data-page=loans]'));closeMoreMenu()">
+          <button class="more-menu-item" onclick="haptic();navigateTo('loans');closeMoreMenu()">
             <div class="more-menu-icon">💳</div>
             <span>Loans</span>
           </button>
-          <button class="more-menu-item" onclick="haptic();navigateTo('settings',document.querySelector('[data-page=settings]'));closeMoreMenu()">
+          <button class="more-menu-item" onclick="haptic();navigateTo('settings');closeMoreMenu()">
             <div class="more-menu-icon">⚙️</div>
             <span>Settings</span>
           </button>
@@ -1323,6 +1200,6 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-  <script type="module" src="app.js?v=1.0.9"></script>
+  <script type="module" src="app.js?v=1.1.0"></script>
 </body>
 </html>

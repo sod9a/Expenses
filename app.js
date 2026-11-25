@@ -114,9 +114,6 @@ function showApp(user) {
   document.getElementById('auth-overlay').style.display = 'none';
   document.getElementById('app').classList.remove('hidden');
   const name = user.displayName || user.email.split('@')[0];
-  document.getElementById('user-name-display').textContent = name;
-  document.getElementById('user-email-display').textContent = user.email;
-  document.getElementById('user-avatar').textContent = name[0].toUpperCase();
   updateMobileAvatar(name[0].toUpperCase());
   setGreeting();
   setHeroDate();
@@ -126,7 +123,7 @@ function showApp(user) {
   initCatMonthYearSelects();
 
   // Always start on Dashboard after login
-  navigateTo('dashboard', document.querySelector('[data-page="dashboard"]'));
+  navigateTo('dashboard');
 }
 
 function hideApp() {
@@ -269,7 +266,6 @@ document.addEventListener('click', function(e) {
 function setGreeting() {
   const h = new Date().getHours();
   const greet = h < 12 ? 'Good morning! 👋' : h < 17 ? 'Good afternoon! ☀️' : 'Good evening! 🌙';
-  document.getElementById('greeting').textContent = greet;
   const mobGreet = document.getElementById('mob-greeting');
   if (mobGreet) mobGreet.textContent = greet;
 }
@@ -838,7 +834,6 @@ function applySettings() {
   }
   document.querySelectorAll('.dynamic-currency').forEach(el => el.textContent = userSettings.currency);
   
-  const avatarEl = document.getElementById('user-avatar');
   const previewImg = document.getElementById('avatar-preview-img');
   const previewInitials = document.getElementById('avatar-preview-initials');
   const removeBtn = document.getElementById('btn-remove-avatar');
@@ -846,9 +841,6 @@ function applySettings() {
   const initial = (currentUser.displayName || currentUser.email)[0].toUpperCase();
   
   if (userSettings.avatarUrl) {
-    const imgHtml = `<img src="${userSettings.avatarUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-    avatarEl.innerHTML = imgHtml;
-    avatarEl.style.background = 'transparent';
     updateMobileAvatar(initial); // uses avatarUrl from userSettings
     
     if (previewImg) {
@@ -858,9 +850,6 @@ function applySettings() {
       removeBtn.style.display = 'inline-flex';
     }
   } else {
-    avatarEl.innerHTML = '';
-    avatarEl.textContent = initial;
-    avatarEl.style.background = 'linear-gradient(135deg, var(--accent-purple), var(--accent-green))';
     updateMobileAvatar(initial);
     
     if (previewImg) {
@@ -1043,16 +1032,18 @@ window.navigateTo = function (page, el) {
   const moreSubPages = ['monthly','budgets','categories','settings','loans'];
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  if (el) {
+  document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
+  if (moreSubPages.includes(page)) {
+    document.querySelector('.bottom-nav .nav-item[data-page="more"]')?.classList.add('active');
+  } else if (el) {
     el.classList.add('active');
   } else {
-    document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+    document.querySelector(`.bottom-nav .nav-item[data-page="${page}"]`)?.classList.add('active');
   }
   // Update mobile header title
   const titleEl = document.getElementById('mob-page-title');
   if (titleEl) titleEl.textContent = MOB_PAGE_TITLES[page] || 'ExpenseFlow';
-  closeSidebar();
+  window.scrollTo({ top: 0, behavior: 'instant' });
   if (page === 'categories') {
     renderCategories();
     updateExpensesChart();
@@ -1064,23 +1055,6 @@ window.navigateTo = function (page, el) {
   if (page === 'tabung') renderTabung();
   if (page === 'loans') renderLoans();
 };
-
-window.toggleSidebar = function () {
-  const sb = document.getElementById('sidebar');
-  sb.classList.toggle('open');
-  let ov = document.getElementById('sidebar-overlay');
-  if (!ov) {
-    ov = document.createElement('div');
-    ov.id = 'sidebar-overlay'; ov.className = 'sidebar-overlay';
-    ov.onclick = closeSidebar; document.body.appendChild(ov);
-  }
-  ov.classList.toggle('visible', sb.classList.contains('open'));
-};
-
-function closeSidebar() {
-  document.getElementById('sidebar')?.classList.remove('open');
-  document.getElementById('sidebar-overlay')?.classList.remove('visible');
-}
 
 // ─── Mobile Profile Dropdown ────────────────────────────────────────────────
 window.toggleProfileDropdown = function (e) {
@@ -1094,7 +1068,7 @@ window.openMobileSettings = function (e) {
   if (e && e.stopPropagation) e.stopPropagation();
   const dd = document.getElementById('profile-dropdown');
   if (dd) dd.classList.remove('show');
-  navigateTo('settings', document.querySelector('[data-page="settings"]'));
+  navigateTo('settings');
 };
 
 // ─── MORE MENU ────────────────────────────────────────────────────────────
@@ -1859,12 +1833,6 @@ function updateSummaryCards() {
   const ccCardTitleEl = document.querySelector('.cc-dashboard-title');
   if (ccCardTitleEl) ccCardTitleEl.textContent = 'Credit Card';
 
-
-  // Desktop summary cards
-  document.getElementById('total-income').textContent  = formatCurrency(netIncome);
-  document.getElementById('total-expense').textContent = formatCurrency(totalExpense);
-  document.getElementById('total-balance').textContent = formatCurrency(balance);
-  document.getElementById('tx-count').textContent      = allTransactions.length;
 
   // Mobile hero card
   const mobBal       = document.getElementById('mob-hero-balance');
