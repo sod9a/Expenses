@@ -1929,8 +1929,8 @@ function renderSpendwiseHomeSections(monthTxs, totalExpense) {
 }
 
 function updateSummaryCards() {
-  const now = new Date();
-  const isCurrentMonth = dashSelectedYear === now.getFullYear() && dashSelectedMonth === now.getMonth();
+  const todayNow = new Date();
+  const isCurrentMonth = dashSelectedYear === todayNow.getFullYear() && dashSelectedMonth === todayNow.getMonth();
   const currentMonthStr = `${dashSelectedYear}-${String(dashSelectedMonth + 1).padStart(2, '0')}`;
 
   // Update SpendWise Month Bar label
