@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.3.0" />
+  <link rel="stylesheet" href="style.css?v=1.3.2" />
 </head>
 <body>
 
@@ -156,15 +156,33 @@
           </button>
         </div>
 
-        <!-- SpendWise Spending by Category Section -->
+        <!-- SpendWise Spending by Category (Collapsible Dropdown) -->
         <div id="sw-category-section" class="sw-section hidden">
-          <h2 class="sw-section-heading">Spending by Category</h2>
-          <div class="sw-cat-breakdown-card" id="sw-category-breakdown-list"></div>
+          <div class="sw-cat-dropdown-card" id="sw-cat-dropdown-card">
+            <button type="button" class="sw-cat-dropdown-header" onclick="toggleSwCategoryDropdown()" aria-expanded="false" aria-controls="sw-cat-dropdown-body">
+              <div class="sw-cat-dropdown-left">
+                <span class="sw-cat-dropdown-title">Spending by Category</span>
+                <span class="sw-cat-dropdown-sub" id="sw-cat-dropdown-sub">0 categories</span>
+              </div>
+              <div class="sw-cat-dropdown-right">
+                <span class="sw-cat-dropdown-total masked-val" id="sw-cat-dropdown-total">RM 0.00</span>
+                <svg class="sw-cat-dropdown-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </button>
+            <div class="sw-cat-dropdown-body" id="sw-cat-dropdown-body">
+              <div class="sw-cat-dropdown-inner">
+                <div class="sw-cat-breakdown-list" id="sw-category-breakdown-list"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- SpendWise Recent Transactions Section -->
+        <!-- SpendWise Recent Transactions (Latest 3) -->
         <div class="sw-section">
-          <h2 class="sw-section-heading">Recent Transactions</h2>
+          <div class="sw-section-row">
+            <h2 class="sw-section-heading">Recent Transactions</h2>
+            <button type="button" class="sw-see-all-btn" onclick="haptic();navigateTo('transactions')">See all</button>
+          </div>
           <div class="sw-recent-list" id="sw-recent-list">
             <div class="sw-empty-card">
               <div class="sw-empty-title">No transactions yet</div>
@@ -173,10 +191,11 @@
           </div>
         </div>
 
-        <!-- ExpenseFlow Extra Tools (Credit Card, MyKasih, Monthly Checklist) -->
-        <div class="sw-section sw-extra-tools">
-          <h2 class="sw-section-heading">Account Tools</h2>
-          <div class="dashboard-mid-grid">
+      </section>
+
+      <!-- Account Tools (Credit Card, MyKasih, Monthly Checklist — moved off Home) -->
+      <section id="page-tools" class="page">
+        <div class="dashboard-mid-grid">
           <!-- Credit Card Widget -->
           <div class="section-card cc-dashboard-card" id="dashboard-cc-card">
             <div class="cc-dashboard-header" onclick="toggleDashboardCCDropdown(event)">
@@ -306,7 +325,6 @@
               </div>
             </div>
           </div>
-        </div>
         </div>
 
       </section>
@@ -564,6 +582,10 @@
         <div class="more-menu-handle"></div>
         <p class="more-menu-label">Wallet &amp; More</p>
         <div class="more-menu-grid">
+          <button class="more-menu-item" onclick="haptic();navigateTo('tools');closeMoreMenu()">
+            <div class="more-menu-icon">💳</div>
+            <span>Cards &amp; Tools</span>
+          </button>
           <button class="more-menu-item" onclick="haptic();navigateTo('tabung');closeMoreMenu()">
             <div class="more-menu-icon">🪙</div>
             <span>Savings</span>
@@ -1245,6 +1267,6 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-  <script type="module" src="app.js?v=1.3.1"></script>
+  <script type="module" src="app.js?v=1.3.2"></script>
 </body>
 </html>

@@ -1030,12 +1030,13 @@ const MOB_PAGE_TITLES = {
   monthly: 'Monthly Report',
   tabung: 'Savings',
   loans: 'Loans',
+  tools: 'Cards & Tools',
   settings: 'Settings'
 };
 
 window.navigateTo = function (page, el) {
   // Pages housed under "Wallet / More" sheet highlight the 4th tab
-  const moreSubPages = ['tabung', 'loans', 'categories', 'monthly', 'settings'];
+  const moreSubPages = ['tools', 'tabung', 'loans', 'categories', 'monthly', 'settings'];
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
@@ -1100,7 +1101,7 @@ window.closeMoreMenu = function() {
   setTimeout(() => overlay.classList.add('hidden'), 280);
   // Remove active state from More tab (keep it if we navigated to a More sub-page)
   const activePage = document.querySelector('.page.active');
-  const moreSubPages = ['tabung', 'loans', 'categories', 'monthly', 'settings'];
+  const moreSubPages = ['tools', 'tabung', 'loans', 'categories', 'monthly', 'settings'];
   if (!activePage || !moreSubPages.includes(activePage.id.replace('page-',''))) {
     document.querySelectorAll('.bottom-nav .nav-item').forEach(i => {
       if (i.dataset.page === 'more') i.classList.remove('active');
@@ -1791,11 +1792,21 @@ window.dashMonthShift = function (delta) {
 
 window.focusDashboardCC = function () {
   haptic();
+  navigateTo('tools');
   const card = document.getElementById('dashboard-cc-card');
   if (!card) return;
   card.classList.add('open');
   localStorage.setItem('dashboardCCOpen', 'true');
-  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+window.toggleSwCategoryDropdown = function () {
+  haptic();
+  const card = document.getElementById('sw-cat-dropdown-card');
+  if (!card) return;
+  const isOpen = card.classList.toggle('open');
+  const btn = card.querySelector('.sw-cat-dropdown-header');
+  if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  localStorage.setItem('swCategoryOpen', isOpen ? 'true' : 'false');
 };
 
 function formatSpendwiseDate(dateStr) {
@@ -1847,9 +1858,12 @@ function getSpendwiseCategoryMeta(cat, type) {
 }
 
 function renderSpendwiseHomeSections(monthTxs, totalExpense) {
-  // 1. Spending by Category card
+  // 1. Spending by Category collapsible dropdown card
   const catSection = document.getElementById('sw-category-section');
+  const catCard = document.getElementById('sw-cat-dropdown-card');
   const catList = document.getElementById('sw-category-breakdown-list');
+  const catSub = document.getElementById('sw-cat-dropdown-sub');
+  const catTotal = document.getElementById('sw-cat-dropdown-total');
   if (catSection && catList) {
     const expenseByCat = {};
     monthTxs
@@ -1864,6 +1878,14 @@ function renderSpendwiseHomeSections(monthTxs, totalExpense) {
       catList.innerHTML = '';
     } else {
       catSection.classList.remove('hidden');
+      if (catSub) catSub.textContent = `${sortedCats.length} ${sortedCats.length === 1 ? 'category' : 'categories'}`;
+      if (catTotal) catTotal.dataset.value = formatCurrency(totalExpense);
+      if (catCard) {
+        const isOpen = localStorage.getItem('swCategoryOpen') === 'true';
+        catCard.classList.toggle('open', isOpen);
+        const btn = catCard.querySelector('.sw-cat-dropdown-header');
+        if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      }
       catList.innerHTML = sortedCats.slice(0, 6).map(([cat, spent]) => {
         const pct = totalExpense > 0 ? Math.min(100, Math.round((spent / totalExpense) * 100)) : 0;
         const meta = getSpendwiseCategoryMeta(cat, 'expense');
@@ -1885,7 +1907,7 @@ function renderSpendwiseHomeSections(monthTxs, totalExpense) {
     }
   }
 
-  // 2. Recent Transactions list
+  // 2. Recent Transactions list (latest 3 only)
   const recentEl = document.getElementById('sw-recent-list');
   if (recentEl) {
     if (!monthTxs.length) {
@@ -1897,7 +1919,7 @@ function renderSpendwiseHomeSections(monthTxs, totalExpense) {
       `;
     } else {
       const trashSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
-      recentEl.innerHTML = monthTxs.slice(0, 8).map(tx => {
+      recentEl.innerHTML = monthTxs.slice(0, 3).map(tx => {
         const isExpense = tx.type === 'expense';
         const meta = getSpendwiseCategoryMeta(tx.category, tx.type);
         const title = tx.description || tx.category || 'Transaction';
