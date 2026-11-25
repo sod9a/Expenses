@@ -3,8 +3,8 @@
   "short_name": "ExpenseFlow",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0d0f1a",
-  "theme_color": "#0d0f1a",
+  "background_color": "#0b1120",
+  "theme_color": "#0f766e",
   "icons": [
     {
       "src": "favicon.png",

@@ -827,10 +827,10 @@ function applySettings() {
   const metaTheme = document.getElementById('theme-color-meta');
   if (userSettings.theme === 'light') {
     document.documentElement.classList.add('light-theme');
-    if(metaTheme) metaTheme.setAttribute('content', '#f4f7fe');
+    if(metaTheme) metaTheme.setAttribute('content', '#ffffff');
   } else {
     document.documentElement.classList.remove('light-theme');
-    if(metaTheme) metaTheme.setAttribute('content', '#0d0f1a');
+    if(metaTheme) metaTheme.setAttribute('content', '#111827');
   }
   document.querySelectorAll('.dynamic-currency').forEach(el => el.textContent = userSettings.currency);
   
@@ -2598,7 +2598,12 @@ window.haptic = function() {
 
 // ─── Keyboard shortcuts ────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeModal(); closeDeleteModal(); }
+  if (e.key === 'Escape') {
+    closeModal();
+    closeDeleteModal();
+    closeMoreMenu();
+    document.querySelectorAll('.modal-overlay:not(.hidden) .modal-close').forEach(btn => btn.click());
+  }
 });
 
 // ─── Mobile Profile Dropdown (duplicate removed — see line 572) ───────────
