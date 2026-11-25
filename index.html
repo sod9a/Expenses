@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.3.2" />
+  <link rel="stylesheet" href="style.css?v=1.3.3" />
 </head>
 <body>
 
@@ -329,42 +329,51 @@
 
       </section>
 
-      <!-- Transactions -->
+      <!-- Transactions (SpendWise History Layout) -->
       <section id="page-transactions" class="page">
-        <button class="mob-page-fab" onclick="openModal()">+ Add Transaction</button>
-        <div class="filter-bar">
-          <select id="filter-payment-method" class="filter-select" onchange="filterPaymentMethodChange()">
-            <option value="all">💳 All Payments</option>
-            <option value="cash">💵 Paid by Cash</option>
-            <option value="credit">💳 Paid by Credit Card</option>
-            <option value="mykasih">🎁 Paid by MyKasih</option>
-          </select>
-          <div class="filter-row-2">
-            <div class="filter-buttons">
-              <button class="filter-btn active" onclick="filterTransactions('all',this)">All</button>
-              <button class="filter-btn" onclick="filterTransactions('income',this)">Income</button>
-              <button class="filter-btn" onclick="filterTransactions('expense',this)">Expense</button>
-            </div>
-            <!-- Transaction Month Arrow Picker (same style as Categories) -->
-            <div class="cat-month-picker" id="tx-month-picker-bar" style="margin:0;padding:.45rem 1rem;">
-              <button class="cat-month-arrow" id="tx-month-prev" onclick="txMonthShift(-1)">‹</button>
-              <div class="month-picker-wrap" id="month-picker-wrap" style="position:relative;display:inline-block;">
-                <button class="cat-month-label" id="month-picker-btn" onclick="toggleMonthPicker(event)" type="button">
-                  <span id="month-picker-label">June 2026</span>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px;"><polyline points="6 9 12 15 18 9"/></svg>
-                </button>
-                <div class="month-picker-dropdown hidden" id="month-picker-dropdown" style="top:calc(100% + 0.5rem);left:50%;transform:translateX(-50%);right:auto;">
-                  <div id="filter-month-list" class="month-selector-list"></div>
-                  <input type="hidden" id="filter-month-combined" value="" />
-                </div>
-              </div>
-              <button class="cat-month-arrow" id="tx-month-next" onclick="txMonthShift(1)">›</button>
+        <!-- Full-width SpendWise Month Selector Bar -->
+        <div class="sw-month-bar" id="tx-month-picker-bar">
+          <button type="button" class="sw-month-arrow" id="tx-month-prev" onclick="txMonthShift(-1)" aria-label="Previous month">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="month-picker-wrap" id="month-picker-wrap">
+            <button class="sw-month-label sw-month-label-btn" id="month-picker-btn" onclick="toggleMonthPicker(event)" type="button">
+              <span id="month-picker-label">November 2026</span>
+            </button>
+            <div class="month-picker-dropdown hidden" id="month-picker-dropdown" style="top:calc(100% + 0.5rem);left:50%;transform:translateX(-50%);right:auto;">
+              <div id="filter-month-list" class="month-selector-list"></div>
+              <input type="hidden" id="filter-month-combined" value="" />
             </div>
           </div>
+          <button type="button" class="sw-month-arrow" id="tx-month-next" onclick="txMonthShift(1)" aria-label="Next month">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
         </div>
 
-        <div id="all-transactions-list" class="transaction-list">
-          <div class="empty-state"><span>🗂️</span><p>No transactions found.</p></div>
+        <!-- SpendWise Outlined Search Box -->
+        <div class="sw-search-wrap">
+          <svg class="sw-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="tx-search-input" class="sw-search-input" placeholder="Search food, rent, salary..." oninput="renderAllTransactions()" autocomplete="off" />
+        </div>
+
+        <!-- SpendWise Filter Chips Row -->
+        <div class="sw-filter-chips">
+          <button type="button" id="tx-filter-all-btn" class="sw-chip-btn filter-btn active" onclick="filterTransactions('all',this)">All (0)</button>
+          <button type="button" class="sw-chip-btn filter-btn" onclick="filterTransactions('expense',this)">Expenses</button>
+          <button type="button" class="sw-chip-btn filter-btn" onclick="filterTransactions('income',this)">Income</button>
+          <select id="filter-payment-method" class="sw-chip-select" onchange="filterPaymentMethodChange()" aria-label="Filter by payment method">
+            <option value="all">All Payments</option>
+            <option value="cash">Cash</option>
+            <option value="credit">Credit Card</option>
+            <option value="mykasih">MyKasih</option>
+          </select>
+        </div>
+
+        <div id="all-transactions-list" class="sw-recent-list">
+          <div class="sw-empty-card">
+            <div class="sw-empty-title">No matching transactions</div>
+            <div class="sw-empty-sub">Try another month or tap + to add a new transaction.</div>
+          </div>
         </div>
       </section>
 
@@ -1267,6 +1276,6 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-  <script type="module" src="app.js?v=1.3.2"></script>
+  <script type="module" src="app.js?v=1.3.3"></script>
 </body>
 </html>

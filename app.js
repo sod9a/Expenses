@@ -1857,6 +1857,35 @@ function getSpendwiseCategoryMeta(cat, type) {
   return { color: '#64748B', bg: 'rgba(100, 116, 139, 0.14)', icon: svg('<path d="M12 2l-5.5 9h11L12 2zm0 3.84L13.93 9h-3.87L12 5.84zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.01 4.5-4.5-2.01-4.5-4.5-4.5zm0 7a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5zM3 21.5h8v-8H3v8zm2-6h4v4H5v-4z"/>') };
 }
 
+function buildSpendwiseTxCardHtml(tx) {
+  const trashSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+  const isExpense = tx.type === 'expense';
+  const meta = getSpendwiseCategoryMeta(tx.category, tx.type);
+  const title = tx.description || tx.category || 'Transaction';
+  const sign = isExpense ? '-' : '+';
+  const isCC = (tx.paymentMethod === 'credit' || tx.cardId) && tx.category !== 'Credit Card Payment';
+  const isMK = tx.paymentMethod === 'mykasih';
+  const extraTag = isCC
+    ? `<div class="sw-tx-badge">💳 ${escapeHtml(getCardNameById(tx.cardId))}</div>`
+    : isMK
+      ? `<div class="sw-tx-badge">🎁 MyKasih</div>`
+      : '';
+  return `
+    <div class="sw-tx-card" onclick="openTxDetails('${tx.id}', event)">
+      <div class="sw-tx-icon" style="background:${meta.bg};color:${meta.color};">${meta.icon}</div>
+      <div class="sw-tx-body">
+        <div class="sw-tx-title">${escapeHtml(title)}</div>
+        <div class="sw-tx-sub">${escapeHtml(tx.category || 'Other')} • ${formatSpendwiseDate(tx.date)}</div>
+        ${extraTag}
+      </div>
+      <div class="sw-tx-right">
+        <span class="sw-tx-amount ${tx.type}">${sign}${formatCurrency(tx.amount)}</span>
+        <button type="button" class="sw-tx-del" onclick="event.stopPropagation();haptic();promptDelete('${tx.id}')" aria-label="Delete transaction">${trashSvg}</button>
+      </div>
+    </div>
+  `;
+}
+
 function renderSpendwiseHomeSections(monthTxs, totalExpense) {
   // 1. Spending by Category collapsible dropdown card
   const catSection = document.getElementById('sw-category-section');
@@ -1918,34 +1947,7 @@ function renderSpendwiseHomeSections(monthTxs, totalExpense) {
         </div>
       `;
     } else {
-      const trashSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
-      recentEl.innerHTML = monthTxs.slice(0, 3).map(tx => {
-        const isExpense = tx.type === 'expense';
-        const meta = getSpendwiseCategoryMeta(tx.category, tx.type);
-        const title = tx.description || tx.category || 'Transaction';
-        const sign = isExpense ? '-' : '+';
-        const isCC = (tx.paymentMethod === 'credit' || tx.cardId) && tx.category !== 'Credit Card Payment';
-        const isMK = tx.paymentMethod === 'mykasih';
-        const extraTag = isCC
-          ? `<div class="sw-tx-badge">💳 ${escapeHtml(getCardNameById(tx.cardId))}</div>`
-          : isMK
-            ? `<div class="sw-tx-badge">🎁 MyKasih</div>`
-            : '';
-        return `
-          <div class="sw-tx-card" onclick="openTxDetails('${tx.id}', event)">
-            <div class="sw-tx-icon" style="background:${meta.bg};color:${meta.color};">${meta.icon}</div>
-            <div class="sw-tx-body">
-              <div class="sw-tx-title">${escapeHtml(title)}</div>
-              <div class="sw-tx-sub">${escapeHtml(tx.category || 'Other')} • ${formatSpendwiseDate(tx.date)}</div>
-              ${extraTag}
-            </div>
-            <div class="sw-tx-right">
-              <span class="sw-tx-amount ${tx.type}">${sign}${formatCurrency(tx.amount)}</span>
-              <button type="button" class="sw-tx-del" onclick="event.stopPropagation();haptic();promptDelete('${tx.id}')" aria-label="Delete transaction">${trashSvg}</button>
-            </div>
-          </div>
-        `;
-      }).join('');
+      recentEl.innerHTML = monthTxs.slice(0, 3).map(buildSpendwiseTxCardHtml).join('');
     }
   }
 }
@@ -2259,11 +2261,16 @@ function renderRecentTransactions() {
 
 function getFilteredTransactions() {
   let list = [...allTransactions];
-  if (activeFilter !== 'all') list = list.filter(t => t.type === activeFilter);
   const selCombined = document.getElementById('filter-month-combined');
   const monthVal = selCombined ? selCombined.value : '';
   if (monthVal) list = list.filter(t => t.date && t.date.startsWith(monthVal));
-  
+
+  // Update "All (N)" chip count for the selected month
+  const allChipBtn = document.getElementById('tx-filter-all-btn');
+  if (allChipBtn) allChipBtn.textContent = `All (${list.length})`;
+
+  if (activeFilter !== 'all') list = list.filter(t => t.type === activeFilter);
+
   const pmFilterEl = document.getElementById('filter-payment-method');
   if (pmFilterEl) {
     const pmVal = pmFilterEl.value; // 'all', 'cash', 'credit', 'mykasih'
@@ -2275,19 +2282,37 @@ function getFilteredTransactions() {
       list = list.filter(t => t.paymentMethod === 'mykasih');
     }
   }
+
+  const searchEl = document.getElementById('tx-search-input');
+  const q = searchEl ? searchEl.value.trim().toLowerCase() : '';
+  if (q) {
+    list = list.filter(t => {
+      const desc = (t.description || '').toLowerCase();
+      const cat = (t.category || '').toLowerCase();
+      const notes = (t.notes || '').toLowerCase();
+      const card = t.cardId ? (getCardNameById(t.cardId) || '').toLowerCase() : '';
+      return desc.includes(q) || cat.includes(q) || notes.includes(q) || card.includes(q);
+    });
+  }
   return list;
 }
 
 function renderAllTransactions() {
   const container = document.getElementById('all-transactions-list');
+  if (!container) return;
   const list = getFilteredTransactions();
-  container.innerHTML = '';
   if (!list.length) {
-    container.innerHTML = '<div class="empty-state"><span>🗂️</span><p>No transactions found.</p></div>';
+    container.innerHTML = `
+      <div class="sw-empty-card">
+        <div class="sw-empty-title">No matching transactions</div>
+        <div class="sw-empty-sub">Try another month or tap + to add a new transaction.</div>
+      </div>
+    `;
     return;
   }
-  list.forEach(tx => container.appendChild(buildTransactionItem(tx)));
+  container.innerHTML = list.map(buildSpendwiseTxCardHtml).join('');
 }
+window.renderAllTransactions = renderAllTransactions;
 
 window.filterTransactions = function (type, el) {
   activeFilter = type;

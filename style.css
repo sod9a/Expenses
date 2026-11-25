@@ -636,6 +636,93 @@ input[type="month"]::-webkit-date-and-time-value { text-align: left; min-height:
   color: var(--ink-primary);
   letter-spacing: -0.01em;
 }
+.sw-month-label-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 10px;
+}
+.sw-month-label-btn:hover { background: var(--bg-glass-light); }
+
+/* ─── SPENDWISE HISTORY: SEARCH BAR & FILTER CHIPS ────────────────────────── */
+.sw-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.sw-search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--ink-secondary);
+  pointer-events: none;
+}
+.sw-search-input {
+  width: 100%;
+  height: 50px;
+  padding: 0 14px 0 44px;
+  background: transparent;
+  border: 1.25px solid var(--border-med);
+  border-radius: 8px;
+  color: var(--ink-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  transition: border-color var(--t), box-shadow var(--t);
+}
+.sw-search-input::placeholder { color: var(--ink-secondary); }
+.sw-search-input:focus {
+  outline: none;
+  border-color: var(--primary-ink);
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2);
+}
+
+.sw-filter-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.sw-chip-btn {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-med);
+  background: transparent;
+  color: var(--ink-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--t), border-color var(--t), color var(--t);
+  -webkit-tap-highlight-color: transparent;
+}
+.sw-chip-btn.active {
+  background: var(--primary-container);
+  border-color: transparent;
+  color: var(--on-primary-container);
+}
+.sw-chip-select {
+  height: 36px;
+  padding: 0 26px 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-med);
+  background-color: transparent;
+  color: var(--ink-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 13px;
+}
+.sw-chip-select option { background: var(--bg-surface); color: var(--ink-primary); }
 
 /* ─── SPENDWISE HOME: EMERALD HERO BALANCE CARD ───────────────────────────── */
 .mob-hero-card.sw-hero-card {
@@ -1514,7 +1601,7 @@ input[type="month"]::-webkit-date-and-time-value { text-align: left; min-height:
   padding: 0.22rem;
   flex: 1;
 }
-.filter-btn {
+.filter-buttons .filter-btn {
   border: none;
   border-radius: 9px;
   min-height: 36px;
@@ -1530,7 +1617,7 @@ input[type="month"]::-webkit-date-and-time-value { text-align: left; min-height:
   text-align: center;
   transition: background var(--t), color var(--t);
 }
-.filter-btn.active { background: var(--primary); color: #ffffff; }
+.filter-buttons .filter-btn.active { background: var(--primary); color: #ffffff; }
 
 /* Month selector bar matching SpendWise MonthSelectorBar */
 .cat-month-picker {
@@ -1544,17 +1631,6 @@ input[type="month"]::-webkit-date-and-time-value { text-align: left; min-height:
   border-radius: 14px;
   padding: 0.25rem 0.5rem;
 }
-#tx-month-picker-bar {
-  flex-shrink: 0;
-  margin: 0;
-  padding: 0.2rem 0.35rem;
-  border-radius: 12px;
-  gap: 0.15rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-}
-#tx-month-picker-bar .cat-month-label { font-size: 0.78rem; min-width: 84px; padding: 0.2rem 0.25rem; }
-#tx-month-picker-bar .cat-month-arrow { font-size: 1.15rem; min-width: 32px; min-height: 36px; }
 .cat-month-label {
   font-family: 'Outfit', sans-serif;
   font-weight: 700;
