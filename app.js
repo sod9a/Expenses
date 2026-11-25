@@ -73,6 +73,10 @@ let transactionsLoaded = false;
 let budgetsLoaded = false;
 let settingsLoaded = false;
 
+// Dashboard Month Selection State (SpendWise Home Month Switcher)
+let dashSelectedYear  = new Date().getFullYear();
+let dashSelectedMonth = new Date().getMonth(); // 0-indexed
+
 // Categories Month Selection State
 let catSelectedYear  = new Date().getFullYear();
 let catSelectedMonth = new Date().getMonth(); // 0-indexed
@@ -733,6 +737,7 @@ function subscribeToData() {
   const tq = query(collection(db, 'tabung'), where('uid', '==', currentUser.uid));
   unsubscribeTabung = onSnapshot(tq, snap => {
     allTabung = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    updateSummaryCards();
     if (document.getElementById('page-tabung').classList.contains('active')) renderTabung();
     if (activeTabungDetailId) refreshTabungDetailsModal();
   });
@@ -741,6 +746,7 @@ function subscribeToData() {
   const lq = query(collection(db, 'loans'), where('uid', '==', currentUser.uid));
   unsubscribeLoans = onSnapshot(lq, snap => {
     allLoans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    updateSummaryCards();
     if (document.getElementById('page-loans').classList.contains('active')) renderLoans();
     if (activeLoanDetailId) refreshLoanDetailsModal();
   });
@@ -1028,8 +1034,8 @@ const MOB_PAGE_TITLES = {
 };
 
 window.navigateTo = function (page, el) {
-  // Pages housed under "More" should highlight More tab in bottom-nav
-  const moreSubPages = ['monthly','budgets','categories','settings','loans'];
+  // Pages housed under "Wallet / More" sheet highlight the 4th tab
+  const moreSubPages = ['tabung', 'loans', 'categories', 'monthly', 'settings'];
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
@@ -1040,10 +1046,14 @@ window.navigateTo = function (page, el) {
   } else {
     document.querySelector(`.bottom-nav .nav-item[data-page="${page}"]`)?.classList.add('active');
   }
-  // Update mobile header title
+  // Show SpendWise FAB on Home & History tabs only
+  const fab = document.getElementById('sw-fab');
+  if (fab) fab.classList.toggle('hidden', page !== 'dashboard' && page !== 'transactions');
+  // Update top app bar title
   const titleEl = document.getElementById('mob-page-title');
   if (titleEl) titleEl.textContent = MOB_PAGE_TITLES[page] || 'ExpenseFlow';
   window.scrollTo({ top: 0, behavior: 'instant' });
+  if (page === 'dashboard') updateSummaryCards();
   if (page === 'categories') {
     renderCategories();
     updateExpensesChart();
@@ -1090,7 +1100,7 @@ window.closeMoreMenu = function() {
   setTimeout(() => overlay.classList.add('hidden'), 280);
   // Remove active state from More tab (keep it if we navigated to a More sub-page)
   const activePage = document.querySelector('.page.active');
-  const moreSubPages = ['monthly','budgets','categories','settings','loans'];
+  const moreSubPages = ['tabung', 'loans', 'categories', 'monthly', 'settings'];
   if (!activePage || !moreSubPages.includes(activePage.id.replace('page-',''))) {
     document.querySelectorAll('.bottom-nav .nav-item').forEach(i => {
       if (i.dataset.page === 'more') i.classList.remove('active');
@@ -1541,8 +1551,11 @@ window.highlightChartSegment = function(index) {
 };
 
 function formatCurrency(n) {
-  const formatted = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-  return userSettings.currency + formatted;
+  const num = parseFloat(n) || 0;
+  const formatted = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(num));
+  const sign = num < 0 ? '-' : '';
+  const sym = (userSettings.currency === 'RM' || userSettings.currency === 'Rp') ? userSettings.currency + ' ' : userSettings.currency;
+  return sign + sym + formatted;
 }
 
 window.setAmountInputValue = function(idOrEl, value) {
@@ -1768,42 +1781,200 @@ function populateCCSelect() {
   });
 }
 
+window.dashMonthShift = function (delta) {
+  haptic();
+  dashSelectedMonth += delta;
+  if (dashSelectedMonth < 0) { dashSelectedMonth = 11; dashSelectedYear--; }
+  if (dashSelectedMonth > 11) { dashSelectedMonth = 0; dashSelectedYear++; }
+  updateSummaryCards();
+};
+
+window.focusDashboardCC = function () {
+  haptic();
+  const card = document.getElementById('dashboard-cc-card');
+  if (!card) return;
+  card.classList.add('open');
+  localStorage.setItem('dashboardCCOpen', 'true');
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+function formatSpendwiseDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return dateStr;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = d.toLocaleDateString('en-US', { month: 'short' });
+  return `${day} ${month} ${d.getFullYear()}`;
+}
+
+function getSpendwiseCategoryMeta(cat, type) {
+  const key = (cat || '').toLowerCase();
+  const svg = (path) => `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${path}</svg>`;
+  if (key.includes('food') || key.includes('dining') || key.includes('eat') || key.includes('drink') || key.includes('coffee')) {
+    return { color: '#F97316', bg: 'rgba(249, 115, 22, 0.14)', icon: svg('<path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>') };
+  }
+  if (key.includes('grocer')) {
+    return { color: '#22C55E', bg: 'rgba(34, 197, 94, 0.14)', icon: svg('<path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0 0 20 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>') };
+  }
+  if (key.includes('rent') || key.includes('hous') || key.includes('home')) {
+    return { color: '#0284C7', bg: 'rgba(2, 132, 199, 0.14)', icon: svg('<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>') };
+  }
+  if (key.includes('bill') || key.includes('util')) {
+    return { color: '#EAB308', bg: 'rgba(234, 179, 8, 0.14)', icon: svg('<path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z"/>') };
+  }
+  if (key.includes('transport') || key.includes('car') || key.includes('fuel') || key.includes('petrol') || key.includes('grab')) {
+    return { color: '#6366F1', bg: 'rgba(99, 102, 241, 0.14)', icon: svg('<path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>') };
+  }
+  if (key.includes('shop') || key.includes('cloth')) {
+    return { color: '#EC4899', bg: 'rgba(236, 72, 153, 0.14)', icon: svg('<path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2z"/>') };
+  }
+  if (key.includes('entertain') || key.includes('movie') || key.includes('game')) {
+    return { color: '#A855F7', bg: 'rgba(168, 85, 247, 0.14)', icon: svg('<path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/>') };
+  }
+  if (key.includes('health') || key.includes('med') || key.includes('clinic')) {
+    return { color: '#EF4444', bg: 'rgba(239, 68, 68, 0.14)', icon: svg('<path d="M19 3H5c-1.1 0-1.99.9-1.99 2L3 19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z"/>') };
+  }
+  if (key.includes('credit')) {
+    return { color: '#0F766E', bg: 'rgba(15, 118, 110, 0.14)', icon: svg('<path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>') };
+  }
+  if (key.includes('salary') || key.includes('income') || type === 'income') {
+    return { color: '#16A34A', bg: 'rgba(22, 163, 74, 0.14)', icon: svg('<path d="M19 14V6c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zm-9-1c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm13-6v11c0 1.1-.9 2-2 2H4v-2h17V7h2z"/>') };
+  }
+  if (key.includes('loan')) {
+    return { color: '#0284C7', bg: 'rgba(2, 132, 199, 0.14)', icon: svg('<path d="M4 10v7h3v-7H4zm6 0v7h3v-7h-3zM2 22h19v-3H2v3zm14-12v7h3v-7h-3zm-4.5-9L2 6v2h19V6l-9.5-5z"/>') };
+  }
+  return { color: '#64748B', bg: 'rgba(100, 116, 139, 0.14)', icon: svg('<path d="M12 2l-5.5 9h11L12 2zm0 3.84L13.93 9h-3.87L12 5.84zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.01 4.5-4.5-2.01-4.5-4.5-4.5zm0 7a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5zM3 21.5h8v-8H3v8zm2-6h4v4H5v-4z"/>') };
+}
+
+function renderSpendwiseHomeSections(monthTxs, totalExpense) {
+  // 1. Spending by Category card
+  const catSection = document.getElementById('sw-category-section');
+  const catList = document.getElementById('sw-category-breakdown-list');
+  if (catSection && catList) {
+    const expenseByCat = {};
+    monthTxs
+      .filter(t => t.type === 'expense' && t.category !== 'Credit Card Payment')
+      .forEach(t => {
+        const c = t.category || 'Other';
+        expenseByCat[c] = (expenseByCat[c] || 0) + (parseFloat(t.amount) || 0);
+      });
+    const sortedCats = Object.entries(expenseByCat).sort((a, b) => b[1] - a[1]);
+    if (!sortedCats.length) {
+      catSection.classList.add('hidden');
+      catList.innerHTML = '';
+    } else {
+      catSection.classList.remove('hidden');
+      catList.innerHTML = sortedCats.slice(0, 6).map(([cat, spent]) => {
+        const pct = totalExpense > 0 ? Math.min(100, Math.round((spent / totalExpense) * 100)) : 0;
+        const meta = getSpendwiseCategoryMeta(cat, 'expense');
+        return `
+          <div class="sw-cat-row" onclick="haptic();navigateTo('categories')">
+            <div class="sw-cat-row-top">
+              <div class="sw-cat-row-left">
+                <span class="sw-cat-icon" style="background:${meta.bg};color:${meta.color};">${meta.icon}</span>
+                <span class="sw-cat-name">${escapeHtml(cat)}</span>
+              </div>
+              <span class="sw-cat-val">${formatCurrency(spent)} (${pct}%)</span>
+            </div>
+            <div class="sw-cat-bar-track" style="background:${meta.bg};">
+              <div class="sw-cat-bar-fill" style="width:${pct}%;background:${meta.color};"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // 2. Recent Transactions list
+  const recentEl = document.getElementById('sw-recent-list');
+  if (recentEl) {
+    if (!monthTxs.length) {
+      recentEl.innerHTML = `
+        <div class="sw-empty-card">
+          <div class="sw-empty-title">No transactions yet</div>
+          <div class="sw-empty-sub">Tap the + button below to add your salary, food, bills, or rent.</div>
+        </div>
+      `;
+    } else {
+      const trashSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+      recentEl.innerHTML = monthTxs.slice(0, 8).map(tx => {
+        const isExpense = tx.type === 'expense';
+        const meta = getSpendwiseCategoryMeta(tx.category, tx.type);
+        const title = tx.description || tx.category || 'Transaction';
+        const sign = isExpense ? '-' : '+';
+        const isCC = (tx.paymentMethod === 'credit' || tx.cardId) && tx.category !== 'Credit Card Payment';
+        const isMK = tx.paymentMethod === 'mykasih';
+        const extraTag = isCC
+          ? `<div class="sw-tx-badge">💳 ${escapeHtml(getCardNameById(tx.cardId))}</div>`
+          : isMK
+            ? `<div class="sw-tx-badge">🎁 MyKasih</div>`
+            : '';
+        return `
+          <div class="sw-tx-card" onclick="openTxDetails('${tx.id}', event)">
+            <div class="sw-tx-icon" style="background:${meta.bg};color:${meta.color};">${meta.icon}</div>
+            <div class="sw-tx-body">
+              <div class="sw-tx-title">${escapeHtml(title)}</div>
+              <div class="sw-tx-sub">${escapeHtml(tx.category || 'Other')} • ${formatSpendwiseDate(tx.date)}</div>
+              ${extraTag}
+            </div>
+            <div class="sw-tx-right">
+              <span class="sw-tx-amount ${tx.type}">${sign}${formatCurrency(tx.amount)}</span>
+              <button type="button" class="sw-tx-del" onclick="event.stopPropagation();haptic();promptDelete('${tx.id}')" aria-label="Delete transaction">${trashSvg}</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+}
+
 function updateSummaryCards() {
-  const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
-  
-  // Sum current month's income transactions categorized as "Salary" (case-insensitive)
-  const salaryIncome = allTransactions
-    .filter(t => t.type === 'income' && t.category && t.category.toLowerCase() === 'salary' && t.date && t.date.startsWith(currentMonthStr))
+  const now = new Date();
+  const isCurrentMonth = dashSelectedYear === now.getFullYear() && dashSelectedMonth === now.getMonth();
+  const currentMonthStr = `${dashSelectedYear}-${String(dashSelectedMonth + 1).padStart(2, '0')}`;
+
+  // Update SpendWise Month Bar label
+  const dashMonthLabel = document.getElementById('dash-month-label');
+  if (dashMonthLabel) {
+    const labelDate = new Date(dashSelectedYear, dashSelectedMonth, 1);
+    dashMonthLabel.textContent = labelDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  const monthTxs = allTransactions.filter(t => t.date && t.date.startsWith(currentMonthStr));
+
+  // Sum selected month's income transactions categorized as "Salary" (case-insensitive)
+  const salaryIncome = monthTxs
+    .filter(t => t.type === 'income' && t.category && t.category.toLowerCase() === 'salary')
     .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
 
-  // Sum current month's other income transactions (excluding "Salary")
-  const otherIncome = allTransactions
-    .filter(t => t.type === 'income' && (!t.category || t.category.toLowerCase() !== 'salary') && t.date && t.date.startsWith(currentMonthStr))
+  // Sum selected month's other income transactions (excluding "Salary")
+  const otherIncome = monthTxs
+    .filter(t => t.type === 'income' && (!t.category || t.category.toLowerCase() !== 'salary'))
     .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
 
-  // Net income = grossIncome from settings + any salary income transactions
-  const netIncome = grossIncome + salaryIncome;
-  
+  // Net income = grossIncome from settings (on current month) + salary transactions
+  const netIncome = (isCurrentMonth ? grossIncome : 0) + salaryIncome;
+  const totalMonthlyIncome = netIncome + otherIncome;
+
   // Cash/Debit expenses this month (excludes Credit Card payments, Credit Card purchases, and MyKasih purchases)
-  const cashExpense = allTransactions
-    .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && !t.cardId && t.paymentMethod !== 'mykasih' && t.category !== 'Credit Card Payment' && t.date && t.date.startsWith(currentMonthStr))
+  const cashExpense = monthTxs
+    .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && !t.cardId && t.paymentMethod !== 'mykasih' && t.category !== 'Credit Card Payment')
     .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
 
   // Credit Card Bill Payments recorded this month
-  const ccPayments = allTransactions
-    .filter(t => t.type === 'expense' && t.category === 'Credit Card Payment' && t.date && t.date.startsWith(currentMonthStr))
+  const ccPayments = monthTxs
+    .filter(t => t.type === 'expense' && t.category === 'Credit Card Payment')
     .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
 
   // Total actual monthly spending (Cash expenses + Credit card expenses, excluding double-counted bill payments)
-  const totalExpense = allTransactions
-    .filter(t => t.type === 'expense' && t.category !== 'Credit Card Payment' && t.date && t.date.startsWith(currentMonthStr))
+  const totalExpense = monthTxs
+    .filter(t => t.type === 'expense' && t.category !== 'Credit Card Payment')
     .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
-  
-  const carryOver = typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : 0;
-  
+
+  const carryOver = isCurrentMonth && typeof userSettings.carryOverBalance === 'number' ? userSettings.carryOverBalance : 0;
+
   // Cash Balance = Cash inflows minus Cash outflows (cash expenses and cc bill payments)
-  const balance   = carryOver + netIncome + otherIncome - cashExpense - ccPayments;
-  const remaining = balance;
+  const balance = carryOver + totalMonthlyIncome - cashExpense - ccPayments;
 
   // ─── Credit Card Calculations (shared pool) ───
   const cards = getCCCards();
@@ -1833,12 +2004,29 @@ function updateSummaryCards() {
   const ccCardTitleEl = document.querySelector('.cc-dashboard-title');
   if (ccCardTitleEl) ccCardTitleEl.textContent = 'Credit Card';
 
+  // SpendWise Hero Card (Monthly Net Balance, Income, Expenses)
+  const mobBal  = document.getElementById('mob-hero-balance');
+  const mobInc  = document.getElementById('mob-hero-income');
+  const mobExp  = document.getElementById('mob-hero-expenses');
+  if (mobBal) mobBal.dataset.value = formatCurrency(balance);
+  if (mobInc) mobInc.dataset.value = formatCurrency(totalMonthlyIncome);
+  if (mobExp) mobExp.dataset.value = formatCurrency(totalExpense);
 
-  // Mobile hero card
-  const mobBal       = document.getElementById('mob-hero-balance');
-  const mobRemaining = document.getElementById('mob-remaining');
-  if (mobBal)       mobBal.dataset.value       = formatCurrency(netIncome);
-  if (mobRemaining) mobRemaining.dataset.value = formatCurrency(remaining);
+  // SpendWise 3-Column Mini Stats (Card Debt, Savings, Loans)
+  const totalSavings = allTabung.reduce((s, t) => s + (parseFloat(t.saved) || 0), 0);
+  const totalLoansOwed = allLoans
+    .filter(l => l.loanType === 'owe')
+    .reduce((s, l) => s + Math.max(0, (parseFloat(l.total) || 0) - (parseFloat(l.paid) || 0)), 0);
+
+  const statDebtEl = document.getElementById('sw-stat-card-debt');
+  const statSavEl  = document.getElementById('sw-stat-savings');
+  const statLoanEl = document.getElementById('sw-stat-loans');
+  if (statDebtEl) statDebtEl.dataset.value = formatCurrency(ccTotalOutstanding);
+  if (statSavEl)  statSavEl.dataset.value  = formatCurrency(totalSavings);
+  if (statLoanEl) statLoanEl.dataset.value = formatCurrency(totalLoansOwed);
+
+  // SpendWise Home Sections (Spending by Category + Recent Transactions)
+  renderSpendwiseHomeSections(monthTxs, totalExpense);
 
   // Render Credit Card Widget Elements
   renderCCTabs();
