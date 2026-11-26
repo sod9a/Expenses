@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { SplashScreen } from '@/components/SplashScreen';
 
 type AuthMode = 'login' | 'register' | 'forgot';
 
@@ -69,6 +70,10 @@ export function AuthPage() {
       setBusy(false);
     }
   };
+
+  if (busy && (mode === 'login' || mode === 'register')) {
+    return <SplashScreen message={mode === 'register' ? 'Creating your account…' : 'Signing you in…'} />;
+  }
 
   return (
     <div id="auth-overlay" className="auth-overlay">

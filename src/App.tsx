@@ -4,6 +4,7 @@ import { useFinance } from '@/context/FinanceContext';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { FloatingAddButton } from '@/components/layout/FloatingAddButton';
+import { SplashScreen } from '@/components/SplashScreen';
 import { AuthPage } from '@/pages/AuthPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { TransactionsPage } from '@/pages/TransactionsPage';
@@ -35,7 +36,7 @@ import type {
 
 export function App() {
   const { user, authReady } = useAuth();
-  const { deleteTransaction } = useFinance();
+  const { loading, deleteTransaction } = useFinance();
 
   const [page, setPage] = useState<PageId>('dashboard');
   const [walletTab, setWalletTab] = useState<WalletTabId>('cards');
@@ -93,18 +94,15 @@ export function App() {
   };
 
   if (!authReady) {
-    return (
-      <div className="auth-overlay">
-        <div className="auth-card" style={{ textAlign: 'center' }}>
-          <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem' }}>ExpenseFlow</h1>
-          <p style={{ color: 'var(--ink-secondary)', marginTop: '0.5rem', fontSize: '0.86rem' }}>Loading your workspace…</p>
-        </div>
-      </div>
-    );
+    return <SplashScreen message="Checking your session…" />;
   }
 
   if (!user) {
     return <AuthPage />;
+  }
+
+  if (loading) {
+    return <SplashScreen message="Syncing your accounts…" />;
   }
 
   return (
