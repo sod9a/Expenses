@@ -123,12 +123,12 @@ export function DashboardPage({ onNavigate, onInspectTx, onDeleteTx }: Dashboard
       </div>
 
       {/* Emerald Hero Balance Card */}
-      <div className="sw-hero-card">
+      <div className="mob-hero-card sw-hero-card">
         <div className="sw-hero-top">
-          <span className="sw-hero-label">Monthly Net Balance</span>
+          <span className="sw-hero-title">Monthly Net Balance</span>
           <button
             type="button"
-            className="sw-eye-btn"
+            className="mob-eye-btn sw-eye-btn"
             aria-label={hidden ? 'Show balance' : 'Hide balance'}
             onClick={() => {
               haptic();
@@ -149,7 +149,7 @@ export function DashboardPage({ onNavigate, onInspectTx, onDeleteTx }: Dashboard
           </button>
         </div>
         <div className="sw-hero-balance">{mask(formatCurrency(balance, currency))}</div>
-        <div className="sw-hero-row">
+        <div className="sw-hero-split">
           <div className="sw-hero-col">
             <span className="sw-hero-sub-label">Income</span>
             <span className="sw-hero-sub-val income">{mask(formatCurrency(totalIncome, currency))}</span>

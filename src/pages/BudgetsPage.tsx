@@ -84,16 +84,16 @@ export function BudgetsPage({ onOpenBudgetModal, onOpenBudgetChart }: BudgetsPag
             + Add Budget
           </button>
         </div>
-        <div className="sw-budget-ratio">
+        <div className={`sw-budget-summary-ratio ${totalSpent > totalLimit ? 'danger' : overallPct >= 80 ? 'warn' : 'safe'}`}>
           {formatCurrency(totalSpent, currency)} / {formatCurrency(totalLimit, currency)}
         </div>
-        <div className="sw-budget-track">
+        <div className="sw-budget-track large">
           <div
             className={`sw-budget-fill${totalSpent > totalLimit ? ' over' : overallPct >= 80 ? ' warn' : ''}`}
             style={{ width: `${overallPct}%` }}
           />
         </div>
-        <div className="sw-budget-rem" style={{ color: remaining < 0 ? 'var(--expense)' : 'var(--ink-secondary)' }}>
+        <div className={`sw-budget-summary-rem${remaining < 0 ? ' danger' : ''}`}>
           {totalLimit === 0
             ? 'No monthly budgets set yet'
             : remaining >= 0
@@ -130,8 +130,8 @@ export function BudgetsPage({ onOpenBudgetModal, onOpenBudgetChart }: BudgetsPag
                   }
                 }}
               >
-                <div className="sw-budget-card-top">
-                  <div className="sw-tx-icon" style={{ background: meta.bg, color: meta.color }}>
+                <div className="sw-budget-top">
+                  <div className="sw-budget-icon" style={{ background: meta.bg, color: meta.color }}>
                     {meta.icon}
                   </div>
                   <div className="sw-budget-info">
@@ -140,7 +140,7 @@ export function BudgetsPage({ onOpenBudgetModal, onOpenBudgetChart }: BudgetsPag
                       {formatCurrency(spent, currency)} of {formatCurrency(limit, currency)}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.35rem' }}>
+                  <div className="sw-budget-actions">
                     <button
                       type="button"
                       className="sw-budget-icon-btn"

@@ -256,7 +256,7 @@ export function WalletPage({
             </div>
           </div>
 
-          <div className="wallet-cc-list" style={{ marginTop: '0.9rem' }}>
+          <div className="savings-goals-grid" style={{ marginTop: '0.9rem' }}>
             {tabung.length === 0 ? (
               <div className="sw-empty-card">
                 <div className="sw-empty-title">No savings goals yet</div>
@@ -268,12 +268,12 @@ export function WalletPage({
                 const target = Number(goal.target) || 1;
                 const pct = Math.min((saved / target) * 100, 100);
                 const remaining = Math.max(0, target - saved);
-                const colorMeta = SAVINGS_COLORS.find((c) => c.key === goal.color) || SAVINGS_COLORS[0];
+                const themeKey = SAVINGS_COLORS.some((c) => c.key === goal.color) ? goal.color! : 'emerald';
 
                 return (
                   <article
                     key={goal.id}
-                    className="loan-v2-card"
+                    className={`tabung-card${remaining <= 0 ? ' is-completed' : ''}`}
                     role="button"
                     tabIndex={0}
                     onClick={() => {
@@ -287,22 +287,22 @@ export function WalletPage({
                       }
                     }}
                   >
-                    <div className="loan-v2-top">
-                      <div className="loan-v2-left">
-                        <div className="loan-v2-icon" style={{ background: colorMeta.bg, color: colorMeta.color }}>
-                          {renderSavingsIcon(goal.emoji)}
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div className="loan-v2-title">{goal.name}</div>
-                          <div className="loan-v2-sub">
-                            {remaining > 0 ? `${formatCurrency(remaining, currency)} left to target` : 'Goal reached'}
-                          </div>
-                        </div>
+                    <div className="tabung-card-top">
+                      <div className={`tabung-icon-badge theme-${themeKey}`}>
+                        {renderSavingsIcon(goal.emoji)}
                       </div>
-                      <div className="loan-v2-actions">
+                      <div className="tabung-title-wrap">
+                        <div className="tabung-title-row">
+                          <span className="tabung-name">{goal.name}</span>
+                        </div>
+                        <span className="tabung-sub-status">
+                          {remaining > 0 ? `${formatCurrency(remaining, currency)} left to target` : 'Goal reached'}
+                        </span>
+                      </div>
+                      <div className="tabung-actions">
                         <button
                           type="button"
-                          className="sw-budget-icon-btn"
+                          className="btn-tabung-icon"
                           aria-label={`Edit ${goal.name}`}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -317,7 +317,7 @@ export function WalletPage({
                         </button>
                         <button
                           type="button"
-                          className="sw-budget-icon-btn danger"
+                          className="btn-tabung-icon danger"
                           aria-label={`Delete ${goal.name}`}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -334,33 +334,36 @@ export function WalletPage({
                       </div>
                     </div>
 
-                    <div className="loan-v2-amount-row">
-                      <div>
-                        <strong className="loan-v2-amount">{formatCurrency(saved, currency)}</strong>
-                        <span className="loan-v2-of"> of {formatCurrency(target, currency)}</span>
+                    <div className="tabung-metrics-row">
+                      <div className="tabung-amounts">
+                        <strong className="tabung-saved">{formatCurrency(saved, currency)}</strong>
+                        <span className="tabung-sep">of</span>
+                        <span className="tabung-target-val">{formatCurrency(target, currency)}</span>
                       </div>
-                      <span className="loan-v2-pct-pill" style={{ background: colorMeta.bg, color: colorMeta.color }}>
-                        {pct.toFixed(0)}%
+                      <span className={`tabung-pct-badge theme-${themeKey}`}>{pct.toFixed(0)}%</span>
+                    </div>
+
+                    <div className="tabung-track">
+                      <div className={`tabung-fill theme-${themeKey}`} style={{ width: `${pct.toFixed(1)}%` }} />
+                    </div>
+
+                    <div className="tabung-card-footer">
+                      <span className={`tabung-pace-text${remaining <= 0 ? ' completed' : ''}`}>
+                        {remaining <= 0 ? 'Target achieved' : `${formatCurrency(remaining, currency)} remaining`}
                       </span>
-                    </div>
-
-                    <div className="sw-budget-track">
-                      <div className="sw-budget-fill" style={{ width: `${pct.toFixed(1)}%`, background: colorMeta.color }} />
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
-                      <button
-                        type="button"
-                        className="wallet-pay-btn"
-                        style={{ minHeight: 38, padding: '0.35rem 1rem', fontSize: '0.82rem' }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          haptic();
-                          onOpenSavingsTopup(goal);
-                        }}
-                      >
-                        + Deposit / Withdraw
-                      </button>
+                      <div className="tabung-footer-btns">
+                        <button
+                          type="button"
+                          className="btn-tabung-deposit"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            haptic();
+                            onOpenSavingsTopup(goal);
+                          }}
+                        >
+                          + Deposit / Withdraw
+                        </button>
+                      </div>
                     </div>
                   </article>
                 );
@@ -407,7 +410,7 @@ export function WalletPage({
             </div>
           </div>
 
-          <div className="wallet-cc-list" style={{ marginTop: '0.9rem' }}>
+          <div className="savings-goals-grid" style={{ marginTop: '0.9rem' }}>
             {loans.length === 0 ? (
               <div className="sw-empty-card">
                 <div className="sw-empty-title">No loans recorded</div>
@@ -428,12 +431,12 @@ export function WalletPage({
                   d.setMonth(d.getMonth() + installmentsLeft);
                   estEnd = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                 }
-                const colorMeta = LOAN_COLORS.find((c) => c.key === loan.color) || LOAN_COLORS[0];
+                const themeKey = LOAN_COLORS.some((c) => c.key === loan.color) ? loan.color! : 'blue';
 
                 return (
                   <article
                     key={loan.id}
-                    className="loan-v2-card"
+                    className={`tabung-card${isSettled ? ' is-completed' : ''}`}
                     role="button"
                     tabIndex={0}
                     onClick={() => {
@@ -447,22 +450,22 @@ export function WalletPage({
                       }
                     }}
                   >
-                    <div className="loan-v2-top">
-                      <div className="loan-v2-left">
-                        <div className="loan-v2-icon" style={{ background: colorMeta.bg, color: colorMeta.color }}>
-                          {renderLoanIcon(loan.icon, loan.person)}
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div className="loan-v2-title">{loan.person}</div>
-                          <div className="loan-v2-sub">
-                            {loan.desc ? `${loan.desc} · ` : ''}Paid {formatCurrency(paid, currency)}
-                          </div>
-                        </div>
+                    <div className="tabung-card-top">
+                      <div className={`tabung-icon-badge theme-${themeKey}`}>
+                        {renderLoanIcon(loan.icon, loan.person)}
                       </div>
-                      <div className="loan-v2-actions">
+                      <div className="tabung-title-wrap">
+                        <div className="tabung-title-row">
+                          <span className="tabung-name">{loan.person}</span>
+                        </div>
+                        <span className="tabung-sub-status">
+                          {loan.desc ? `${loan.desc} · ` : ''}Paid {formatCurrency(paid, currency)}
+                        </span>
+                      </div>
+                      <div className="tabung-actions">
                         <button
                           type="button"
-                          className="sw-budget-icon-btn"
+                          className="btn-tabung-icon"
                           aria-label={`Edit ${loan.person}`}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -477,7 +480,7 @@ export function WalletPage({
                         </button>
                         <button
                           type="button"
-                          className="sw-budget-icon-btn danger"
+                          className="btn-tabung-icon danger"
                           aria-label={`Delete ${loan.person}`}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -494,43 +497,43 @@ export function WalletPage({
                       </div>
                     </div>
 
-                    <div className="loan-v2-amount-row">
-                      <div>
-                        <strong className="loan-v2-amount">{formatCurrency(remaining, currency)}</strong>
-                        <span className="loan-v2-of"> left of {formatCurrency(total, currency)}</span>
+                    <div className="tabung-metrics-row">
+                      <div className="tabung-amounts">
+                        <strong className="tabung-saved">{formatCurrency(remaining, currency)}</strong>
+                        <span className="tabung-sep">left of</span>
+                        <span className="tabung-target-val">{formatCurrency(total, currency)}</span>
                       </div>
-                      <span className="loan-v2-pct-pill" style={{ background: colorMeta.bg, color: colorMeta.color }}>
-                        {pct.toFixed(0)}% paid
+                      <span className={`tabung-pct-badge theme-${themeKey}`}>{pct.toFixed(0)}% paid</span>
+                    </div>
+
+                    <div className="tabung-track">
+                      <div className={`tabung-fill theme-${themeKey}`} style={{ width: `${pct.toFixed(1)}%` }} />
+                    </div>
+
+                    <div className="tabung-card-footer">
+                      <span className={`tabung-pace-text${isSettled ? ' completed' : ''}`}>
+                        {isSettled
+                          ? 'Fully paid off'
+                          : monthly > 0
+                            ? `${formatCurrency(monthly, currency)}/mo · ${installmentsLeft} left${estEnd ? ` (Est. ${estEnd})` : ''}`
+                            : `${formatCurrency(remaining, currency)} remaining`}
                       </span>
+                      {!isSettled && (
+                        <div className="tabung-footer-btns">
+                          <button
+                            type="button"
+                            className="btn-tabung-deposit"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              haptic();
+                              onOpenLoanPay(loan);
+                            }}
+                          >
+                            + Pay Installment
+                          </button>
+                        </div>
+                      )}
                     </div>
-
-                    <div className="sw-budget-track">
-                      <div className="sw-budget-fill" style={{ width: `${pct.toFixed(1)}%`, background: colorMeta.color }} />
-                    </div>
-
-                    {monthly > 0 && !isSettled && (
-                      <div style={{ fontSize: '0.76rem', color: 'var(--ink-secondary)', marginTop: '0.55rem' }}>
-                        {formatCurrency(monthly, currency)}/mo · {installmentsLeft} installments left
-                        {estEnd ? ` (Est. ${estEnd})` : ''}
-                      </div>
-                    )}
-
-                    {!isSettled && (
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.7rem' }}>
-                        <button
-                          type="button"
-                          className="wallet-pay-btn"
-                          style={{ minHeight: 38, padding: '0.35rem 1rem', fontSize: '0.82rem' }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            haptic();
-                            onOpenLoanPay(loan);
-                          }}
-                        >
-                          + Pay Installment
-                        </button>
-                      </div>
-                    )}
                   </article>
                 );
               })

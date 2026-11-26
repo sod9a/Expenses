@@ -58,12 +58,12 @@ export function TransactionsPage({ onInspectTx, onDeleteTx }: TransactionsPagePr
         </button>
       </div>
 
-      <div className="sw-filter-row" role="tablist" aria-label="Filter transactions">
+      <div className="sw-filter-chips" role="tablist" aria-label="Filter transactions">
         {(['all', 'income', 'expense'] as const).map((tab) => (
           <button
             key={tab}
             type="button"
-            className={`filter-btn${filter === tab ? ' active' : ''}`}
+            className={`sw-chip-btn${filter === tab ? ' active' : ''}`}
             onClick={() => {
               haptic();
               setFilter(tab);
