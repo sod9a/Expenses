@@ -148,11 +148,7 @@ function calcMonthsDiff(fromYM: string, toYM: string): number {
 
 function isSafeAvatarUrl(url: unknown): url is string {
   if (typeof url !== 'string' || url.length > 150000) return false;
-  return (
-    url === '' ||
-    /^https?:\/\/.*/.test(url) ||
-    /^data:image\/(jpeg|png|webp|gif);base64,.*/.test(url)
-  );
+  return url === '' || /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(url);
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);

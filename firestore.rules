@@ -199,8 +199,7 @@ service cloud.firestore {
       return url is string &&
              url.size() <= 150000 &&
              (url == '' ||
-              url.matches('^https?://.*') ||
-              url.matches('^data:image/(jpeg|png|webp|gif);base64,.*'));
+              url.matches('^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$'));
     }
 
     // ===============================================================
@@ -347,14 +346,9 @@ service cloud.firestore {
     // Collection Rules
     // ===============================================================
 
-    // Username -> Email lookup for sign-in
+    // Username profile metadata (strictly owner-only; no unauthenticated enumeration)
     match /usernames/{userId} {
-      // Deny unauthenticated single-doc get; allow owner get
-      allow get: if isOwner(userId);
-      // Allow unauthenticated list ONLY for single-record login lookup (limit <= 1)
-      // to prevent bulk scraping of usernames/emails; allow owner list
-      allow list: if (request.auth == null && request.query.limit is int && request.query.limit <= 1) ||
-                     isOwner(userId);
+      allow read: if isOwner(userId);
       allow create: if isOwner(userId) &&
                        uidUnchanged() &&
                        isValidUsernameDoc(request.resource.data, userId);

@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { SplashScreen } from '@/components/SplashScreen';
 
-type AuthMode = 'login' | 'register' | 'forgot';
+type AuthMode = 'login' | 'forgot';
 
 export function AuthPage() {
-  const { login, register, sendReset } = useAuth();
+  const { login, sendReset } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -14,12 +14,6 @@ export function AuthPage() {
   // Login fields
   const [loginInput, setLoginInput] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-
-  // Register fields
-  const [regName, setRegName] = useState('');
-  const [regUsername, setRegUsername] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPassword, setRegPassword] = useState('');
 
   // Forgot fields
   const [forgotEmail, setForgotEmail] = useState('');
@@ -43,19 +37,6 @@ export function AuthPage() {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setBusy(true);
-    try {
-      await register(regName, regUsername, regEmail, regPassword);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -71,8 +52,8 @@ export function AuthPage() {
     }
   };
 
-  if (busy && (mode === 'login' || mode === 'register')) {
-    return <SplashScreen message={mode === 'register' ? 'Creating your account…' : 'Signing you in…'} />;
+  if (busy && mode === 'login') {
+    return <SplashScreen message="Signing you in…" />;
   }
 
   return (
@@ -87,12 +68,12 @@ export function AuthPage() {
           <form className="auth-form active" onSubmit={handleLogin}>
             <h2>Welcome back</h2>
             <div className="input-group">
-              <label htmlFor="login-email">Email or Username</label>
+              <label htmlFor="login-email">Email</label>
               <input
-                type="text"
+                type="email"
                 id="login-email"
-                placeholder="Email or Username"
-                autoComplete="username"
+                placeholder="you@example.com"
+                autoComplete="email"
                 value={loginInput}
                 onChange={(e) => setLoginInput(e.target.value)}
               />
@@ -122,67 +103,6 @@ export function AuthPage() {
           </form>
         )}
 
-        {mode === 'register' && (
-          <form className="auth-form active" onSubmit={handleRegister}>
-            <h2>Create account</h2>
-            <div className="input-group">
-              <label htmlFor="reg-name">Full Name</label>
-              <input
-                type="text"
-                id="reg-name"
-                placeholder="Your name"
-                autoComplete="name"
-                value={regName}
-                onChange={(e) => setRegName(e.target.value)}
-              />
-            </div>
-            <div className="input-group">
-              <label htmlFor="reg-username">Username</label>
-              <input
-                type="text"
-                id="reg-username"
-                placeholder="unique_username"
-                autoComplete="username"
-                value={regUsername}
-                onChange={(e) => setRegUsername(e.target.value)}
-              />
-            </div>
-            <div className="input-group">
-              <label htmlFor="reg-email">Email</label>
-              <input
-                type="email"
-                id="reg-email"
-                placeholder="you@example.com"
-                autoComplete="email"
-                value={regEmail}
-                onChange={(e) => setRegEmail(e.target.value)}
-              />
-            </div>
-            <div className="input-group">
-              <label htmlFor="reg-password">Password</label>
-              <input
-                type="password"
-                id="reg-password"
-                placeholder="Min. 6 characters"
-                autoComplete="new-password"
-                value={regPassword}
-                onChange={(e) => setRegPassword(e.target.value)}
-              />
-            </div>
-            <button type="submit" className="btn-primary" disabled={busy}>
-              {busy ? 'Creating…' : 'Create Account'}
-            </button>
-            <p className="auth-switch">
-              Already have an account? <span onClick={() => switchMode('login')}>Sign In</span>
-            </p>
-            {error && (
-              <div className="auth-error" style={{ display: 'block' }}>
-                {error}
-              </div>
-            )}
-          </form>
-        )}
-
         {mode === 'forgot' && (
           <form className="auth-form active" onSubmit={handleForgot}>
             <h2>Reset Password</h2>
@@ -195,6 +115,7 @@ export function AuthPage() {
                 type="email"
                 id="forgot-email"
                 placeholder="you@example.com"
+                autoComplete="email"
                 value={forgotEmail}
                 onChange={(e) => setForgotEmail(e.target.value)}
               />

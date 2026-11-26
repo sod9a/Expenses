@@ -2,7 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ModalSheet } from '@/components/modals/ModalSheet';
 import { useAuth } from '@/context/AuthContext';
 import { useFinance } from '@/context/FinanceContext';
+import { useToast } from '@/context/ToastContext';
 import { haptic } from '@/utils/format';
+
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_AVATAR_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 interface ProfileSettingsModalProps {
   open: boolean;
@@ -12,6 +16,7 @@ interface ProfileSettingsModalProps {
 export function ProfileSettingsModal({ open, onClose }: ProfileSettingsModalProps) {
   const { user, updateDisplayName, changePassword, logout } = useAuth();
   const { settings, updateSettings } = useFinance();
+  const { showToast } = useToast();
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [displayName, setDisplayName] = useState('');
@@ -41,8 +46,8 @@ export function ProfileSettingsModal({ open, onClose }: ProfileSettingsModalProp
       setPwError('Please fill in all password fields.');
       return;
     }
-    if (newPw.length < 6) {
-      setPwError('New password must be at least 6 characters.');
+    if (newPw.length < 8) {
+      setPwError('New password must be at least 8 characters.');
       return;
     }
     if (newPw !== confirmPw) {
@@ -71,7 +76,16 @@ export function ProfileSettingsModal({ open, onClose }: ProfileSettingsModalProp
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+    if (!ALLOWED_AVATAR_MIMES.has(file.type)) {
+      showToast('Please select a JPG, PNG, or WebP image.', 'error');
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      showToast('Image must be smaller than 5 MB.', 'error');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => {
       const img = new Image();
@@ -134,7 +148,7 @@ export function ProfileSettingsModal({ open, onClose }: ProfileSettingsModalProp
             </button>
           )}
         </div>
-        <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={handleAvatarChange} />
         <div style={{ fontSize: '0.82rem', color: 'var(--ink-secondary)' }}>{user?.email}</div>
       </div>
 
@@ -241,7 +255,7 @@ export function ProfileSettingsModal({ open, onClose }: ProfileSettingsModalProp
                 id="pw-new"
                 type="password"
                 autoComplete="new-password"
-                placeholder="Min. 6 characters"
+                placeholder="Min. 8 characters"
                 value={newPw}
                 onChange={(e) => setNewPw(e.target.value)}
               />
