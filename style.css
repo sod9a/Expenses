@@ -60,6 +60,8 @@
   --r-sm:                8px;
 
   --app-max-w:           480px;
+  --safe-top:            env(safe-area-inset-top, 0px);
+  --header-h:            58px;
   --ease:                cubic-bezier(0.22, 1, 0.36, 1);
   --t:                   0.18s;
 }
@@ -200,7 +202,7 @@ textarea:focus-visible,
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.25rem;
+  padding: max(1.25rem, var(--safe-top)) 1.25rem max(1.25rem, env(safe-area-inset-bottom, 0px));
   background: var(--bg-base);
   overflow-y: auto;
 }
@@ -461,8 +463,8 @@ input[type="month"]::-webkit-date-and-time-value { text-align: left; min-height:
   transform: translateX(-50%);
   width: 100%;
   max-width: var(--app-max-w);
-  height: 58px;
-  padding: 0 1rem;
+  height: calc(var(--header-h) + var(--safe-top));
+  padding: var(--safe-top) 1rem 0;
   z-index: 200;
   background: var(--bg-glass);
   backdrop-filter: blur(12px);
@@ -588,7 +590,7 @@ input[type="month"]::-webkit-date-and-time-value { text-align: left; min-height:
 .main-content {
   margin-left: 0;
   flex: 1;
-  padding: 72px 1rem calc(148px + env(safe-area-inset-bottom));
+  padding: calc(var(--header-h) + var(--safe-top) + 14px) 1rem calc(148px + env(safe-area-inset-bottom, 0px));
   min-height: 100dvh;
   width: 100%;
   box-sizing: border-box;
@@ -2281,8 +2283,9 @@ input[type="month"]::-webkit-date-and-time-value { text-align: left; min-height:
   max-width: var(--app-max-w);
   box-shadow: var(--shadow-deep);
   animation: mobSheetUp 0.28s var(--ease) both;
-  max-height: 92dvh;
+  max-height: calc(100dvh - var(--safe-top) - 16px);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .modal.small-modal { max-width: var(--app-max-w); }
 @keyframes mobSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -2594,6 +2597,7 @@ input[type="month"]::-webkit-date-and-time-value { text-align: left; min-height:
 /* ─── WALLET PAGE (CREDIT CARDS / SAVINGS / LOANS TEMPLATE) ──────────────── */
 .mobile-header.no-border {
   border-bottom-color: transparent;
+  background: var(--bg-base);
 }
 .wallet-tabs {
   display: grid;
