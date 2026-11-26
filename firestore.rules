@@ -280,7 +280,7 @@ service cloud.firestore {
                'grossIncome', 'carryOverBalance', 'balanceHidden', 'lastProcessedMonth',
                'creditPoolLimit', 'creditPoolDueDay', 'creditLimit', 'creditDueDay', 'creditCards',
                'mykasihAllowance', 'mykasihBaseBalance', 'mykasihLastTopupMonth',
-               'updatedAt'
+               'migrationVersion', 'updatedAt'
              ]) &&
              (!('uid' in data) || (data.uid is string && data.uid == userId)) &&
              isOptionalString(data, 'currency', 1, 10) &&
@@ -295,9 +295,10 @@ service cloud.firestore {
              isOptionalNumberRange(data, 'creditLimit', 0, 1000000000) &&
              isOptionalNumberRange(data, 'creditDueDay', 1, 31) &&
              (!('creditCards' in data) || (data.creditCards is list && data.creditCards.size() <= 50)) &&
-             isOptionalNumberRange(data, 'mykasihAllowance', 0, 1000000) &&
-             isOptionalNumberRange(data, 'mykasihBaseBalance', 0, 1000000) &&
+             isOptionalNumberRange(data, 'mykasihAllowance', 0, 1000000000) &&
+             isOptionalNumberRange(data, 'mykasihBaseBalance', 0, 1000000000) &&
              isOptionalString(data, 'mykasihLastTopupMonth', 0, 10) &&
+             isOptionalNumberRange(data, 'migrationVersion', 0, 1000) &&
              isOptionalTimestamp(data, 'updatedAt');
     }
 

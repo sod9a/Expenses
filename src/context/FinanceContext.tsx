@@ -127,8 +127,32 @@ export interface FinanceContextValue {
   deleteLoan: (id: string) => Promise<void>;
   recordLoanPayment: (loanId: string, amount: number, date: string, note: string) => Promise<void>;
   deleteLoanHistoryItem: (loanId: string, historyIndex: number) => Promise<void>;
+  saveMyKasihSettings: (currentBalance: number, monthlyAllowance: number) => Promise<void>;
   updateSettings: (partial: Partial<UserSettings>, toastMsg?: string) => Promise<void>;
   toggleBalanceHidden: () => Promise<void>;
+}
+
+function clampNum(val: unknown, min: number, max: number, fallback: number): number {
+  const n = typeof val === 'number' ? val : Number(val);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
+function calcMonthsDiff(fromYM: string, toYM: string): number {
+  if (!/^\d{4}-\d{2}$/.test(fromYM) || !/^\d{4}-\d{2}$/.test(toYM)) return 0;
+  const [fy, fm] = fromYM.split('-').map(Number);
+  const [ty, tm] = toYM.split('-').map(Number);
+  const diff = (ty - fy) * 12 + (tm - fm);
+  return diff > 0 ? diff : 0;
+}
+
+function isSafeAvatarUrl(url: unknown): url is string {
+  if (typeof url !== 'string' || url.length > 150000) return false;
+  return (
+    url === '' ||
+    /^https?:\/\/.*/.test(url) ||
+    /^data:image\/(jpeg|png|webp|gif);base64,.*/.test(url)
+  );
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
@@ -143,9 +167,65 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [tabung, setTabung] = useState<SavingsGoal[]>([]);
   const [loans, setLoans] = useState<LoanItem[]>([]);
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+  const settingsRef = useRef<UserSettings>(DEFAULT_SETTINGS);
   const [loadedFlags, setLoadedFlags] = useState({ tx: false, budgets: false, settings: false });
   const [syncError, setSyncError] = useState<string | null>(null);
   const isResettingRef = useRef(false);
+  const lastRolloverKeyRef = useRef('');
+
+  const persistSettings = useCallback(
+    async (partial: Partial<UserSettings>, toastMsg?: string) => {
+      if (!user) return;
+      const merged: UserSettings = { ...DEFAULT_SETTINGS, ...settingsRef.current, ...partial };
+      const cleanCurrency =
+        typeof merged.currency === 'string' && merged.currency.trim().length > 0
+          ? merged.currency.slice(0, 10)
+          : '$';
+      const cleanTheme: 'dark' | 'light' = merged.theme === 'light' ? 'light' : 'dark';
+      const cleanAvatar = isSafeAvatarUrl(merged.avatarUrl) ? merged.avatarUrl : '';
+      const cleanCards = Array.isArray(merged.creditCards)
+        ? merged.creditCards.slice(0, 50)
+        : DEFAULT_SETTINGS.creditCards || [];
+      const cleanLastProcessed =
+        typeof merged.lastProcessedMonth === 'string' ? merged.lastProcessedMonth.slice(0, 10) : '';
+      const cleanLastTopup =
+        typeof merged.mykasihLastTopupMonth === 'string' ? merged.mykasihLastTopupMonth.slice(0, 10) : '';
+
+      const nextLocal: UserSettings = {
+        currency: cleanCurrency,
+        theme: cleanTheme,
+        avatarUrl: cleanAvatar,
+        grossIncome: clampNum(merged.grossIncome, 0, 1_000_000_000, 0),
+        carryOverBalance: clampNum(merged.carryOverBalance, -1_000_000_000, 1_000_000_000, 0),
+        balanceHidden: Boolean(merged.balanceHidden),
+        lastProcessedMonth: cleanLastProcessed,
+        creditPoolLimit: clampNum(merged.creditPoolLimit, 0, 1_000_000_000, 2000),
+        creditPoolDueDay: Math.round(clampNum(merged.creditPoolDueDay, 1, 31, 25)),
+        creditCards: cleanCards,
+        mykasihAllowance: clampNum(merged.mykasihAllowance, 0, 1_000_000, 50),
+        mykasihBaseBalance: clampNum(merged.mykasihBaseBalance, 0, 1_000_000, 50),
+        mykasihLastTopupMonth: cleanLastTopup
+      };
+
+      const prevLocal = settingsRef.current;
+      settingsRef.current = nextLocal;
+      setSettings(nextLocal);
+
+      try {
+        await setDoc(doc(db, 'settings', user.uid), {
+          uid: user.uid,
+          ...nextLocal,
+          updatedAt: serverTimestamp()
+        });
+        if (toastMsg) showToast(toastMsg, 'success');
+      } catch (err) {
+        settingsRef.current = prevLocal;
+        setSettings(prevLocal);
+        throw err;
+      }
+    },
+    [user, showToast]
+  );
 
   // Apply theme to :root + meta theme-color
   useEffect(() => {
@@ -163,9 +243,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       setChecklist([]);
       setTabung([]);
       setLoans([]);
+      settingsRef.current = DEFAULT_SETTINGS;
       setSettings(DEFAULT_SETTINGS);
       setLoadedFlags({ tx: false, budgets: false, settings: false });
       setSyncError(null);
+      lastRolloverKeyRef.current = '';
       return;
     }
 
@@ -248,15 +330,18 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       (snap) => {
         if (snap.exists()) {
           const data = snap.data() as Partial<UserSettings>;
-          setSettings({
+          const nextSettings: UserSettings = {
             ...DEFAULT_SETTINGS,
             ...data,
             currency: data.currency || '$',
             theme: data.theme === 'light' ? 'light' : 'dark',
-            avatarUrl: data.avatarUrl || '',
+            avatarUrl: isSafeAvatarUrl(data.avatarUrl) ? data.avatarUrl : '',
             creditCards: Array.isArray(data.creditCards) ? data.creditCards : DEFAULT_SETTINGS.creditCards
-          });
+          };
+          settingsRef.current = nextSettings;
+          setSettings(nextSettings);
         } else {
+          settingsRef.current = DEFAULT_SETTINGS;
           setSettings(DEFAULT_SETTINGS);
         }
         setLoadedFlags((f) => ({ ...f, settings: true }));
@@ -292,7 +377,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     };
   }, [user]);
 
-  // Monthly carry-over & checklist reset (matches legacy logic)
+  // Monthly carry-over, checklist reset & MyKasih monthly top-up
   useEffect(() => {
     if (!user || isResettingRef.current) return;
     if (!loadedFlags.tx || !loadedFlags.budgets || !loadedFlags.settings) return;
@@ -300,16 +385,29 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     const now = new Date();
     const currentMonthStr = toMonthKey(now.getFullYear(), now.getMonth());
     const lastProcessed = settings.lastProcessedMonth;
+    const lastTopup = settings.mykasihLastTopupMonth;
 
-    if (!lastProcessed) {
-      setDoc(doc(db, 'settings', user.uid), { lastProcessedMonth: currentMonthStr }, { merge: true }).catch(() => {});
+    const needsInitProcessed = !lastProcessed;
+    const needsMonthRollover = Boolean(lastProcessed && lastProcessed < currentMonthStr);
+    const needsInitTopup = !lastTopup;
+    const needsMyKasihTopup = Boolean(lastTopup && lastTopup < currentMonthStr);
+
+    if (!needsInitProcessed && !needsMonthRollover && !needsInitTopup && !needsMyKasihTopup) {
       return;
     }
 
-    if (lastProcessed < currentMonthStr) {
-      isResettingRef.current = true;
-      (async () => {
-        try {
+    const attemptKey = `${user.uid}:${currentMonthStr}:${lastProcessed || ''}:${lastTopup || ''}`;
+    if (lastRolloverKeyRef.current === attemptKey) return;
+    lastRolloverKeyRef.current = attemptKey;
+
+    isResettingRef.current = true;
+    (async () => {
+      try {
+        const patch: Partial<UserSettings> = {};
+
+        if (needsInitProcessed) {
+          patch.lastProcessedMonth = currentMonthStr;
+        } else if (needsMonthRollover && lastProcessed) {
           const prevTxs = transactions.filter((t) => t.date && t.date.startsWith(lastProcessed));
           const prevSalary = prevTxs
             .filter((t) => t.type === 'income' && t.category?.toLowerCase() === 'salary')
@@ -333,22 +431,41 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
           const prevCarry = typeof settings.carryOverBalance === 'number' ? settings.carryOverBalance : 0;
           const prevGross = typeof settings.grossIncome === 'number' ? settings.grossIncome : 0;
-          const newCarry = prevCarry + prevGross + prevSalary + prevOther - prevCashExp - prevCCPay;
+          patch.carryOverBalance = prevCarry + prevGross + prevSalary + prevOther - prevCashExp - prevCCPay;
+          patch.lastProcessedMonth = currentMonthStr;
 
           await Promise.all(checklist.map((item) => deleteDoc(doc(db, 'budgets', item.id))));
-          await setDoc(
-            doc(db, 'settings', user.uid),
-            { carryOverBalance: newCarry, lastProcessedMonth: currentMonthStr },
-            { merge: true }
-          );
-        } catch (err) {
-          console.error('Monthly reset error:', err);
-        } finally {
-          isResettingRef.current = false;
         }
-      })();
-    }
-  }, [user, loadedFlags, settings, transactions, checklist]);
+
+        if (needsInitTopup) {
+          patch.mykasihLastTopupMonth = currentMonthStr;
+        } else if (needsMyKasihTopup && lastTopup) {
+          const monthsDiff = calcMonthsDiff(lastTopup, currentMonthStr);
+          if (monthsDiff > 0) {
+            const allowance = clampNum(settings.mykasihAllowance, 0, 1_000_000, 50);
+            const rawBase = clampNum(settings.mykasihBaseBalance, 0, 1_000_000, 50);
+            const spentBeforeCurMonth = transactions
+              .filter(
+                (t) =>
+                  t.type === 'expense' &&
+                  t.paymentMethod === 'mykasih' &&
+                  t.date &&
+                  t.date < `${currentMonthStr}-01`
+              )
+              .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+            patch.mykasihBaseBalance = Math.max(rawBase, spentBeforeCurMonth) + monthsDiff * allowance;
+          }
+          patch.mykasihLastTopupMonth = currentMonthStr;
+        }
+
+        await persistSettings(patch);
+      } catch (err) {
+        console.error('Monthly reset error:', err);
+      } finally {
+        isResettingRef.current = false;
+      }
+    })();
+  }, [user, loadedFlags, settings, transactions, checklist, persistSettings]);
 
   const creditCards = useMemo<CreditCard[]>(() => {
     if (Array.isArray(settings.creditCards)) return settings.creditCards;
@@ -449,12 +566,32 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     const totalSpent = transactions
       .filter((t) => t.type === 'expense' && t.paymentMethod === 'mykasih')
       .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    const base = typeof settings.mykasihBaseBalance === 'number' ? settings.mykasihBaseBalance : 50;
+
+    const allowance = clampNum(settings.mykasihAllowance, 0, 1_000_000, 50);
+    const rawBase = clampNum(settings.mykasihBaseBalance, 0, 1_000_000, 50);
+    const monthsDiff = settings.mykasihLastTopupMonth
+      ? calcMonthsDiff(settings.mykasihLastTopupMonth, curMonth)
+      : 0;
+
+    let effectiveBase = rawBase;
+    if (monthsDiff > 0) {
+      const spentBeforeCurMonth = transactions
+        .filter(
+          (t) =>
+            t.type === 'expense' &&
+            t.paymentMethod === 'mykasih' &&
+            t.date &&
+            t.date < `${curMonth}-01`
+        )
+        .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      effectiveBase = Math.max(rawBase, spentBeforeCurMonth) + monthsDiff * allowance;
+    }
+
     return {
-      mykasihBalance: Math.max(0, base - totalSpent),
+      mykasihBalance: Math.max(0, effectiveBase - totalSpent),
       mykasihSpentThisMonth: spentThisMonth
     };
-  }, [transactions, settings.mykasihBaseBalance]);
+  }, [transactions, settings.mykasihAllowance, settings.mykasihBaseBalance, settings.mykasihLastTopupMonth]);
 
   // ── CRUD Actions ──────────────────────────────────────────────────────────
 
@@ -565,14 +702,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       }
 
       const poolLimit = normalized.reduce((s, c) => s + c.limit, 0);
-      await setDoc(
-        doc(db, 'settings', user.uid),
+      await persistSettings(
         { creditCards: normalized, creditPoolLimit: poolLimit, creditPoolDueDay: payload.dueDay },
-        { merge: true }
+        editingId ? 'Credit card updated!' : 'Credit card added!'
       );
-      showToast(editingId ? 'Credit card updated!' : 'Credit card added!', 'success');
     },
-    [user, creditCards, getCardLimit, getCardDueDay, getCardColor, showToast]
+    [user, creditCards, getCardLimit, getCardDueDay, getCardColor, persistSettings]
   );
 
   const deleteCreditCard = useCallback(
@@ -580,14 +715,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       if (!user) return;
       const updated = creditCards.filter((c) => c.id !== cardId);
       const poolLimit = updated.reduce((s, c) => s + getCardLimit(c), 0);
-      await setDoc(
-        doc(db, 'settings', user.uid),
-        { creditCards: updated, creditPoolLimit: poolLimit },
-        { merge: true }
-      );
-      showToast('Credit card deleted!', 'success');
+      await persistSettings({ creditCards: updated, creditPoolLimit: poolLimit }, 'Credit card deleted!');
     },
-    [user, creditCards, getCardLimit, showToast]
+    [user, creditCards, getCardLimit, persistSettings]
   );
 
   const recordCardPayment = useCallback(
@@ -740,19 +870,40 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     [loans, showToast]
   );
 
+  const saveMyKasihSettings = useCallback(
+    async (currentBalance: number, monthlyAllowance: number) => {
+      if (!user) return;
+      const now = new Date();
+      const curMonth = toMonthKey(now.getFullYear(), now.getMonth());
+      const totalSpent = transactions
+        .filter((t) => t.type === 'expense' && t.paymentMethod === 'mykasih')
+        .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const safeBalance = clampNum(currentBalance, 0, 1_000_000, 0);
+      const safeAllowance = clampNum(monthlyAllowance, 0, 1_000_000, 50);
+      const newBaseBalance = clampNum(safeBalance + totalSpent, 0, 1_000_000, safeBalance);
+
+      await persistSettings(
+        {
+          mykasihAllowance: safeAllowance,
+          mykasihBaseBalance: newBaseBalance,
+          mykasihLastTopupMonth: curMonth
+        },
+        'MyKasih settings saved!'
+      );
+    },
+    [user, transactions, persistSettings]
+  );
+
   const updateSettings = useCallback(
     async (partial: Partial<UserSettings>, toastMsg?: string) => {
-      if (!user) return;
-      await setDoc(doc(db, 'settings', user.uid), partial, { merge: true });
-      if (toastMsg) showToast(toastMsg, 'success');
+      await persistSettings(partial, toastMsg);
     },
-    [user, showToast]
+    [persistSettings]
   );
 
   const toggleBalanceHidden = useCallback(async () => {
-    if (!user) return;
-    await setDoc(doc(db, 'settings', user.uid), { balanceHidden: !settings.balanceHidden }, { merge: true });
-  }, [user, settings.balanceHidden]);
+    await persistSettings({ balanceHidden: !settingsRef.current.balanceHidden });
+  }, [persistSettings]);
 
   const loading = Boolean(user && (!loadedFlags.tx || !loadedFlags.settings));
 
@@ -795,6 +946,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     deleteLoan,
     recordLoanPayment,
     deleteLoanHistoryItem,
+    saveMyKasihSettings,
     updateSettings,
     toggleBalanceHidden
   };
