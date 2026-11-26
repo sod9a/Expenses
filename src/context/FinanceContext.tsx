@@ -150,7 +150,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     const isLight = settings.theme === 'light';
     document.documentElement.classList.toggle('light-theme', isLight);
     const meta = document.getElementById('theme-color-meta');
-    if (meta) meta.setAttribute('content', isLight ? '#f8fafc' : '#111827');
+    if (meta) meta.setAttribute('content', isLight ? '#ffffff' : '#0b1120');
   }, [settings.theme]);
 
   // Real-time Firestore subscriptions
