@@ -2,17 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ModalSheet } from '@/components/modals/ModalSheet';
 import { useAuth } from '@/context/AuthContext';
 import { useFinance } from '@/context/FinanceContext';
-import type { PageId } from '@/types/finance';
 import { haptic } from '@/utils/format';
 
 interface ProfileSettingsModalProps {
   open: boolean;
   onClose: () => void;
-  onNavigate: (page: PageId) => void;
 }
 
-export function ProfileSettingsModal({ open, onClose, onNavigate }: ProfileSettingsModalProps) {
-  const { user, updateDisplayName, logout } = useAuth();
+export function ProfileSettingsModal({ open, onClose }: ProfileSettingsModalProps) {
+  const { user, updateDisplayName, changePassword, logout } = useAuth();
   const { settings, updateSettings } = useFinance();
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -20,12 +18,58 @@ export function ProfileSettingsModal({ open, onClose, onNavigate }: ProfileSetti
   const [grossIncome, setGrossIncome] = useState('');
   const [carryOver, setCarryOver] = useState('');
 
+  // Change Password inline panel
+  const [pwOpen, setPwOpen] = useState(false);
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwError, setPwError] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     setDisplayName(user?.displayName || user?.email?.split('@')[0] || '');
     setGrossIncome(String(Number(settings.grossIncome || 0).toFixed(2)));
     setCarryOver(String(Number(settings.carryOverBalance || 0).toFixed(2)));
+    setPwOpen(false);
+    setCurrentPw('');
+    setNewPw('');
+    setConfirmPw('');
+    setPwError('');
   }, [open, user, settings.grossIncome, settings.carryOverBalance]);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwError('');
+    if (!currentPw || !newPw || !confirmPw) {
+      setPwError('Please fill in all password fields.');
+      return;
+    }
+    if (newPw.length < 6) {
+      setPwError('New password must be at least 6 characters.');
+      return;
+    }
+    if (newPw !== confirmPw) {
+      setPwError('New passwords do not match.');
+      return;
+    }
+    if (newPw === currentPw) {
+      setPwError('New password must be different from your current password.');
+      return;
+    }
+    setPwSaving(true);
+    try {
+      await changePassword(currentPw, newPw);
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
+      setPwOpen(false);
+    } catch (err) {
+      setPwError((err as Error).message || 'Failed to update password.');
+    } finally {
+      setPwSaving(false);
+    }
+  };
 
   const initial = (displayName || user?.email || 'U')[0].toUpperCase();
 
@@ -170,35 +214,99 @@ export function ProfileSettingsModal({ open, onClose, onNavigate }: ProfileSetti
         </div>
       </div>
 
-      {/* Quick navigation to secondary views */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.45rem', marginTop: '0.25rem' }}>
-        {(
-          [
-            { id: 'categories', label: 'Categories' },
-            { id: 'monthly', label: 'Monthly' },
-            { id: 'tools', label: 'MyKasih & List' }
-          ] as const
-        ).map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className="btn-secondary"
-            style={{ fontSize: '0.78rem', padding: '0.55rem 0.35rem' }}
-            onClick={() => {
-              haptic();
-              onClose();
-              onNavigate(item.id);
+      {/* Change Password */}
+      <div style={{ marginTop: '0.25rem' }}>
+        <button
+          type="button"
+          className="btn-secondary"
+          aria-expanded={pwOpen}
+          style={{ width: '100%', minHeight: 44, justifyContent: 'space-between', display: 'flex', alignItems: 'center', padding: '0 1rem' }}
+          onClick={() => {
+            haptic();
+            setPwOpen((prev) => !prev);
+            setPwError('');
+          }}
+        >
+          <span>Change Password</span>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ transform: pwOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.18s ease' }}
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+
+        {pwOpen && (
+          <form
+            onSubmit={handleChangePassword}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.7rem',
+              marginTop: '0.65rem',
+              padding: '0.9rem',
+              borderRadius: 12,
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-subtle)'
             }}
           >
-            {item.label}
-          </button>
-        ))}
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label htmlFor="pw-current">Current Password</label>
+              <input
+                id="pw-current"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Enter current password"
+                value={currentPw}
+                onChange={(e) => setCurrentPw(e.target.value)}
+              />
+            </div>
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label htmlFor="pw-new">New Password</label>
+              <input
+                id="pw-new"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Min. 6 characters"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+              />
+            </div>
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label htmlFor="pw-confirm">Confirm New Password</label>
+              <input
+                id="pw-confirm"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Re-enter new password"
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+              />
+            </div>
+            {pwError && (
+              <div className="auth-error" style={{ display: 'block', marginTop: 0 }}>
+                {pwError}
+              </div>
+            )}
+            <button type="submit" className="btn-primary" style={{ marginTop: '0.15rem' }} disabled={pwSaving}>
+              {pwSaving ? 'Updating…' : 'Update Password'}
+            </button>
+          </form>
+        )}
       </div>
 
       <button
         type="button"
         className="btn-logout"
-        style={{ width: '100%', justifyContent: 'center', marginTop: '0.35rem' }}
+        style={{ width: '100%', justifyContent: 'center', marginTop: '0.25rem' }}
         onClick={() => {
           onClose();
           void logout();

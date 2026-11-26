@@ -220,7 +220,6 @@ export function App() {
       <ProfileSettingsModal
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
-        onNavigate={handleNavigate}
       />
       <MyKasihModal open={mykasihOpen} onClose={() => setMykasihOpen(false)} />
     </div>

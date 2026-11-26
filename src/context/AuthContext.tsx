@@ -1,12 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
+  EmailAuthProvider,
   User,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
   updateProfile
 } from 'firebase/auth';
 import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
@@ -22,6 +25,7 @@ interface AuthContextValue {
   resendVerify: () => Promise<void>;
   reloadVerify: () => Promise<boolean>;
   updateDisplayName: (name: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -160,6 +164,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     showToast('Display name updated!', 'success');
   }, [showToast]);
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    const fbUser = auth.currentUser;
+    if (!fbUser || !fbUser.email) throw new Error('You must be signed in to change your password.');
+    if (!currentPassword) throw new Error('Please enter your current password.');
+    if (newPassword.length < 6) throw new Error('New password must be at least 6 characters.');
+    try {
+      const cred = EmailAuthProvider.credential(fbUser.email, currentPassword);
+      await reauthenticateWithCredential(fbUser, cred);
+      await updatePassword(fbUser, newPassword);
+      showToast('Password updated successfully!', 'success');
+    } catch (e: unknown) {
+      const code = (e as { code?: string })?.code || '';
+      if (code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+        throw new Error('Current password is incorrect.');
+      }
+      throw new Error(friendlyAuthError(code));
+    }
+  }, [showToast]);
+
   const logout = useCallback(async () => {
     await signOut(auth);
     showToast('Signed out successfully.', 'success');
@@ -176,6 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         resendVerify,
         reloadVerify,
         updateDisplayName,
+        changePassword,
         logout
       }}
     >
