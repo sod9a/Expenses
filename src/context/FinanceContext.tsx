@@ -168,15 +168,26 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
     const uid = user.uid;
 
+    const sortTransactions = (list: Transaction[]) =>
+      list.sort((a, b) => {
+        const dateCmp = (b.date || '').localeCompare(a.date || '');
+        if (dateCmp !== 0) return dateCmp;
+        const aMs = a.createdAt?.toMillis ? a.createdAt.toMillis() : Number.MAX_SAFE_INTEGER;
+        const bMs = b.createdAt?.toMillis ? b.createdAt.toMillis() : Number.MAX_SAFE_INTEGER;
+        return bMs - aMs;
+      });
+
     const txQ = query(collection(db, 'transactions'), where('uid', '==', uid), orderBy('date', 'desc'));
     const unsubTx = onSnapshot(
       txQ,
       (snap) => {
-        const list = snap.docs.map((d) => {
-          const data = d.data() as Omit<Transaction, 'id'>;
-          if (data.category === 'Food & Dining') data.category = 'Food';
-          return { id: d.id, ...data };
-        });
+        const list = sortTransactions(
+          snap.docs.map((d) => {
+            const data = d.data() as Omit<Transaction, 'id'>;
+            if (data.category === 'Food & Dining') data.category = 'Food';
+            return { id: d.id, ...data };
+          })
+        );
         setTransactions(list);
         setLoadedFlags((f) => ({ ...f, tx: true }));
       },
@@ -184,13 +195,13 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         // Fallback without composite index
         const fallbackQ = query(collection(db, 'transactions'), where('uid', '==', uid));
         onSnapshot(fallbackQ, (snap) => {
-          const list = snap.docs
-            .map((d) => {
+          const list = sortTransactions(
+            snap.docs.map((d) => {
               const data = d.data() as Omit<Transaction, 'id'>;
               if (data.category === 'Food & Dining') data.category = 'Food';
               return { id: d.id, ...data };
             })
-            .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+          );
           setTransactions(list);
           setLoadedFlags((f) => ({ ...f, tx: true }));
         });
