@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=1.3.4" />
+  <link rel="stylesheet" href="style.css?v=1.3.9" />
 </head>
 <body>
 
@@ -146,11 +146,11 @@
             <span class="sw-mini-label">Card Debt</span>
             <span class="sw-mini-val debt masked-val" id="sw-stat-card-debt">RM 0.00</span>
           </button>
-          <button type="button" class="sw-mini-card" onclick="haptic();navigateTo('tabung')">
+          <button type="button" class="sw-mini-card" onclick="haptic();navigateTo('wallet');switchWalletTab('savings')">
             <span class="sw-mini-label">Savings</span>
             <span class="sw-mini-val savings masked-val" id="sw-stat-savings">RM 0.00</span>
           </button>
-          <button type="button" class="sw-mini-card" onclick="haptic();navigateTo('loans')">
+          <button type="button" class="sw-mini-card" onclick="haptic();navigateTo('wallet');switchWalletTab('loans')">
             <span class="sw-mini-label">Loans</span>
             <span class="sw-mini-val loans masked-val" id="sw-stat-loans">RM 0.00</span>
           </button>
@@ -492,20 +492,82 @@
         <div id="monthly-breakdown"></div>
       </section>
 
-      <!-- Tabung (Savings) -->
-      <section id="page-tabung" class="page">
-        <button class="mob-page-fab" onclick="openTabungModal()">+ New Tabung</button>
-        <div id="tabung-list" class="categories-grid">
-          <div class="empty-state"><span>🪙</span><p>No tabung yet. Create your first savings goal!</p></div>
+      <!-- Wallet (Credit Cards, Savings, Loans) -->
+      <section id="page-wallet" class="page">
+        <div class="wallet-tabs" role="tablist" aria-label="Wallet sections">
+          <button type="button" id="wallet-tab-cards" class="wallet-tab active" role="tab" aria-selected="true" aria-controls="wallet-panel-cards" onclick="haptic();switchWalletTab('cards')">Credit Cards</button>
+          <button type="button" id="wallet-tab-savings" class="wallet-tab" role="tab" aria-selected="false" aria-controls="wallet-panel-savings" onclick="haptic();switchWalletTab('savings')">Savings</button>
+          <button type="button" id="wallet-tab-loans" class="wallet-tab" role="tab" aria-selected="false" aria-controls="wallet-panel-loans" onclick="haptic();switchWalletTab('loans')">Loans</button>
         </div>
-      </section>
 
-      <!-- Loans / Hutang -->
-      <section id="page-loans" class="page">
-        <button class="mob-page-fab" onclick="openLoanModal()">+ Add Loan</button>
-        <div class="summary-grid" style="margin-bottom:1.5rem;" id="loan-summary-cards"></div>
-        <div id="loan-list" class="categories-grid">
-          <div class="empty-state"><span>🏦</span><p>No loans recorded. Add one to start tracking!</p></div>
+        <!-- Credit Cards Tab -->
+        <div id="wallet-panel-cards" class="wallet-panel active" role="tabpanel" aria-labelledby="wallet-tab-cards">
+          <div class="wallet-summary-row">
+            <div class="wallet-summary-left">
+              <span class="wallet-summary-label">Total Card Debt</span>
+              <strong class="wallet-summary-debt" id="wallet-total-debt">RM 0.00</strong>
+              <span class="wallet-summary-sub" id="wallet-total-limit">Total Limit: RM 0.00</span>
+            </div>
+            <button type="button" class="wallet-add-pill" onclick="haptic();openConfigureCCModal(null)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Add Card</span>
+            </button>
+          </div>
+          <div id="wallet-cc-list" class="wallet-cc-list"></div>
+        </div>
+
+        <!-- Savings Tab -->
+        <div id="wallet-panel-savings" class="wallet-panel" role="tabpanel" aria-labelledby="wallet-tab-savings">
+          <div class="savings-overview-card" id="savings-overview-card">
+            <div class="savings-overview-top">
+              <div class="savings-overview-left">
+                <span class="savings-overview-label">Total Savings</span>
+                <div class="savings-overview-amounts">
+                  <strong class="wallet-summary-savings" id="wallet-total-savings">RM 0.00</strong>
+                  <span class="savings-overview-target" id="wallet-total-target">of RM 0.00 target</span>
+                </div>
+              </div>
+              <button type="button" class="wallet-add-pill" onclick="haptic();openTabungModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Add Goal</span>
+              </button>
+            </div>
+            <div class="savings-overview-track" id="wallet-savings-track">
+              <div class="savings-overview-fill" id="wallet-savings-bar" style="width:0%"></div>
+            </div>
+            <div class="savings-overview-meta">
+              <span class="wallet-summary-sub" id="wallet-savings-count">0 active goals</span>
+              <span class="savings-overview-pct" id="wallet-savings-pct">0% achieved</span>
+            </div>
+          </div>
+          <div id="tabung-list" class="savings-goals-grid"></div>
+        </div>
+
+        <!-- Loans Tab -->
+        <div id="wallet-panel-loans" class="wallet-panel" role="tabpanel" aria-labelledby="wallet-tab-loans">
+          <div class="loans-overview-card" id="loans-overview-card">
+            <div class="savings-overview-top">
+              <div class="savings-overview-left">
+                <span class="savings-overview-label">Total Remaining Balance</span>
+                <div class="savings-overview-amounts">
+                  <strong class="wallet-summary-debt" id="wallet-total-loans">RM 0.00</strong>
+                  <span class="savings-overview-target" id="wallet-loans-principal">of RM 0.00 principal</span>
+                </div>
+              </div>
+              <button type="button" class="wallet-add-pill" onclick="haptic();openLoanModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Add Loan</span>
+              </button>
+            </div>
+            <div class="savings-overview-track" id="wallet-loans-track">
+              <div class="loans-overview-fill" id="wallet-loans-bar" style="width:0%"></div>
+            </div>
+            <div class="savings-overview-meta">
+              <span class="wallet-summary-sub" id="wallet-loans-meta">0 active loans · RM 0.00/mo commitment</span>
+              <span class="savings-overview-pct" id="wallet-loans-pct">0% paid off</span>
+            </div>
+          </div>
+          <div id="loan-list" class="savings-goals-grid"></div>
         </div>
       </section>
 
@@ -600,7 +662,7 @@
             <span class="nav-text">Budgets</span>
           </div>
         </a>
-        <a href="#" class="nav-item" data-page="more" onclick="haptic();toggleMoreMenu();return false;">
+        <a href="#" class="nav-item" data-page="wallet" onclick="haptic();navigateTo('wallet',this);return false;">
           <div class="nav-item-inner">
             <span class="nav-pill-bg">
               <svg class="nav-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M21 7H3V5h18v2zm0 2H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2zm-5 7c-.83 0-1.5-.67-1.5-1.5S15.17 13 16 13s1.5.67 1.5 1.5S16.83 16 16 16z"/></svg>
@@ -671,42 +733,37 @@
         </div>
         <div class="form-row">
           <div class="input-group">
-            <label for="tx-category">Category</label>
-            <select id="tx-category">
-              <option value="General">General</option>
-              <option value="Food">🍔 Food</option>
-              <option value="Rent">🏠 Rent</option>
-              <option value="Transport">🚗 Transport</option>
-              <option value="Groceries">🛒 Groceries</option>
-              <option value="Bills">🧾 Bills</option>
-              <option value="Entertainment">🎬 Entertainment</option>
-              <option value="Health">💊 Health</option>
-              <option value="Clothing">👕 Clothing</option>
-              <option value="Salary">💼 Salary</option>
-              <option value="Freelance">💻 Freelance</option>
-              <option value="Investment">📈 Investment</option>
-              <option value="Loan">🏦 Loan</option>
-              <option value="Other">✨ Other</option>
-            </select>
+            <label id="tx-category-label">Category</label>
+            <input type="hidden" id="tx-category" value="General" />
+            <div id="tx-category-grid" class="tx-cat-grid" role="radiogroup" aria-labelledby="tx-category-label"></div>
           </div>
           <div class="input-group">
             <label for="tx-date">Date</label>
             <input type="date" id="tx-date" />
           </div>
         </div>
-        <div class="input-group" id="tx-pay-method-group" style="display: none; margin-top: 1rem;">
-          <label for="tx-pay-method">Payment Method</label>
-          <select id="tx-pay-method" onchange="toggleCCSelectGroup()">
-            <option value="cash">💵 Cash / Debit</option>
-            <option value="credit">💳 Credit Card</option>
-            <option value="mykasih">🎁 MyKasih</option>
-          </select>
+        <div class="input-group" id="tx-pay-method-group" style="display: none; margin-top: 0.25rem;">
+          <label id="tx-pay-method-label">Payment Method</label>
+          <input type="hidden" id="tx-pay-method" value="cash" />
+          <div id="tx-pay-method-toggle" class="pm-toggle" role="radiogroup" aria-labelledby="tx-pay-method-label">
+            <button type="button" class="pm-btn active" role="radio" aria-checked="true" tabindex="0" data-method="cash" onclick="selectPayMethod('cash')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 14V6c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zm-9-1c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm13-6v11c0 1.1-.9 2-2 2H4v-2h17V7h2z"/></svg>
+              <span>Cash / Debit</span>
+            </button>
+            <button type="button" class="pm-btn" role="radio" aria-checked="false" tabindex="-1" data-method="credit" onclick="selectPayMethod('credit')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+              <span>Credit Card</span>
+            </button>
+            <button type="button" class="pm-btn" role="radio" aria-checked="false" tabindex="-1" data-method="mykasih" onclick="selectPayMethod('mykasih')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.05 0-1.96.54-2.5 1.35l-.5.67-.5-.68C10.96 2.54 10.05 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM9 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm11 15H4v-2h16v2zm0-5H4V8h5.08L7 10.83 8.62 12 11 8.76l1-1.36 1 1.36L15.38 12 17 10.83 14.92 8H20v6z"/></svg>
+              <span>MyKasih</span>
+            </button>
+          </div>
         </div>
-        <div class="input-group" id="tx-cc-select-group" style="display: none; margin-top: 1rem;">
-          <label for="tx-cc-select">Select Credit Card</label>
-          <select id="tx-cc-select">
-            <!-- Dynamically populated -->
-          </select>
+        <div class="input-group" id="tx-cc-select-group" style="display: none; margin-top: 0.25rem;">
+          <label id="tx-cc-select-label">Select Credit Card</label>
+          <input type="hidden" id="tx-cc-select" value="" />
+          <div id="tx-cc-grid" class="tx-cc-grid" role="radiogroup" aria-labelledby="tx-cc-select-label"></div>
         </div>
         <div class="input-group">
           <label for="tx-notes">Notes (optional)</label>
@@ -765,26 +822,38 @@
       </div>
       <div class="modal-body">
         <div id="cc-limit-modal-error" class="auth-error"></div>
-        <div class="input-group" style="margin-bottom: 1rem;">
+        <div class="input-group">
           <label for="cc-name-input">Card Name</label>
-          <input type="text" id="cc-name-input" placeholder="e.g. CashBack, Shell Visa" />
+          <input type="text" id="cc-name-input" placeholder="e.g. RHB, Maybank, CIMB" />
         </div>
-        <div style="background: var(--bg-elevated); border-radius: 10px; padding: 0.9rem 1rem; margin-bottom: 1rem;">
-          <p style="font-size:0.78rem; color:var(--ink-muted); margin:0 0 0.75rem; text-transform:uppercase; letter-spacing:.05em; font-weight:700;">Shared Credit Pool</p>
-          <p style="font-size:0.8rem; color:var(--ink-secondary); margin:0 0 0.9rem;">These settings apply across all your cards — they share one credit limit and due date.</p>
-          <div class="input-group" style="margin-bottom: 0.75rem;">
-            <label for="cc-limit-input">Total Credit Limit</label>
-            <div class="amount-input-wrap">
-              <span class="currency-symbol dynamic-currency">$</span>
-              <input type="text" id="cc-limit-input" placeholder="0.00" inputmode="decimal" />
-            </div>
-          </div>
-          <div class="input-group">
-            <label for="cc-due-day-input">Statement Due Day (of the month)</label>
-            <input type="number" id="cc-due-day-input" placeholder="e.g. 25" min="1" max="31" step="1" />
+        <div class="input-group">
+          <label for="cc-last4-input">Last 4 Digits</label>
+          <input type="text" id="cc-last4-input" placeholder="e.g. 0000" maxlength="4" inputmode="numeric" />
+        </div>
+        <div class="input-group">
+          <label for="cc-limit-input">Credit Limit</label>
+          <div class="amount-input-wrap">
+            <span class="currency-symbol dynamic-currency">$</span>
+            <input type="text" id="cc-limit-input" placeholder="0.00" inputmode="decimal" />
           </div>
         </div>
-        <div class="cc-modal-actions-row" style="display: flex; gap: 0.5rem; margin-top: 0.5rem; width: 100%;">
+        <div class="input-group">
+          <label for="cc-due-day-input">Statement Due Day (1–31)</label>
+          <input type="number" id="cc-due-day-input" placeholder="e.g. 20" min="1" max="31" step="1" />
+        </div>
+        <div class="input-group">
+          <label id="cc-color-label">Card Color</label>
+          <input type="hidden" id="cc-color-input" value="blue" />
+          <div id="cc-color-picker" class="cc-color-picker" role="radiogroup" aria-labelledby="cc-color-label">
+            <button type="button" class="cc-color-swatch active" role="radio" aria-checked="true" aria-label="Royal Blue" data-color="blue" style="background:linear-gradient(135deg,#273d86,#1d3270)" onclick="selectCCColor('blue')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Emerald Teal" data-color="teal" style="background:linear-gradient(135deg,#1b7e72,#136158)" onclick="selectCCColor('teal')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Deep Indigo" data-color="indigo" style="background:linear-gradient(135deg,#3730a3,#312e81)" onclick="selectCCColor('indigo')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Burgundy" data-color="crimson" style="background:linear-gradient(135deg,#9f1239,#881337)" onclick="selectCCColor('crimson')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Charcoal Slate" data-color="slate" style="background:linear-gradient(135deg,#334155,#1e293b)" onclick="selectCCColor('slate')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Warm Amber" data-color="amber" style="background:linear-gradient(135deg,#b45309,#92400e)" onclick="selectCCColor('amber')"></button>
+          </div>
+        </div>
+        <div class="cc-modal-actions-row" style="display: flex; gap: 0.5rem; margin-top: 0.25rem; width: 100%;">
           <button id="btn-save-cc-limit" class="btn-primary" onclick="saveCCLimitSettings()" style="flex: 2; margin-top: 0;">Save Card</button>
           <button id="btn-delete-cc" class="btn-danger" onclick="deleteCCCard()" style="flex: 1; display: none;">Delete</button>
         </div>
@@ -885,42 +954,90 @@
     </div>
   </div>
 
-  <!-- Tabung Modal -->
+  <!-- Savings Goal (Tabung) Modal -->
   <div id="tabung-modal-overlay" class="modal-overlay hidden" onclick="closeTabungModalOnOverlay(event)">
     <div class="modal small-modal">
       <div class="modal-header">
-        <h2 id="tabung-modal-title">New Tabung</h2>
-        <button class="modal-close" onclick="closeTabungModal()">✕</button>
+        <h2 id="tabung-modal-title">New Savings Goal</h2>
+        <button class="modal-close" onclick="closeTabungModal()" aria-label="Close modal">✕</button>
       </div>
       <div class="modal-body">
         <div class="input-group">
-          <label for="tabung-name">Tabung Name</label>
-          <input type="text" id="tabung-name" placeholder="e.g. Vacation, New Phone..." />
+          <label for="tabung-name">Goal Name</label>
+          <input type="text" id="tabung-name" placeholder="e.g. Emergency Fund, Japan Trip, New Laptop" />
         </div>
-        <div class="input-group">
-          <label for="tabung-target">Target Amount</label>
-          <div class="amount-input-wrap">
-            <span class="currency-symbol dynamic-currency">$</span>
-            <input type="text" id="tabung-target" placeholder="0.00" inputmode="decimal" />
+        <div class="form-row">
+          <div class="input-group">
+            <label for="tabung-target">Target Amount</label>
+            <div class="amount-input-wrap">
+              <span class="currency-symbol dynamic-currency">$</span>
+              <input type="text" id="tabung-target" placeholder="0.00" inputmode="decimal" />
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="tabung-saved">Saved So Far</label>
+            <div class="amount-input-wrap">
+              <span class="currency-symbol dynamic-currency">$</span>
+              <input type="text" id="tabung-saved" placeholder="0.00" value="0" inputmode="decimal" />
+            </div>
           </div>
         </div>
         <div class="input-group">
-          <label for="tabung-saved">Amount Saved So Far</label>
-          <div class="amount-input-wrap">
-            <span class="currency-symbol dynamic-currency">$</span>
-            <input type="text" id="tabung-saved" placeholder="0.00" value="0" inputmode="decimal" />
+          <label id="tabung-icon-label">Category Icon</label>
+          <input type="hidden" id="tabung-emoji" value="goal" />
+          <div id="tabung-icon-picker" class="savings-icon-picker" role="radiogroup" aria-labelledby="tabung-icon-label">
+            <button type="button" class="savings-icon-btn active" role="radio" aria-checked="true" data-icon="goal" onclick="selectTabungIcon('goal')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              <span>General</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="emergency" onclick="selectTabungIcon('emergency')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Emergency</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="travel" onclick="selectTabungIcon('travel')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+              <span>Travel</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="tech" onclick="selectTabungIcon('tech')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+              <span>Gadget</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="car" onclick="selectTabungIcon('car')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+              <span>Vehicle</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="home" onclick="selectTabungIcon('home')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span>Home</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="invest" onclick="selectTabungIcon('invest')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              <span>Invest</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="gift" onclick="selectTabungIcon('gift')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+              <span>Festive</span>
+            </button>
           </div>
         </div>
         <div class="input-group">
-          <label for="tabung-emoji">Icon (emoji)</label>
-          <input type="text" id="tabung-emoji" placeholder="🎯" maxlength="4" style="font-size:1.5rem;text-align:center;" />
+          <label id="tabung-color-label">Goal Theme Color</label>
+          <input type="hidden" id="tabung-color" value="emerald" />
+          <div id="tabung-color-picker" class="cc-color-picker" role="radiogroup" aria-labelledby="tabung-color-label">
+            <button type="button" class="cc-color-swatch active" role="radio" aria-checked="true" aria-label="Emerald Teal" data-color="emerald" style="background:linear-gradient(135deg,#10b981,#0d9488)" onclick="selectTabungColor('emerald')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Royal Blue" data-color="blue" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)" onclick="selectTabungColor('blue')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Deep Indigo" data-color="indigo" style="background:linear-gradient(135deg,#6366f1,#4338ca)" onclick="selectTabungColor('indigo')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Warm Amber" data-color="amber" style="background:linear-gradient(135deg,#f59e0b,#b45309)" onclick="selectTabungColor('amber')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Crimson Rose" data-color="rose" style="background:linear-gradient(135deg,#f43f5e,#be123c)" onclick="selectTabungColor('rose')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Charcoal Slate" data-color="slate" style="background:linear-gradient(135deg,#64748b,#334155)" onclick="selectTabungColor('slate')"></button>
+          </div>
         </div>
         <div class="input-group">
           <label for="tabung-deadline">Target Date (optional)</label>
           <input type="date" id="tabung-deadline" />
         </div>
         <div id="tabung-modal-error" class="auth-error"></div>
-        <button id="btn-save-tabung" class="btn-primary" onclick="saveTabung()">Save Tabung</button>
+        <button id="btn-save-tabung" class="btn-primary" onclick="saveTabung()">Save Goal</button>
       </div>
     </div>
   </div>
@@ -1027,23 +1144,33 @@
     </div>
   </div>
 
-  <!-- Add Money to Tabung Modal -->
+  <!-- Add Money to Savings Goal Modal -->
   <div id="tabung-topup-overlay" class="modal-overlay hidden" onclick="closeTopupModalOnOverlay(event)">
     <div class="modal small-modal">
       <div class="modal-header">
-        <h2>Add Savings</h2>
-        <button class="modal-close" onclick="closeTopupModal()">✕</button>
+        <h2>Deposit to Goal</h2>
+        <button class="modal-close" onclick="closeTopupModal()" aria-label="Close modal">✕</button>
       </div>
       <div class="modal-body">
-        <p id="topup-tabung-name" style="color:var(--text-secondary);margin-bottom:1rem;font-weight:600;font-size:1rem;"></p>
+        <div class="topup-goal-summary">
+          <p id="topup-tabung-name" class="topup-goal-title"></p>
+          <span id="topup-tabung-progress" class="topup-goal-sub"></span>
+        </div>
         <div class="input-group">
-          <label>Add Amount</label>
+          <label for="topup-amount">Deposit Amount</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
             <input type="text" id="topup-amount" placeholder="0.00" inputmode="decimal" />
           </div>
+          <div class="topup-quick-chips" id="topup-quick-chips">
+            <button type="button" class="topup-chip" onclick="addQuickTopupAmount(10)">+10</button>
+            <button type="button" class="topup-chip" onclick="addQuickTopupAmount(50)">+50</button>
+            <button type="button" class="topup-chip" onclick="addQuickTopupAmount(100)">+100</button>
+            <button type="button" class="topup-chip" onclick="addQuickTopupAmount(250)">+250</button>
+            <button type="button" class="topup-chip topup-chip-fill" id="topup-chip-remaining" onclick="fillRemainingTopup()">Fill Rest</button>
+          </div>
         </div>
-        <button class="btn-primary" onclick="topupTabung()">Add to Tabung</button>
+        <button class="btn-primary" onclick="topupTabung()">Confirm Deposit</button>
       </div>
     </div>
   </div>
@@ -1090,31 +1217,31 @@
     </div>
   </div>
 
-  <!-- Tabung Details Modal (Popup) -->
+  <!-- Savings Goal Details Modal (Popup) -->
   <div id="tabung-details-overlay" class="modal-overlay hidden" onclick="closeTabungDetailsOnOverlay(event)">
     <div class="modal small-modal">
       <div class="modal-header">
-        <h2 id="tabung-details-title">Tabung Details</h2>
-        <button class="modal-close" onclick="closeTabungDetailsModal()">✕</button>
+        <h2 id="tabung-details-title">Goal Details</h2>
+        <button class="modal-close" onclick="closeTabungDetailsModal()" aria-label="Close modal">✕</button>
       </div>
       <div class="modal-body">
-        <div class="tabung-details-hero" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
-          <span id="tabung-details-emoji" class="tabung-emoji" style="font-size:2.5rem;">🎯</span>
+        <div class="tabung-details-hero" style="display:flex; align-items:center; gap:0.9rem; margin-bottom:1rem;">
+          <div id="tabung-details-emoji" class="tabung-icon-badge theme-emerald"></div>
           <div class="tabung-details-meta">
-            <h3 id="tabung-details-name" style="font-family:'Sora',sans-serif; font-weight:700; font-size:1.15rem; margin-bottom:0.25rem;">Savings Goal</h3>
+            <h3 id="tabung-details-name" style="font-family:'Outfit',sans-serif; font-weight:700; font-size:1.15rem; margin-bottom:0.2rem;">Savings Goal</h3>
             <div id="tabung-details-deadline"></div>
           </div>
         </div>
 
-        <div class="tabung-details-progress-section" style="margin-top:1.25rem;">
+        <div class="tabung-details-progress-section" style="margin-top:1.1rem;">
           <div class="tabung-amounts" style="margin-bottom:0.5rem; display:flex; justify-content:space-between; width:100%;">
-            <span>Saved: <strong id="tabung-details-saved" style="color:var(--neon-violet2); font-size:1.2rem;">$0.00</strong></span>
+            <span>Saved: <strong id="tabung-details-saved" style="color:var(--income); font-size:1.2rem;">$0.00</strong></span>
             <span>Target: <strong id="tabung-details-target" style="color:var(--ink-secondary);">$0.00</strong></span>
           </div>
           <div class="budget-progress-wrap" style="height:10px; margin-bottom:0.5rem;">
             <div id="tabung-details-progress-bar" class="budget-progress safe" style="width:0%"></div>
           </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
             <span id="tabung-details-status" class="budget-status safe">0% reached</span>
             <span id="tabung-details-remaining" style="font-size:0.8rem; color:var(--ink-secondary);"></span>
           </div>
@@ -1123,8 +1250,8 @@
         <!-- Savings Contribution Form inside modal -->
         <div class="detail-add-form-box" style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--r-md); padding:1rem; margin-bottom:1.5rem;">
           <div class="type-toggle" style="margin-bottom:1rem; display:flex; gap:0.5rem;">
-            <button id="tabung-action-add" class="type-btn income active" onclick="setTabungActionType('add')">💰 Deposit</button>
-            <button id="tabung-action-withdraw" class="type-btn expense" onclick="setTabungActionType('withdraw')">💸 Withdraw</button>
+            <button id="tabung-action-add" class="type-btn income active" onclick="setTabungActionType('add')">+ Deposit</button>
+            <button id="tabung-action-withdraw" class="type-btn expense" onclick="setTabungActionType('withdraw')">- Withdraw</button>
           </div>
           <h4 id="tabung-action-title" style="font-size:0.8rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--ink-secondary); margin-bottom:0.75rem;">+ Add Savings Contribution</h4>
           <div style="display:flex; gap:0.5rem; flex-direction:column;">
@@ -1155,26 +1282,28 @@
     <div class="modal small-modal">
       <div class="modal-header">
         <h2 id="loan-details-title">Loan Details</h2>
-        <button class="modal-close" onclick="closeLoanDetailsModal()">✕</button>
+        <button class="modal-close" onclick="closeLoanDetailsModal()" aria-label="Close modal">✕</button>
       </div>
       <div class="modal-body">
-        <div class="loan-details-hero" style="margin-bottom:1rem;">
-          <div id="loan-details-badge" class="loan-type-badge owe" style="margin-bottom:0.5rem;">💸 I Owe</div>
-          <h3 id="loan-details-person" style="font-family:'Sora',sans-serif; font-weight:700; font-size:1.2rem; margin-bottom:0.25rem;">Person / Institution</h3>
-          <p id="loan-details-desc" style="font-size:0.85rem; color:var(--ink-secondary); margin-bottom:0.25rem;"></p>
-          <div id="loan-details-due"></div>
+        <div class="loan-details-hero" style="display:flex; align-items:center; gap:0.9rem; margin-bottom:1rem;">
+          <div id="loan-details-badge" class="tabung-icon-badge theme-blue"></div>
+          <div style="flex:1; min-width:0;">
+            <h3 id="loan-details-person" style="font-family:'Outfit',sans-serif; font-weight:700; font-size:1.15rem; margin-bottom:0.15rem;">Loan Name</h3>
+            <p id="loan-details-desc" style="font-size:0.82rem; color:var(--ink-secondary); margin-bottom:0.2rem;"></p>
+            <div id="loan-details-due"></div>
+          </div>
         </div>
 
-        <div class="loan-details-progress-section" style="margin-top:1.25rem;">
+        <div class="loan-details-progress-section" style="margin-top:1.1rem;">
           <div class="loan-amounts" style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:0.5rem; flex-wrap:wrap; gap:0.5rem;">
-            <span>Paid: <strong id="loan-details-paid" style="color:var(--accent-green)">$0.00</strong></span>
-            <span>Remaining: <strong id="loan-details-remaining-val" style="color:var(--accent-red)">$0.00</strong></span>
+            <span>Paid: <strong id="loan-details-paid" style="color:var(--income)">$0.00</strong></span>
+            <span>Remaining: <strong id="loan-details-remaining-val" style="color:var(--expense)">$0.00</strong></span>
             <span>Total: <strong id="loan-details-total" style="color:var(--ink-primary)">$0.00</strong></span>
           </div>
           <div class="budget-progress-wrap" style="height:10px; margin-bottom:0.5rem;">
             <div id="loan-details-progress-bar" class="budget-progress safe" style="width:0%"></div>
           </div>
-          <div id="loan-details-status" style="font-size:0.8rem; color:var(--ink-secondary); margin-bottom:1.5rem;">0% paid</div>
+          <div id="loan-details-status" style="font-size:0.8rem; color:var(--ink-secondary); margin-bottom:1.25rem;">0% paid off</div>
         </div>
 
         <!-- Add Payment Form inside modal -->
@@ -1203,46 +1332,107 @@
     </div>
   </div>
 
-  <!-- Loan Modal -->
+  <!-- Add / Edit Loan Modal -->
   <div id="loan-modal-overlay" class="modal-overlay hidden" onclick="closeLoanModalOnOverlay(event)">
     <div class="modal small-modal">
       <div class="modal-header">
-        <h2 id="loan-modal-title">Add Loan / Hutang</h2>
-        <button class="modal-close" onclick="closeLoanModal()">✕</button>
+        <h2 id="loan-modal-title">New Loan / Installment</h2>
+        <button class="modal-close" onclick="closeLoanModal()" aria-label="Close modal">✕</button>
       </div>
       <div class="modal-body">
-        <div class="type-toggle">
-          <button id="loan-type-owe" class="type-btn expense active" onclick="setLoanType('owe')">💸 I Owe</button>
-          <button id="loan-type-lent" class="type-btn income" onclick="setLoanType('lent')">💰 I Lent</button>
+        <div class="input-group">
+          <label for="loan-person">Loan Name / Lender</label>
+          <input type="text" id="loan-person" placeholder="e.g. Maybank Car Loan, PTPTN, Home Mortgage" />
         </div>
         <div class="input-group">
-          <label for="loan-person">Person / Institution</label>
-          <input type="text" id="loan-person" placeholder="e.g. Bank Islam, Ali..." />
+          <label for="loan-desc">Notes / Reference (optional)</label>
+          <input type="text" id="loan-desc" placeholder="e.g. Honda City 5-year financing, 0% 12-month plan" />
         </div>
-        <div class="input-group">
-          <label for="loan-desc">Description</label>
-          <input type="text" id="loan-desc" placeholder="e.g. Car loan, borrowed for holiday..." />
+        <div class="form-row">
+          <div class="input-group">
+            <label for="loan-total">Total Loan Amount</label>
+            <div class="amount-input-wrap">
+              <span class="currency-symbol dynamic-currency">$</span>
+              <input type="text" id="loan-total" placeholder="0.00" inputmode="decimal" />
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="loan-paid">Paid So Far</label>
+            <div class="amount-input-wrap">
+              <span class="currency-symbol dynamic-currency">$</span>
+              <input type="text" id="loan-paid" placeholder="0.00" value="0" inputmode="decimal" />
+            </div>
+          </div>
         </div>
-        <div class="input-group">
-          <label for="loan-total">Total Amount</label>
-          <div class="amount-input-wrap">
-            <span class="currency-symbol dynamic-currency">$</span>
-            <input type="text" id="loan-total" placeholder="0.00" inputmode="decimal" />
+        <div class="form-row">
+          <div class="input-group">
+            <label for="loan-monthly">Monthly Installment</label>
+            <div class="amount-input-wrap">
+              <span class="currency-symbol dynamic-currency">$</span>
+              <input type="text" id="loan-monthly" placeholder="0.00" inputmode="decimal" />
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="loan-due-day">Due Day of Month (1-31)</label>
+            <input type="number" id="loan-due-day" placeholder="e.g. 25" min="1" max="31" step="1" inputmode="numeric" />
           </div>
         </div>
         <div class="input-group">
-          <label for="loan-paid">Amount Paid / Received</label>
-          <div class="amount-input-wrap">
-            <span class="currency-symbol dynamic-currency">$</span>
-            <input type="text" id="loan-paid" placeholder="0.00" value="0" inputmode="decimal" />
+          <label id="loan-icon-label">Loan Category</label>
+          <input type="hidden" id="loan-icon" value="bank" />
+          <div id="loan-icon-picker" class="savings-icon-picker" role="radiogroup" aria-labelledby="loan-icon-label">
+            <button type="button" class="savings-icon-btn active" role="radio" aria-checked="true" data-icon="bank" onclick="selectLoanIcon('bank')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
+              <span>Financing</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="car" onclick="selectLoanIcon('car')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+              <span>Vehicle</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="home" onclick="selectLoanIcon('home')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span>Mortgage</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="education" onclick="selectLoanIcon('education')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              <span>Education</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="tech" onclick="selectLoanIcon('tech')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+              <span>Gadget</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="bnpl" onclick="selectLoanIcon('bnpl')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              <span>BNPL</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="personal" onclick="selectLoanIcon('personal')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>Personal</span>
+            </button>
+            <button type="button" class="savings-icon-btn" role="radio" aria-checked="false" data-icon="business" onclick="selectLoanIcon('business')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              <span>Business</span>
+            </button>
           </div>
         </div>
         <div class="input-group">
-          <label for="loan-due">Due Date (optional)</label>
+          <label id="loan-color-label">Card Theme Color</label>
+          <input type="hidden" id="loan-color" value="blue" />
+          <div id="loan-color-picker" class="cc-color-picker" role="radiogroup" aria-labelledby="loan-color-label">
+            <button type="button" class="cc-color-swatch active" role="radio" aria-checked="true" aria-label="Royal Blue" data-color="blue" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)" onclick="selectLoanColor('blue')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Deep Indigo" data-color="indigo" style="background:linear-gradient(135deg,#6366f1,#4338ca)" onclick="selectLoanColor('indigo')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Emerald Teal" data-color="emerald" style="background:linear-gradient(135deg,#10b981,#0d9488)" onclick="selectLoanColor('emerald')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Warm Amber" data-color="amber" style="background:linear-gradient(135deg,#f59e0b,#b45309)" onclick="selectLoanColor('amber')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Crimson Rose" data-color="rose" style="background:linear-gradient(135deg,#f43f5e,#be123c)" onclick="selectLoanColor('rose')"></button>
+            <button type="button" class="cc-color-swatch" role="radio" aria-checked="false" aria-label="Charcoal Slate" data-color="slate" style="background:linear-gradient(135deg,#64748b,#334155)" onclick="selectLoanColor('slate')"></button>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="loan-due">Target Payoff Date (optional)</label>
           <input type="date" id="loan-due" />
         </div>
         <div id="loan-modal-error" class="auth-error"></div>
-        <button id="btn-save-loan" class="btn-primary" onclick="saveLoan()">Save</button>
+        <button id="btn-save-loan" class="btn-primary" onclick="saveLoan()">Save Loan</button>
       </div>
     </div>
   </div>
@@ -1251,19 +1441,29 @@
   <div id="loan-pay-overlay" class="modal-overlay hidden" onclick="closeLoanPayOnOverlay(event)">
     <div class="modal small-modal">
       <div class="modal-header">
-        <h2>Record Payment</h2>
-        <button class="modal-close" onclick="closeLoanPayModal()">✕</button>
+        <h2>Pay Loan Installment</h2>
+        <button class="modal-close" onclick="closeLoanPayModal()" aria-label="Close modal">✕</button>
       </div>
       <div class="modal-body">
-        <p id="loan-pay-desc" style="color:var(--text-secondary);margin-bottom:1rem;font-weight:600;font-size:1rem;"></p>
+        <div class="topup-goal-summary">
+          <p id="loan-pay-desc" class="topup-goal-title"></p>
+          <span id="loan-pay-sub" class="topup-goal-sub"></span>
+        </div>
         <div class="input-group">
-          <label>Payment Amount</label>
+          <label for="loan-pay-amount">Payment Amount</label>
           <div class="amount-input-wrap">
             <span class="currency-symbol dynamic-currency">$</span>
             <input type="text" id="loan-pay-amount" placeholder="0.00" inputmode="decimal" />
           </div>
+          <div class="topup-quick-chips" id="loan-pay-quick-chips">
+            <button type="button" class="topup-chip topup-chip-fill" id="loan-chip-monthly" style="display:none" onclick="fillMonthlyLoanPayment()">Monthly Installment</button>
+            <button type="button" class="topup-chip" onclick="addQuickLoanPayment(50)">+50</button>
+            <button type="button" class="topup-chip" onclick="addQuickLoanPayment(100)">+100</button>
+            <button type="button" class="topup-chip" onclick="addQuickLoanPayment(250)">+250</button>
+            <button type="button" class="topup-chip topup-chip-fill" id="loan-chip-settle" onclick="fillSettleLoanPayment()">Settle Balance</button>
+          </div>
         </div>
-        <button class="btn-primary" onclick="recordLoanPayment()">Record Payment</button>
+        <button class="btn-primary" onclick="recordLoanPayment()">Confirm Payment</button>
       </div>
     </div>
   </div>
@@ -1302,6 +1502,6 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-  <script type="module" src="app.js?v=1.3.4"></script>
+  <script type="module" src="app.js?v=1.3.9"></script>
 </body>
 </html>

@@ -742,7 +742,7 @@ function subscribeToData() {
   unsubscribeTabung = onSnapshot(tq, snap => {
     allTabung = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     updateSummaryCards();
-    if (document.getElementById('page-tabung').classList.contains('active')) renderTabung();
+    if (document.getElementById('page-wallet')?.classList.contains('active')) renderTabung();
     if (activeTabungDetailId) refreshTabungDetailsModal();
   });
 
@@ -751,7 +751,7 @@ function subscribeToData() {
   unsubscribeLoans = onSnapshot(lq, snap => {
     allLoans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     updateSummaryCards();
-    if (document.getElementById('page-loans').classList.contains('active')) renderLoans();
+    if (document.getElementById('page-wallet')?.classList.contains('active')) renderLoans();
     if (activeLoanDetailId) refreshLoanDetailsModal();
   });
 }
@@ -1032,20 +1032,116 @@ const MOB_PAGE_TITLES = {
   categories: 'Categories',
   budgets: 'Budgets & Categories',
   monthly: 'Monthly Report',
-  tabung: 'Savings',
-  loans: 'Loans',
+  wallet: 'Wallet',
+  tabung: 'Wallet',
+  loans: 'Wallet',
   tools: 'Cards & Tools',
   settings: 'Settings'
 };
 
+const WALLET_TAB_ORDER = ['cards', 'savings', 'loans'];
+let activeWalletTab = 'cards';
+
+window.switchWalletTab = function (tab, direction = '') {
+  if (!WALLET_TAB_ORDER.includes(tab)) tab = 'cards';
+  const prevIdx = WALLET_TAB_ORDER.indexOf(activeWalletTab);
+  const nextIdx = WALLET_TAB_ORDER.indexOf(tab);
+  const autoDir = direction || (nextIdx > prevIdx ? 'next' : (nextIdx < prevIdx ? 'prev' : ''));
+  activeWalletTab = tab;
+
+  WALLET_TAB_ORDER.forEach((key) => {
+    const btn = document.getElementById('wallet-tab-' + key);
+    const panel = document.getElementById('wallet-panel-' + key);
+    const isActive = key === tab;
+    if (btn) {
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    }
+    if (panel) {
+      panel.classList.remove('slide-next', 'slide-prev');
+      panel.classList.toggle('active', isActive);
+      if (isActive && autoDir) {
+        panel.classList.add(autoDir === 'next' ? 'slide-next' : 'slide-prev');
+      }
+    }
+  });
+
+  if (tab === 'cards') renderWalletCards();
+  if (tab === 'savings') renderTabung();
+  if (tab === 'loans') renderLoans();
+};
+
+(function initWalletTabSwipe() {
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+  let trackingSwipe = false;
+
+  document.addEventListener('touchstart', (e) => {
+    if (!e.touches || e.touches.length !== 1) return;
+    const walletPage = document.getElementById('page-wallet');
+    if (!walletPage || !walletPage.classList.contains('active')) return;
+    if (document.querySelector('.modal-overlay:not(.hidden)')) return;
+
+    const target = e.target;
+    if (target && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+    trackingSwipe = true;
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    if (!trackingSwipe || !e.changedTouches || !e.changedTouches.length) return;
+    trackingSwipe = false;
+
+    const walletPage = document.getElementById('page-wallet');
+    if (!walletPage || !walletPage.classList.contains('active')) return;
+    if (document.querySelector('.modal-overlay:not(.hidden)')) return;
+
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    const elapsed = Date.now() - touchStartTime;
+
+    // Require intentional horizontal swipe: >= 48px, horizontal > 1.35x vertical, and <= 650ms
+    if (elapsed > 650) return;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
+
+    const curIdx = WALLET_TAB_ORDER.indexOf(activeWalletTab);
+    if (curIdx < 0) return;
+
+    if (dx < 0 && curIdx < WALLET_TAB_ORDER.length - 1) {
+      // Swipe left -> go to next tab (Credit Cards -> Savings -> Loans)
+      if (typeof haptic === 'function') haptic();
+      window.switchWalletTab(WALLET_TAB_ORDER[curIdx + 1], 'next');
+    } else if (dx > 0 && curIdx > 0) {
+      // Swipe right -> go to previous tab (Loans -> Savings -> Credit Cards)
+      if (typeof haptic === 'function') haptic();
+      window.switchWalletTab(WALLET_TAB_ORDER[curIdx - 1], 'prev');
+    }
+  }, { passive: true });
+})();
+
 window.navigateTo = function (page, el) {
-  // Pages housed under "Wallet / More" sheet highlight the 4th tab
-  const moreSubPages = ['tools', 'tabung', 'loans', 'categories', 'monthly', 'settings'];
+  // Route legacy tabung/loans calls straight into Wallet sub-tabs
+  if (page === 'tabung') {
+    activeWalletTab = 'savings';
+    page = 'wallet';
+  } else if (page === 'loans') {
+    activeWalletTab = 'loans';
+    page = 'wallet';
+  }
+
+  const walletSubPages = ['wallet', 'tools', 'categories', 'monthly', 'settings'];
+  const targetSection = document.getElementById('page-' + page);
+  if (!targetSection) return;
+
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
+  targetSection.classList.add('active');
   document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
-  if (moreSubPages.includes(page)) {
-    document.querySelector('.bottom-nav .nav-item[data-page="more"]')?.classList.add('active');
+  if (walletSubPages.includes(page)) {
+    document.querySelector('.bottom-nav .nav-item[data-page="wallet"]')?.classList.add('active');
   } else if (el) {
     el.classList.add('active');
   } else {
@@ -1054,9 +1150,10 @@ window.navigateTo = function (page, el) {
   // Show SpendWise FAB on Home & History tabs only
   const fab = document.getElementById('sw-fab');
   if (fab) fab.classList.toggle('hidden', page !== 'dashboard' && page !== 'transactions');
-  // Update top app bar title
+  // Update top app bar title & header border
   const titleEl = document.getElementById('mob-page-title');
   if (titleEl) titleEl.textContent = MOB_PAGE_TITLES[page] || 'ExpenseFlow';
+  document.getElementById('mobile-header')?.classList.toggle('no-border', page === 'wallet');
   window.scrollTo({ top: 0, behavior: 'instant' });
   if (page === 'dashboard') updateSummaryCards();
   if (page === 'categories') {
@@ -1067,8 +1164,9 @@ window.navigateTo = function (page, el) {
   if (page === 'budgets') renderBudgets();
   if (page === 'transactions') renderAllTransactions();
   if (page === 'monthly') renderMonthly();
-  if (page === 'tabung') renderTabung();
-  if (page === 'loans') renderLoans();
+  if (page === 'wallet') {
+    switchWalletTab(activeWalletTab);
+  }
 };
 
 // ─── Mobile Profile Dropdown ────────────────────────────────────────────────
@@ -1140,6 +1238,87 @@ window.handleSmartFabClick = function () {
   }
 };
 
+const TX_CATEGORIES_BY_TYPE = {
+  expense: ['Food', 'Groceries', 'Transport', 'Bills', 'Rent', 'Entertainment', 'Health', 'Clothing', 'Loan', 'General', 'Other'],
+  income: ['Salary', 'Freelance', 'Investment', 'Loan', 'General', 'Other']
+};
+
+function renderTxCategoryGrid(type, selectedCat) {
+  const grid = document.getElementById('tx-category-grid');
+  const hiddenInput = document.getElementById('tx-category');
+  if (!grid || !hiddenInput) return;
+
+  const baseList = TX_CATEGORIES_BY_TYPE[type] || TX_CATEGORIES_BY_TYPE.expense;
+  const list = [...baseList];
+  let activeCat = selectedCat || hiddenInput.value || 'General';
+
+  if (selectedCat && !list.includes(selectedCat)) {
+    list.push(selectedCat);
+  } else if (!list.includes(activeCat)) {
+    activeCat = 'General';
+  }
+
+  hiddenInput.value = activeCat;
+
+  grid.innerHTML = list.map((cat) => {
+    const meta = getSpendwiseCategoryMeta(cat, type);
+    const isActive = cat === activeCat;
+    return `
+      <button
+        type="button"
+        class="tx-cat-tile${isActive ? ' active' : ''}"
+        role="radio"
+        aria-checked="${isActive ? 'true' : 'false'}"
+        tabindex="${isActive ? '0' : '-1'}"
+        data-category="${escapeHtml(cat)}"
+        style="--cat-color:${meta.color};--cat-bg:${meta.bg};"
+        onclick="selectTxCategory(this.dataset.category)"
+      >
+        <span class="tx-cat-tile-icon" aria-hidden="true">${meta.icon}</span>
+        <span class="tx-cat-tile-label">${escapeHtml(cat)}</span>
+      </button>
+    `;
+  }).join('');
+
+  if (!grid.dataset.kbBound) {
+    grid.dataset.kbBound = '1';
+    grid.addEventListener('keydown', (e) => {
+      const tiles = Array.from(grid.querySelectorAll('.tx-cat-tile'));
+      if (!tiles.length) return;
+      const curIdx = tiles.findIndex(el => el === document.activeElement || el.classList.contains('active'));
+      let nextIdx = -1;
+
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextIdx = (curIdx + 1) % tiles.length;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') nextIdx = (curIdx - 1 + tiles.length) % tiles.length;
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = tiles.length - 1;
+      else return;
+
+      e.preventDefault();
+      const target = tiles[nextIdx];
+      if (target) {
+        selectTxCategory(target.dataset.category, false);
+        target.focus();
+      }
+    });
+  }
+}
+
+window.selectTxCategory = function (cat, triggerHaptic = true) {
+  const hiddenInput = document.getElementById('tx-category');
+  const grid = document.getElementById('tx-category-grid');
+  if (hiddenInput) hiddenInput.value = cat;
+  if (grid) {
+    grid.querySelectorAll('.tx-cat-tile').forEach((tile) => {
+      const isMatch = tile.dataset.category === cat;
+      tile.classList.toggle('active', isMatch);
+      tile.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+      tile.setAttribute('tabindex', isMatch ? '0' : '-1');
+    });
+  }
+  if (triggerHaptic && window.haptic) window.haptic();
+};
+
 window.openModal = function (txId = null) {
   editingTxId = txId;
   const modal = document.getElementById('modal-overlay');
@@ -1153,10 +1332,9 @@ window.openModal = function (txId = null) {
   if (txId) {
     const tx = allTransactions.find(t => t.id === txId);
     if (tx) {
-      setType(tx.type);
+      setType(tx.type, tx.category || 'General');
       document.getElementById('tx-description').value = tx.description;
       setAmountInputValue('tx-amount', tx.amount);
-      document.getElementById('tx-category').value = tx.category;
       document.getElementById('tx-date').value = tx.date;
       document.getElementById('tx-notes').value = tx.notes || '';
       const pmSelect = document.getElementById('tx-pay-method');
@@ -1189,10 +1367,9 @@ window.closeModalOnOverlay = function (e) {
 };
 
 function resetModal() {
-  setType('income');
+  setType('income', 'General');
   document.getElementById('tx-description').value = '';
   setAmountInputValue('tx-amount', '');
-  document.getElementById('tx-category').value = 'General';
   document.getElementById('tx-notes').value = '';
   const pmSelect = document.getElementById('tx-pay-method');
   if (pmSelect) pmSelect.value = 'cash';
@@ -1204,10 +1381,13 @@ function resetModal() {
   document.getElementById('modal-error').style.display = 'none';
 }
 
-window.setType = function (t) {
+window.setType = function (t, preferredCategory = null) {
   txType = t;
   document.getElementById('type-income').classList.toggle('active', t === 'income');
   document.getElementById('type-expense').classList.toggle('active', t === 'expense');
+
+  const currentCat = preferredCategory || document.getElementById('tx-category')?.value || 'General';
+  renderTxCategoryGrid(t, preferredCategory ? currentCat : null);
   
   const pmGroup = document.getElementById('tx-pay-method-group');
   if (pmGroup) {
@@ -1624,16 +1804,116 @@ function getCategoryIcon(cat) {
   return icons[cat] || '💡';
 }
 
+const WALLET_CARD_COLOR_CYCLE = ['blue', 'teal', 'indigo', 'crimson', 'slate', 'amber'];
+
 function getCCCards() {
-  if (userSettings && Array.isArray(userSettings.creditCards) && userSettings.creditCards.length > 0) {
+  if (userSettings && Array.isArray(userSettings.creditCards)) {
     return userSettings.creditCards;
   }
   return [{
     id: 'legacy-default',
     name: 'Primary Card',
-    limit: userSettings.creditLimit !== undefined ? userSettings.creditLimit : 10000,
-    dueDay: userSettings.creditDueDay !== undefined ? userSettings.creditDueDay : 25
+    last4: '0000',
+    limit: userSettings.creditPoolLimit !== undefined ? userSettings.creditPoolLimit : (userSettings.creditLimit !== undefined ? userSettings.creditLimit : 2000),
+    dueDay: userSettings.creditPoolDueDay !== undefined ? userSettings.creditPoolDueDay : (userSettings.creditDueDay !== undefined ? userSettings.creditDueDay : 25),
+    color: 'blue'
   }];
+}
+
+function getCardLimit(card) {
+  if (card && typeof card.limit === 'number' && !isNaN(card.limit)) return card.limit;
+  if (card && card.limit !== undefined && !isNaN(parseFloat(card.limit))) return parseFloat(card.limit);
+  return userSettings.creditPoolLimit || 2000;
+}
+
+function getCardDueDay(card) {
+  if (card && card.dueDay !== undefined && !isNaN(parseInt(card.dueDay, 10))) return parseInt(card.dueDay, 10);
+  return userSettings.creditPoolDueDay || 25;
+}
+
+function getCardColor(card, idx = 0) {
+  if (card && WALLET_CARD_COLOR_CYCLE.includes(card.color)) return card.color;
+  return WALLET_CARD_COLOR_CYCLE[idx % WALLET_CARD_COLOR_CYCLE.length];
+}
+
+function renderWalletCards() {
+  const listEl = document.getElementById('wallet-cc-list');
+  const debtEl = document.getElementById('wallet-total-debt');
+  const limitEl = document.getElementById('wallet-total-limit');
+  if (!listEl) return;
+
+  const cards = getCCCards();
+  let totalDebt = 0;
+  let totalLimit = 0;
+
+  const cardRows = cards.map((card, idx) => {
+    const outstanding = getCCCardOutstanding(card.id);
+    const limit = getCardLimit(card);
+    const available = Math.max(0, limit - outstanding);
+    const pct = limit > 0 ? Math.min((outstanding / limit) * 100, 100) : 0;
+    const dueDay = getCardDueDay(card);
+    const last4 = (card.last4 && /^\d{1,4}$/.test(String(card.last4))) ? String(card.last4).padStart(4, '0') : '0000';
+    const color = getCardColor(card, idx);
+    totalDebt += outstanding;
+    totalLimit += limit;
+    return { card, outstanding, limit, available, pct, dueDay, last4, color };
+  });
+
+  if (debtEl) debtEl.textContent = formatCurrency(totalDebt);
+  if (limitEl) limitEl.textContent = `Total Limit: ${formatCurrency(totalLimit)}`;
+
+  if (!cardRows.length) {
+    listEl.innerHTML = `
+      <div class="sw-empty-card">
+        <div class="sw-empty-title">No credit cards yet</div>
+        <div class="sw-empty-sub">Tap + Add Card above to register your first credit card.</div>
+      </div>
+    `;
+    return;
+  }
+
+  const cardIconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`;
+  const trashIconSvg = `<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
+
+  listEl.innerHTML = cardRows.map(({ card, outstanding, limit, available, pct, dueDay, last4, color }) => {
+    const safeId = escapeHtml(card.id);
+    const safeName = escapeHtml(card.name || 'Card');
+    return `
+      <article class="wallet-cc-card">
+        <div class="wallet-cc-face wallet-cc-theme-${color}" role="button" tabindex="0" aria-label="Edit ${safeName}" onclick="haptic();openConfigureCCModal('${safeId}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();haptic();openConfigureCCModal('${safeId}');}">
+          <div class="wallet-cc-top">
+            <div class="wallet-cc-brand">
+              ${cardIconSvg}
+              <span class="wallet-cc-name">${safeName}</span>
+            </div>
+            <span class="wallet-cc-last4">•••• ${escapeHtml(last4)}</span>
+          </div>
+          <div class="wallet-cc-balances">
+            <div class="wallet-cc-bal-col">
+              <span class="wallet-cc-bal-label">Current Balance</span>
+              <strong class="wallet-cc-bal-val">${formatCurrency(outstanding)}</strong>
+            </div>
+            <div class="wallet-cc-bal-col right">
+              <span class="wallet-cc-bal-label">Available</span>
+              <strong class="wallet-cc-avail-val">${formatCurrency(available)}</strong>
+            </div>
+          </div>
+          <div class="wallet-cc-track" role="progressbar" aria-valuenow="${pct.toFixed(0)}" aria-valuemin="0" aria-valuemax="100">
+            <div class="wallet-cc-fill" style="width:${pct.toFixed(1)}%"></div>
+            <span class="wallet-cc-dot" aria-hidden="true"></span>
+          </div>
+          <div class="wallet-cc-meta">
+            <span>Limit: ${formatCurrency(limit)} (${pct.toFixed(0)}% used)</span>
+            <span>Due: Day ${dueDay}</span>
+          </div>
+        </div>
+        <div class="wallet-cc-footer">
+          <button type="button" class="wallet-pay-btn" onclick="haptic();openPayCCModal('${safeId}')">Pay Card Bill</button>
+          <button type="button" class="wallet-del-btn" aria-label="Delete ${safeName}" title="Delete card" onclick="haptic();deleteCCCardById('${safeId}')">${trashIconSvg}</button>
+        </div>
+      </article>
+    `;
+  }).join('');
 }
 
 function getCCCardOutstanding(cardId) {
@@ -1765,25 +2045,138 @@ window.closeCCSwitcher = function() {
 };
 
 
+function syncPayMethodButtons(method) {
+  const wrap = document.getElementById('tx-pay-method-toggle');
+  if (!wrap) return;
+  const val = method || document.getElementById('tx-pay-method')?.value || 'cash';
+  wrap.querySelectorAll('.pm-btn').forEach((btn) => {
+    const isMatch = btn.dataset.method === val;
+    btn.classList.toggle('active', isMatch);
+    btn.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+    btn.setAttribute('tabindex', isMatch ? '0' : '-1');
+  });
+  if (!wrap.dataset.kbBound) {
+    wrap.dataset.kbBound = '1';
+    wrap.addEventListener('keydown', (e) => {
+      const btns = Array.from(wrap.querySelectorAll('.pm-btn'));
+      if (!btns.length) return;
+      const curIdx = btns.findIndex(el => el === document.activeElement || el.classList.contains('active'));
+      let nextIdx = -1;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextIdx = (curIdx + 1) % btns.length;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') nextIdx = (curIdx - 1 + btns.length) % btns.length;
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = btns.length - 1;
+      else return;
+      e.preventDefault();
+      const target = btns[nextIdx];
+      if (target) {
+        selectPayMethod(target.dataset.method, false);
+        target.focus();
+      }
+    });
+  }
+}
+
+window.selectPayMethod = function (method, triggerHaptic = true) {
+  const pmInput = document.getElementById('tx-pay-method');
+  if (pmInput) pmInput.value = method;
+  syncPayMethodButtons(method);
+  toggleCCSelectGroup();
+  if (triggerHaptic && window.haptic) window.haptic();
+};
+
 window.toggleCCSelectGroup = function () {
   const pmSelect = document.getElementById('tx-pay-method');
   const ccSelectGroup = document.getElementById('tx-cc-select-group');
+  if (pmSelect) syncPayMethodButtons(pmSelect.value);
   if (pmSelect && ccSelectGroup) {
-    ccSelectGroup.style.display = (pmSelect.value === 'credit' && txType === 'expense') ? 'block' : 'none';
+    const showCC = pmSelect.value === 'credit' && txType === 'expense';
+    ccSelectGroup.style.display = showCC ? 'block' : 'none';
+    if (showCC) {
+      const currentId = document.getElementById('tx-cc-select')?.value;
+      populateCCSelect(currentId || activeCCCardId);
+    }
   }
 };
 
-function populateCCSelect() {
-  const select = document.getElementById('tx-cc-select');
-  if (!select) return;
-  select.innerHTML = '';
-  const cards = getCCCards();
-  cards.forEach(card => {
-    const opt = document.createElement('option');
-    opt.value = card.id;
-    opt.textContent = card.name;
-    select.appendChild(opt);
+function syncTxCCButtons(cardId) {
+  const grid = document.getElementById('tx-cc-grid');
+  if (!grid) return;
+  const val = cardId || document.getElementById('tx-cc-select')?.value || '';
+  grid.querySelectorAll('.tx-cc-tile').forEach((btn) => {
+    const isMatch = btn.dataset.cardId === val;
+    btn.classList.toggle('active', isMatch);
+    btn.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+    btn.setAttribute('tabindex', isMatch ? '0' : '-1');
   });
+}
+
+window.selectTxCreditCard = function (cardId, triggerHaptic = true) {
+  const ccInput = document.getElementById('tx-cc-select');
+  if (ccInput) ccInput.value = cardId;
+  syncTxCCButtons(cardId);
+  if (triggerHaptic && window.haptic) window.haptic();
+};
+
+function populateCCSelect(preferredCardId = null) {
+  const ccInput = document.getElementById('tx-cc-select');
+  const grid = document.getElementById('tx-cc-grid');
+  const cards = getCCCards();
+  if (!ccInput || !grid) return;
+
+  if (!cards.length) {
+    ccInput.value = '';
+    grid.innerHTML = `<div style="font-size:0.8rem;color:var(--ink-secondary);padding:0.5rem 0;">No cards registered yet. Add one in Wallet.</div>`;
+    return;
+  }
+
+  const desiredId = preferredCardId || ccInput.value || activeCCCardId || '';
+  const matched = cards.find(c => c.id === desiredId);
+  const selectedId = matched ? matched.id : (cards[0]?.id || 'legacy-default');
+  ccInput.value = selectedId;
+
+  const cardSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>`;
+  const checkSvg = `<svg class="tx-cc-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+  grid.innerHTML = cards.map((card) => {
+    const isActive = card.id === selectedId;
+    return `
+      <button
+        type="button"
+        class="tx-cc-tile${isActive ? ' active' : ''}"
+        role="radio"
+        aria-checked="${isActive ? 'true' : 'false'}"
+        tabindex="${isActive ? '0' : '-1'}"
+        data-card-id="${escapeHtml(card.id)}"
+        onclick="selectTxCreditCard(this.dataset.cardId)"
+      >
+        <span class="tx-cc-tile-icon" aria-hidden="true">${cardSvg}</span>
+        <span class="tx-cc-tile-name">${escapeHtml(card.name)}</span>
+        ${checkSvg}
+      </button>
+    `;
+  }).join('');
+
+  if (!grid.dataset.kbBound) {
+    grid.dataset.kbBound = '1';
+    grid.addEventListener('keydown', (e) => {
+      const btns = Array.from(grid.querySelectorAll('.tx-cc-tile'));
+      if (!btns.length) return;
+      const curIdx = btns.findIndex(el => el === document.activeElement || el.classList.contains('active'));
+      let nextIdx = -1;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextIdx = (curIdx + 1) % btns.length;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') nextIdx = (curIdx - 1 + btns.length) % btns.length;
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = btns.length - 1;
+      else return;
+      e.preventDefault();
+      const target = btns[nextIdx];
+      if (target) {
+        selectTxCreditCard(target.dataset.cardId, false);
+        target.focus();
+      }
+    });
+  }
 }
 
 window.dashMonthShift = function (delta) {
@@ -1796,11 +2189,8 @@ window.dashMonthShift = function (delta) {
 
 window.focusDashboardCC = function () {
   haptic();
-  navigateTo('tools');
-  const card = document.getElementById('dashboard-cc-card');
-  if (!card) return;
-  card.classList.add('open');
-  localStorage.setItem('dashboardCCOpen', 'true');
+  activeWalletTab = 'cards';
+  navigateTo('wallet');
 };
 
 window.toggleSwCategoryDropdown = function () {
@@ -1835,7 +2225,7 @@ function getSpendwiseCategoryMeta(cat, type) {
     return { color: '#0284C7', bg: 'rgba(2, 132, 199, 0.14)', icon: svg('<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>') };
   }
   if (key.includes('bill') || key.includes('util')) {
-    return { color: '#EAB308', bg: 'rgba(234, 179, 8, 0.14)', icon: svg('<path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z"/>') };
+    return { color: '#EAB308', bg: 'rgba(234, 179, 8, 0.14)', icon: svg('<path d="M18 17H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2zM3 22l1.5-1.5L6 22l1.5-1.5L9 22l1.5-1.5L12 22l1.5-1.5L15 22l1.5-1.5L18 22l1.5-1.5L21 22V2l-1.5 1.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2 10.5 3.5 9 2 7.5 3.5 6 2 4.5 3.5 3 2v20z"/>') };
   }
   if (key.includes('transport') || key.includes('car') || key.includes('fuel') || key.includes('petrol') || key.includes('grab')) {
     return { color: '#6366F1', bg: 'rgba(99, 102, 241, 0.14)', icon: svg('<path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>') };
@@ -1852,11 +2242,23 @@ function getSpendwiseCategoryMeta(cat, type) {
   if (key.includes('credit')) {
     return { color: '#0F766E', bg: 'rgba(15, 118, 110, 0.14)', icon: svg('<path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>') };
   }
-  if (key.includes('salary') || key.includes('income') || type === 'income') {
-    return { color: '#16A34A', bg: 'rgba(22, 163, 74, 0.14)', icon: svg('<path d="M19 14V6c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zm-9-1c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm13-6v11c0 1.1-.9 2-2 2H4v-2h17V7h2z"/>') };
+  if (key.includes('freelance')) {
+    return { color: '#38BDF8', bg: 'rgba(56, 189, 248, 0.14)', icon: svg('<path d="M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>') };
+  }
+  if (key.includes('invest')) {
+    return { color: '#14B8A6', bg: 'rgba(20, 184, 166, 0.14)', icon: svg('<path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>') };
   }
   if (key.includes('loan')) {
     return { color: '#0284C7', bg: 'rgba(2, 132, 199, 0.14)', icon: svg('<path d="M4 10v7h3v-7H4zm6 0v7h3v-7h-3zM2 22h19v-3H2v3zm14-12v7h3v-7h-3zm-4.5-9L2 6v2h19V6l-9.5-5z"/>') };
+  }
+  if (key.includes('general')) {
+    return { color: '#64748B', bg: 'rgba(100, 116, 139, 0.16)', icon: svg('<path d="M21 18v1c0 1.1-.9 2-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14c1.1 0 2 .9 2 2v1h-9a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>') };
+  }
+  if (key.includes('other')) {
+    return { color: '#94A3B8', bg: 'rgba(148, 163, 184, 0.16)', icon: svg('<path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/>') };
+  }
+  if (key.includes('salary') || key.includes('income') || type === 'income') {
+    return { color: '#16A34A', bg: 'rgba(22, 163, 74, 0.14)', icon: svg('<path d="M19 14V6c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zm-9-1c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm13-6v11c0 1.1-.9 2-2 2H4v-2h17V7h2z"/>') };
   }
   return { color: '#64748B', bg: 'rgba(100, 116, 139, 0.14)', icon: svg('<path d="M12 2l-5.5 9h11L12 2zm0 3.84L13.93 9h-3.87L12 5.84zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.01 4.5-4.5-2.01-4.5-4.5-4.5zm0 7a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5zM3 21.5h8v-8H3v8zm2-6h4v4H5v-4z"/>') };
 }
@@ -2023,9 +2425,9 @@ function updateSummaryCards() {
     cards.reduce((sum, c) => sum + getCCCardOutstanding(c.id), 0),
     Math.max(0, allCCExpenses - allCCPayments)
   );
-  // Shared pool settings
-  const ccLimit    = userSettings.creditPoolLimit  || 2000;
-  const ccDueDay   = userSettings.creditPoolDueDay || 25;
+  const ccLimit    = cards.length > 0 ? cards.reduce((sum, c) => sum + getCardLimit(c), 0) : (userSettings.creditPoolLimit || 2000);
+  const activeCardObj = cards.find(c => c.id === activeCCCardId) || cards[0];
+  const ccDueDay   = activeCardObj ? getCardDueDay(activeCardObj) : (userSettings.creditPoolDueDay || 25);
   const ccAvailable    = Math.max(0, ccLimit - ccTotalOutstanding);
   const ccUtilization  = ccLimit > 0 ? Math.min((ccTotalOutstanding / ccLimit) * 100, 100) : 0;
 
@@ -2043,7 +2445,6 @@ function updateSummaryCards() {
   // SpendWise 3-Column Mini Stats (Card Debt, Savings, Loans)
   const totalSavings = allTabung.reduce((s, t) => s + (parseFloat(t.saved) || 0), 0);
   const totalLoansOwed = allLoans
-    .filter(l => l.loanType === 'owe')
     .reduce((s, l) => s + Math.max(0, (parseFloat(l.total) || 0) - (parseFloat(l.paid) || 0)), 0);
 
   const statDebtEl = document.getElementById('sw-stat-card-debt');
@@ -2052,6 +2453,15 @@ function updateSummaryCards() {
   if (statDebtEl) statDebtEl.dataset.value = formatCurrency(ccTotalOutstanding);
   if (statSavEl)  statSavEl.dataset.value  = formatCurrency(totalSavings);
   if (statLoanEl) statLoanEl.dataset.value = formatCurrency(totalLoansOwed);
+
+  // Sync Wallet Savings & Loans summary headers + Credit Cards list
+  if (typeof updateSavingsOverviewHeader === 'function') {
+    updateSavingsOverviewHeader();
+  }
+  if (typeof updateLoansOverviewHeader === 'function') {
+    updateLoansOverviewHeader();
+  }
+  renderWalletCards();
 
   // SpendWise Home Sections (Spending by Category + Recent Transactions)
   renderSpendwiseHomeSections(monthTxs, totalExpense);
@@ -2503,6 +2913,20 @@ window.toggleMyKasihDropdown = function(e) {
 
 
 // ─── Credit Card Limit Modal ────────────────────────────────────────────────
+window.selectCCColor = function(color) {
+  const input = document.getElementById('cc-color-input');
+  if (input) input.value = color;
+  const picker = document.getElementById('cc-color-picker');
+  if (picker) {
+    picker.querySelectorAll('.cc-color-swatch').forEach((btn) => {
+      const isMatch = btn.dataset.color === color;
+      btn.classList.toggle('active', isMatch);
+      btn.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+    });
+  }
+  if (window.haptic) window.haptic();
+};
+
 window.openSetCCLimitModal = function() {
   openConfigureCCModal(activeCCCardId);
 };
@@ -2513,27 +2937,36 @@ window.openConfigureCCModal = function(cardId = null) {
   if (!overlay) return;
   overlay.classList.remove('hidden');
 
-  const titleEl    = overlay.querySelector('.modal-header h2');
-  const nameInput  = document.getElementById('cc-name-input');
-  const limitInput = document.getElementById('cc-limit-input');
-  const dueDayInput= document.getElementById('cc-due-day-input');
-  const errEl      = document.getElementById('cc-limit-modal-error');
-  const deleteBtn  = document.getElementById('btn-delete-cc');
+  const titleEl     = overlay.querySelector('.modal-header h2');
+  const nameInput   = document.getElementById('cc-name-input');
+  const last4Input  = document.getElementById('cc-last4-input');
+  const limitInput  = document.getElementById('cc-limit-input');
+  const dueDayInput = document.getElementById('cc-due-day-input');
+  const errEl       = document.getElementById('cc-limit-modal-error');
+  const deleteBtn   = document.getElementById('btn-delete-cc');
 
   if (errEl) errEl.style.display = 'none';
 
-  // Pool values are always pre-filled from shared settings
-  if (limitInput)  setAmountInputValue('cc-limit-input', userSettings.creditPoolLimit  || 2000);
-  if (dueDayInput) dueDayInput.value = userSettings.creditPoolDueDay || 25;
-
+  const cards = getCCCards();
   if (cardId) {
     if (titleEl) titleEl.textContent = 'Edit Credit Card';
-    const card = getCCCards().find(c => c.id === cardId);
-    if (card && nameInput) nameInput.value = card.name;
-    if (deleteBtn) deleteBtn.style.display = getCCCards().length > 1 ? 'block' : 'none';
+    const cardIdx = cards.findIndex(c => c.id === cardId);
+    const card = cardIdx !== -1 ? cards[cardIdx] : null;
+    if (card) {
+      if (nameInput) nameInput.value = card.name || '';
+      if (last4Input) last4Input.value = card.last4 || '0000';
+      if (limitInput) setAmountInputValue('cc-limit-input', getCardLimit(card));
+      if (dueDayInput) dueDayInput.value = getCardDueDay(card);
+      selectCCColor(getCardColor(card, cardIdx));
+    }
+    if (deleteBtn) deleteBtn.style.display = 'block';
   } else {
     if (titleEl) titleEl.textContent = 'Add Credit Card';
     if (nameInput) nameInput.value = '';
+    if (last4Input) last4Input.value = '';
+    if (limitInput) setAmountInputValue('cc-limit-input', '');
+    if (dueDayInput) dueDayInput.value = userSettings.creditPoolDueDay || 20;
+    selectCCColor(WALLET_CARD_COLOR_CYCLE[cards.length % WALLET_CARD_COLOR_CYCLE.length]);
     if (deleteBtn) deleteBtn.style.display = 'none';
   }
 };
@@ -2548,21 +2981,26 @@ window.closeCCLimitModalOnOverlay = function(e) {
 };
 
 window.saveCCLimitSettings = async function() {
-  const nameInput  = document.getElementById('cc-name-input');
-  const limitInput = document.getElementById('cc-limit-input');
-  const dueDayInput= document.getElementById('cc-due-day-input');
-  const errEl      = document.getElementById('cc-limit-modal-error');
+  const nameInput   = document.getElementById('cc-name-input');
+  const last4Input  = document.getElementById('cc-last4-input');
+  const limitInput  = document.getElementById('cc-limit-input');
+  const dueDayInput = document.getElementById('cc-due-day-input');
+  const colorInput  = document.getElementById('cc-color-input');
+  const errEl       = document.getElementById('cc-limit-modal-error');
 
-  const name   = nameInput  ? nameInput.value.trim() : '';
-  const limit  = limitInput  ? parseFloat(limitInput.value)       : NaN;
-  const dueDay = dueDayInput ? parseInt(dueDayInput.value, 10)    : NaN;
+  const name   = nameInput   ? nameInput.value.trim() : '';
+  const rawL4  = last4Input  ? last4Input.value.replace(/\D/g, '').slice(-4) : '';
+  const last4  = rawL4 ? rawL4.padStart(4, '0') : '0000';
+  const limit  = limitInput  ? parseFloat(limitInput.value) : NaN;
+  const dueDay = dueDayInput ? parseInt(dueDayInput.value, 10) : NaN;
+  const color  = colorInput  ? colorInput.value : 'blue';
 
   if (!name) {
     errEl.textContent = 'Please enter a card name.';
     errEl.style.display = 'block'; return;
   }
   if (isNaN(limit) || limit < 0) {
-    errEl.textContent = 'Please enter a valid shared credit limit.';
+    errEl.textContent = 'Please enter a valid credit limit.';
     errEl.style.display = 'block'; return;
   }
   if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) {
@@ -2574,25 +3012,37 @@ window.saveCCLimitSettings = async function() {
   btn.disabled = true; btn.textContent = 'Saving…';
 
   try {
-    // Cards store only id + name — limit/dueDay live on the shared pool
-    const cards = [...getCCCards()].map(({ id, name: n }) => ({ id, name: n }));
+    const existing = getCCCards();
+    const cards = existing.map((c, idx) => ({
+      id: c.id,
+      name: c.name,
+      last4: c.last4 || '0000',
+      limit: getCardLimit(c),
+      dueDay: getCardDueDay(c),
+      color: getCardColor(c, idx)
+    }));
+
     if (editingCCCardId) {
       const idx = cards.findIndex(c => c.id === editingCCCardId);
-      if (idx !== -1) cards[idx].name = name;
+      if (idx !== -1) {
+        cards[idx] = { id: cards[idx].id, name, last4, limit, dueDay, color };
+      }
     } else {
       const newId = 'card_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-      cards.push({ id: newId, name });
+      cards.push({ id: newId, name, last4, limit, dueDay, color });
       activeCCCardId = newId;
     }
 
+    const totalPoolLimit = cards.reduce((s, c) => s + (parseFloat(c.limit) || 0), 0);
+
     await setDoc(doc(db, 'settings', currentUser.uid), {
       creditCards:      cards,
-      creditPoolLimit:  limit,
+      creditPoolLimit:  totalPoolLimit,
       creditPoolDueDay: dueDay
     }, { merge: true });
 
     userSettings.creditCards      = cards;
-    userSettings.creditPoolLimit  = limit;
+    userSettings.creditPoolLimit  = totalPoolLimit;
     userSettings.creditPoolDueDay = dueDay;
 
     showToast(editingCCCardId ? 'Credit card updated!' : 'Credit card added!', 'success');
@@ -2607,44 +3057,46 @@ window.saveCCLimitSettings = async function() {
   }
 };
 
-window.deleteCCCard = async function() {
-  if (!editingCCCardId) return;
+window.deleteCCCardById = async function(cardId) {
+  if (!cardId) return;
   const cards = getCCCards();
-  if (cards.length <= 1) {
-    showToast('Cannot delete the only credit card.', 'error');
-    return;
-  }
+  const target = cards.find(c => c.id === cardId);
+  if (!target) return;
 
-  const confirmed = confirm('Are you sure you want to delete this credit card? Transactions associated with this card will not be deleted, but they will no longer be grouped under this card.');
+  const confirmed = confirm(`Delete "${target.name}"? Past transactions linked to this card will stay in your history.`);
   if (!confirmed) return;
 
-  const btn = document.getElementById('btn-delete-cc');
-  if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
-
   try {
-    const updatedCards = cards.filter(c => c.id !== editingCCCardId);
-    if (activeCCCardId === editingCCCardId) {
-      activeCCCardId = updatedCards[0].id;
+    const updatedCards = cards.filter(c => c.id !== cardId);
+    if (activeCCCardId === cardId) {
+      activeCCCardId = updatedCards[0] ? updatedCards[0].id : null;
     }
+    const totalPoolLimit = updatedCards.reduce((s, c) => s + getCardLimit(c), 0);
 
     await setDoc(doc(db, 'settings', currentUser.uid), {
-      creditCards: updatedCards
+      creditCards: updatedCards,
+      creditPoolLimit: totalPoolLimit
     }, { merge: true });
 
     userSettings.creditCards = updatedCards;
+    userSettings.creditPoolLimit = totalPoolLimit;
     showToast('Credit card deleted!', 'success');
     closeCCLimitModal();
     updateSummaryCards();
   } catch (e) {
     console.error(e);
     showToast('Failed to delete credit card. Try again.', 'error');
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Delete'; }
   }
 };
 
+window.deleteCCCard = async function() {
+  if (!editingCCCardId) return;
+  await deleteCCCardById(editingCCCardId);
+};
+
 // ─── Credit Card Pay Modal ──────────────────────────────────────────────────
-window.openPayCCModal = function() {
+window.openPayCCModal = function(cardId = null) {
+  if (cardId) activeCCCardId = cardId;
   const overlay = document.getElementById('cc-pay-modal-overlay');
   if (!overlay) return;
   overlay.classList.remove('hidden');
@@ -3049,11 +3501,109 @@ window.toggleMonthDetail = function(rowId) {
   if (isOpen) haptic();
 };
 
-// ─── TABUNG (SAVINGS) ─────────────────────────────────────────────────────
+// ─── TABUNG (SAVINGS GOALS) ────────────────────────────────────────────────
+
+const SAVINGS_GOAL_ICONS = {
+  goal: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+  emergency: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  travel: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>`,
+  tech: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="20" x2="22" y2="20"/></svg>`,
+  car: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>`,
+  home: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  invest: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
+  gift: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>`
+};
+
+function normalizeSavingsIconKey(raw) {
+  const key = String(raw || '').trim().toLowerCase();
+  if (SAVINGS_GOAL_ICONS[key]) return key;
+  if (key.includes('✈') || key.includes('🏖') || key.includes('🌍')) return 'travel';
+  if (key.includes('📱') || key.includes('💻') || key.includes('🖥')) return 'tech';
+  if (key.includes('🚗') || key.includes('🚙') || key.includes('🏍')) return 'car';
+  if (key.includes('🏠') || key.includes('🏡')) return 'home';
+  if (key.includes('📈') || key.includes('💰') || key.includes('🪙')) return 'invest';
+  if (key.includes('🎁') || key.includes('🎉') || key.includes('💍')) return 'gift';
+  if (key.includes('🛡') || key.includes('🏥') || key.includes('🚨')) return 'emergency';
+  return 'goal';
+}
+
+function getSavingsIconSvg(raw) {
+  return SAVINGS_GOAL_ICONS[normalizeSavingsIconKey(raw)] || SAVINGS_GOAL_ICONS.goal;
+}
+
+window.selectTabungIcon = function(iconKey) {
+  const normalized = normalizeSavingsIconKey(iconKey);
+  const input = document.getElementById('tabung-emoji');
+  if (input) input.value = normalized;
+  document.querySelectorAll('#tabung-icon-picker .savings-icon-btn').forEach(btn => {
+    const active = btn.dataset.icon === normalized;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-checked', active ? 'true' : 'false');
+  });
+};
+
+window.selectTabungColor = function(colorKey) {
+  const validColors = ['emerald', 'blue', 'indigo', 'amber', 'rose', 'slate'];
+  const c = validColors.includes(colorKey) ? colorKey : 'emerald';
+  const input = document.getElementById('tabung-color');
+  if (input) input.value = c;
+  document.querySelectorAll('#tabung-color-picker .cc-color-swatch').forEach(btn => {
+    const active = btn.dataset.color === c;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-checked', active ? 'true' : 'false');
+  });
+};
+
+window.openTabungPreset = function(name, iconKey, colorKey) {
+  if (typeof haptic === 'function') haptic();
+  openTabungModal(null);
+  const nameInput = document.getElementById('tabung-name');
+  if (nameInput) nameInput.value = name || '';
+  selectTabungIcon(iconKey || 'goal');
+  selectTabungColor(colorKey || 'emerald');
+  setTimeout(() => document.getElementById('tabung-target')?.focus(), 60);
+};
+
+window.updateSavingsOverviewHeader = function() {
+  const totalSaved = allTabung.reduce((s, t) => s + (parseFloat(t.saved) || 0), 0);
+  const totalTarget = allTabung.reduce((s, t) => s + (parseFloat(t.target) || 0), 0);
+  const completedCount = allTabung.filter(t => (parseFloat(t.saved) || 0) >= (parseFloat(t.target) || 1)).length;
+  const activeCount = Math.max(0, allTabung.length - completedCount);
+  const rawPct = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
+  const barPct = Math.min(Math.max(rawPct, 0), 100);
+  const remainingTotal = Math.max(0, totalTarget - totalSaved);
+
+  const wSavEl = document.getElementById('wallet-total-savings');
+  const wTargetEl = document.getElementById('wallet-total-target');
+  const wBarEl = document.getElementById('wallet-savings-bar');
+  const wCountEl = document.getElementById('wallet-savings-count');
+  const wPctEl = document.getElementById('wallet-savings-pct');
+
+  if (wSavEl) wSavEl.textContent = formatCurrency(totalSaved);
+  if (wTargetEl) {
+    wTargetEl.textContent = totalTarget > 0 ? `of ${formatCurrency(totalTarget)} target` : 'No target set yet';
+  }
+  if (wBarEl) wBarEl.style.width = `${barPct.toFixed(1)}%`;
+
+  if (wCountEl) {
+    if (allTabung.length === 0) {
+      wCountEl.textContent = '0 active goals';
+    } else {
+      const parts = [];
+      parts.push(`${activeCount} active`);
+      if (completedCount > 0) parts.push(`${completedCount} completed`);
+      if (remainingTotal > 0) parts.push(`${formatCurrency(remainingTotal)} to go`);
+      wCountEl.textContent = parts.join(' · ');
+    }
+  }
+  if (wPctEl) {
+    wPctEl.textContent = totalTarget > 0 ? `${rawPct.toFixed(0)}% achieved` : '0% achieved';
+  }
+};
 
 window.openTabungModal = function(tabungId = null) {
   editingTabungId = tabungId;
-  document.getElementById('tabung-modal-title').textContent = tabungId ? 'Edit Tabung' : 'New Tabung';
+  document.getElementById('tabung-modal-title').textContent = tabungId ? 'Edit Savings Goal' : 'New Savings Goal';
   document.getElementById('tabung-modal-error').style.display = 'none';
 
   if (tabungId) {
@@ -3062,14 +3612,16 @@ window.openTabungModal = function(tabungId = null) {
       document.getElementById('tabung-name').value = t.name;
       setAmountInputValue('tabung-target', t.target);
       setAmountInputValue('tabung-saved', t.saved);
-      document.getElementById('tabung-emoji').value = t.emoji || '🎯';
+      selectTabungIcon(t.emoji || 'goal');
+      selectTabungColor(t.color || 'emerald');
       document.getElementById('tabung-deadline').value = t.deadline || '';
     }
   } else {
     document.getElementById('tabung-name').value = '';
     setAmountInputValue('tabung-target', '');
     setAmountInputValue('tabung-saved', '0');
-    document.getElementById('tabung-emoji').value = '🎯';
+    selectTabungIcon('goal');
+    selectTabungColor('emerald');
     document.getElementById('tabung-deadline').value = '';
   }
   document.getElementById('tabung-modal-overlay').classList.remove('hidden');
@@ -3088,47 +3640,91 @@ window.saveTabung = async function() {
   const name = document.getElementById('tabung-name').value.trim();
   const target = parseFloat(document.getElementById('tabung-target').value);
   const saved = parseFloat(document.getElementById('tabung-saved').value) || 0;
-  const emoji = document.getElementById('tabung-emoji').value.trim() || '🎯';
+  const emoji = normalizeSavingsIconKey(document.getElementById('tabung-emoji')?.value || 'goal');
+  const color = document.getElementById('tabung-color')?.value || 'emerald';
   const deadline = document.getElementById('tabung-deadline').value;
   const errEl = document.getElementById('tabung-modal-error');
 
-  if (!name) { errEl.textContent = 'Please enter a name.'; errEl.style.display = 'block'; return; }
+  if (!name) { errEl.textContent = 'Please enter a goal name.'; errEl.style.display = 'block'; return; }
   if (!target || target <= 0) { errEl.textContent = 'Please enter a valid target amount.'; errEl.style.display = 'block'; return; }
-  // Allowing saved to exceed target — no restriction
 
   const btn = document.getElementById('btn-save-tabung');
   btn.disabled = true; btn.textContent = 'Saving…';
 
-  const data = { uid: currentUser.uid, name, target, saved, emoji, deadline, updatedAt: serverTimestamp() };
+  const data = { uid: currentUser.uid, name, target, saved, emoji, color, deadline, updatedAt: serverTimestamp() };
 
   try {
     if (editingTabungId) {
       await updateDoc(doc(db, 'tabung', editingTabungId), data);
-      showToast('Tabung updated!', 'success');
+      showToast('Savings goal updated!', 'success');
     } else {
       data.createdAt = serverTimestamp();
+      if (saved > 0) {
+        data.history = [{
+          amount: saved,
+          date: new Date().toISOString().split('T')[0],
+          createdAt: new Date(),
+          type: 'deposit'
+        }];
+      }
       await addDoc(collection(db, 'tabung'), data);
-      showToast('Tabung created!', 'success');
+      showToast('Savings goal created!', 'success');
     }
     closeTabungModal();
   } catch(e) {
-    errEl.textContent = 'Failed to save.'; errEl.style.display = 'block'; console.error(e);
-  } finally { btn.disabled = false; btn.textContent = 'Save Tabung'; }
+    errEl.textContent = 'Failed to save goal.'; errEl.style.display = 'block'; console.error(e);
+  } finally { btn.disabled = false; btn.textContent = 'Save Goal'; }
 };
 
 window.deleteTabung = async function(id) {
-  if (confirm('Delete this tabung?')) {
-    try { await deleteDoc(doc(db, 'tabung', id)); showToast('Tabung deleted', 'success'); }
-    catch(e) { showToast('Error deleting tabung', 'error'); }
+  if (confirm('Delete this savings goal?')) {
+    try { await deleteDoc(doc(db, 'tabung', id)); showToast('Savings goal deleted', 'success'); }
+    catch(e) { showToast('Error deleting goal', 'error'); }
   }
 };
 
 window.openTopupModal = function(id) {
   topupTabungId = id;
   const t = allTabung.find(x => x.id === id);
-  document.getElementById('topup-tabung-name').textContent = `${t.emoji || '🎯'} ${t.name}`;
-  document.getElementById('topup-amount').value = '';
+  if (!t) return;
+  const nameEl = document.getElementById('topup-tabung-name');
+  const progEl = document.getElementById('topup-tabung-progress');
+  const fillBtn = document.getElementById('topup-chip-remaining');
+
+  if (nameEl) nameEl.textContent = t.name;
+  const remaining = Math.max(0, (parseFloat(t.target) || 0) - (parseFloat(t.saved) || 0));
+  if (progEl) {
+    progEl.textContent = `${formatCurrency(t.saved)} saved of ${formatCurrency(t.target)}${remaining > 0 ? ` · ${formatCurrency(remaining)} left` : ' · Target reached'}`;
+  }
+  if (fillBtn) {
+    fillBtn.style.display = remaining > 0 ? 'inline-flex' : 'none';
+    fillBtn.textContent = `Fill Rest (+${formatCurrency(remaining)})`;
+  }
+  setAmountInputValue('topup-amount', '');
   document.getElementById('tabung-topup-overlay').classList.remove('hidden');
+};
+
+window.addQuickTopupAmount = function(delta) {
+  if (typeof haptic === 'function') haptic();
+  const input = document.getElementById('topup-amount');
+  if (!input) return;
+  const current = parseFloat(input.value) || 0;
+  setAmountInputValue('topup-amount', (current + delta).toFixed(2));
+};
+
+window.fillRemainingTopup = function() {
+  if (typeof haptic === 'function') haptic();
+  const t = allTabung.find(x => x.id === topupTabungId);
+  if (!t) return;
+  const remaining = Math.max(0, (parseFloat(t.target) || 0) - (parseFloat(t.saved) || 0));
+  if (remaining > 0) {
+    setAmountInputValue('topup-amount', remaining.toFixed(2));
+  }
+};
+
+window.openTabungWithdrawModal = function(id) {
+  openTabungDetailsModal(id);
+  setTabungActionType('withdraw');
 };
 
 window.closeTopupModal = function() {
@@ -3142,108 +3738,328 @@ window.closeTopupModalOnOverlay = function(e) {
 
 window.topupTabung = async function() {
   const amount = parseFloat(document.getElementById('topup-amount').value);
-  if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
+  if (!amount || amount <= 0) { showToast('Enter a valid deposit amount', 'error'); return; }
   const t = allTabung.find(x => x.id === topupTabungId);
   if (!t) return;
-  const newSaved = t.saved + amount; // Allow exceeding target
+  const newSaved = (parseFloat(t.saved) || 0) + amount;
+  const history = Array.isArray(t.history) ? [...t.history] : [];
+  if (history.length === 0 && t.saved > 0) {
+    const mockDate = t.createdAt?.toDate ? t.createdAt.toDate() : new Date();
+    history.push({
+      amount: t.saved,
+      date: mockDate.toISOString().split('T')[0],
+      createdAt: t.createdAt || new Date(),
+      type: 'deposit'
+    });
+  }
+  history.push({
+    amount: amount,
+    date: new Date().toISOString().split('T')[0],
+    createdAt: new Date(),
+    type: 'deposit'
+  });
+
   try {
-    await updateDoc(doc(db, 'tabung', topupTabungId), { saved: newSaved, updatedAt: serverTimestamp() });
+    await updateDoc(doc(db, 'tabung', topupTabungId), {
+      saved: newSaved,
+      history: history,
+      updatedAt: serverTimestamp()
+    });
     showToast(`Added ${formatCurrency(amount)} to ${t.name}!`, 'success');
     closeTopupModal();
-  } catch(e) { showToast('Failed to update', 'error'); }
+  } catch(e) { showToast('Failed to update savings goal', 'error'); }
 };
 
+function computeSavingsPaceLabel_(t) {
+  const saved = parseFloat(t.saved) || 0;
+  const target = parseFloat(t.target) || 0;
+  const remaining = Math.max(0, target - saved);
+  if (!t.deadline) return { badgeHtml: '', paceText: '' };
+
+  const d = new Date(t.deadline + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+
+  if (saved >= target) {
+    return {
+      badgeHtml: `<span class="tabung-deadline-pill done">Target achieved</span>`,
+      paceText: `Target date: ${formatDate(t.deadline)}`
+    };
+  }
+  if (diffDays < 0) {
+    return {
+      badgeHtml: `<span class="tabung-deadline-pill overdue">${Math.abs(diffDays)}d overdue</span>`,
+      paceText: `${formatCurrency(remaining)} still needed`
+    };
+  }
+  if (diffDays === 0) {
+    return {
+      badgeHtml: `<span class="tabung-deadline-pill warn">Due today</span>`,
+      paceText: `${formatCurrency(remaining)} left today`
+    };
+  }
+
+  let paceText = '';
+  if (diffDays <= 31) {
+    const perDay = remaining / diffDays;
+    paceText = `Save ${formatCurrency(perDay)}/day to hit goal`;
+  } else {
+    const monthsLeft = Math.max(1, diffDays / 30.4375);
+    const perMonth = remaining / monthsLeft;
+    paceText = `Save ${formatCurrency(perMonth)}/mo to stay on track`;
+  }
+
+  return {
+    badgeHtml: `<span class="tabung-deadline-pill">${diffDays}d left</span>`,
+    paceText: paceText
+  };
+}
+
 function renderTabung() {
+  updateSavingsOverviewHeader();
   const container = document.getElementById('tabung-list');
+  if (!container) return;
+
   if (!allTabung.length) {
-    container.innerHTML = '<div class="empty-state"><span>🪙</span><p>No tabung yet. Create your first savings goal!</p></div>';
+    container.innerHTML = `
+      <div class="savings-empty-card">
+        <div class="savings-empty-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h.01"/></svg>
+        </div>
+        <h3 class="savings-empty-title">Start your first savings goal</h3>
+        <p class="savings-empty-sub">Track emergency reserves, upcoming trips, or major purchases in dedicated goals. Pick a preset below or tap Add Goal.</p>
+        <div class="savings-preset-grid">
+          <button type="button" class="savings-preset-chip" onclick="openTabungPreset('Emergency Fund','emergency','emerald')">
+            ${SAVINGS_GOAL_ICONS.emergency}
+            <span>Emergency Fund</span>
+          </button>
+          <button type="button" class="savings-preset-chip" onclick="openTabungPreset('Vacation Trip','travel','blue')">
+            ${SAVINGS_GOAL_ICONS.travel}
+            <span>Vacation Trip</span>
+          </button>
+          <button type="button" class="savings-preset-chip" onclick="openTabungPreset('New Gadget','tech','indigo')">
+            ${SAVINGS_GOAL_ICONS.tech}
+            <span>New Gadget</span>
+          </button>
+          <button type="button" class="savings-preset-chip" onclick="openTabungPreset('Car Maintenance','car','amber')">
+            ${SAVINGS_GOAL_ICONS.car}
+            <span>Car Fund</span>
+          </button>
+        </div>
+      </div>
+    `;
     return;
   }
+
   container.innerHTML = '';
   allTabung.sort((a, b) => {
     const aT = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
     const bT = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
     return bT - aT;
   });
-  allTabung.forEach(t => {
-    const rawPct = (t.saved / t.target) * 100;
-    const pct = Math.min(rawPct, 100); // Cap bar width at 100%
-    const isExceeded = t.saved > t.target;
-    let statusClass = 'safe', statusText = `${rawPct.toFixed(0)}% reached`;
-    if (isExceeded) { statusClass = 'income-text'; statusText = `🚀 Exceeded by ${formatCurrency(t.saved - t.target)}!`; }
-    else if (rawPct >= 100) { statusClass = 'income-text'; statusText = '🎉 Goal reached!'; }
-    else if (rawPct >= 75) { statusClass = 'warn'; }
 
-    let deadlineHtml = '';
-    if (t.deadline) {
-      const d = new Date(t.deadline + 'T00:00:00');
-      const today = new Date(); today.setHours(0,0,0,0);
-      const diff = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
-      const label = diff < 0 ? `⚠️ ${Math.abs(diff)} days overdue` : diff === 0 ? '🔔 Due today!' : `📆 ${diff} days left`;
-      deadlineHtml = `<span class="tabung-deadline-label">${label}</span>`;
+  allTabung.forEach(t => {
+    const saved = parseFloat(t.saved) || 0;
+    const target = parseFloat(t.target) || 1;
+    const rawPct = (saved / target) * 100;
+    const pct = Math.min(Math.max(rawPct, 0), 100);
+    const isExceeded = saved > target;
+    const isCompleted = saved >= target;
+    const remaining = Math.max(0, target - saved);
+    const colorTheme = t.color || 'emerald';
+    const iconSvg = getSavingsIconSvg(t.emoji);
+    const { badgeHtml, paceText } = computeSavingsPaceLabel_(t);
+
+    let footerLeftText = `${formatCurrency(remaining)} to go`;
+    if (isExceeded) {
+      footerLeftText = `Exceeded by ${formatCurrency(saved - target)}`;
+    } else if (isCompleted) {
+      footerLeftText = 'Goal completed';
+    } else if (paceText) {
+      footerLeftText = paceText;
     }
 
     const card = document.createElement('div');
-    card.className = 'tabung-card';
+    card.className = `tabung-card theme-${colorTheme} ${isCompleted ? 'is-completed' : ''}`;
     card.setAttribute('onclick', `openTabungDetailsModal('${t.id}', event)`);
     card.innerHTML = `
-      <div class="tabung-header">
-        <span class="tabung-emoji">${t.emoji || '🎯'}</span>
+      <div class="tabung-card-top">
+        <div class="tabung-icon-badge theme-${colorTheme}">${iconSvg}</div>
         <div class="tabung-title-wrap">
-          <span class="tabung-name">${t.name}</span>
-          ${deadlineHtml}
+          <div class="tabung-title-row">
+            <span class="tabung-name">${t.name}</span>
+            ${badgeHtml}
+          </div>
+          <span class="tabung-sub-status">${isCompleted ? '100% funded' : `${formatCurrency(remaining)} remaining`}</span>
         </div>
         <div class="tabung-actions">
-          <button class="btn-tabung-edit" onclick="event.stopPropagation(); openTabungModal('${t.id}')">✏️</button>
-          <button class="btn-del-budget" onclick="event.stopPropagation(); deleteTabung('${t.id}')">✕</button>
+          <button type="button" class="btn-tabung-icon" title="Edit goal" aria-label="Edit goal" onclick="event.stopPropagation(); openTabungModal('${t.id}')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </button>
+          <button type="button" class="btn-tabung-icon danger" title="Delete goal" aria-label="Delete goal" onclick="event.stopPropagation(); deleteTabung('${t.id}')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
         </div>
       </div>
-      <div class="tabung-amounts">
-        <span class="tabung-saved">${formatCurrency(t.saved)}</span>
-        <span class="tabung-sep"> / </span>
-        <span class="tabung-target-val">${formatCurrency(t.target)}</span>
+
+      <div class="tabung-metrics-row">
+        <div class="tabung-amounts">
+          <span class="tabung-saved">${formatCurrency(saved)}</span>
+          <span class="tabung-sep">of</span>
+          <span class="tabung-target-val">${formatCurrency(target)}</span>
+        </div>
+        <span class="tabung-pct-badge theme-${colorTheme}">${rawPct.toFixed(0)}%</span>
       </div>
-      <div class="budget-progress-wrap" style="margin:0.75rem 0;">
-        <div class="budget-progress ${pct >= 100 ? 'safe' : pct >= 75 ? 'warn' : 'safe'}" style="width:${pct}%"></div>
+
+      <div class="tabung-track">
+        <div class="tabung-fill theme-${colorTheme}" style="width:${pct.toFixed(1)}%"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span class="budget-status ${pct >= 100 ? 'safe' : ''}" style="color:${pct >= 100 ? 'var(--accent-green)' : pct >= 75 ? 'var(--accent-gold)' : 'var(--text-secondary)'}">${statusText}</span>
-        <button class="btn-add-tx" style="padding:0.4rem 0.9rem;font-size:0.8rem;" onclick="event.stopPropagation(); openTopupModal('${t.id}')">+ Add</button>
+
+      <div class="tabung-card-footer">
+        <span class="tabung-pace-text ${isCompleted ? 'completed' : ''}">${footerLeftText}</span>
+        <div class="tabung-footer-btns">
+          ${saved > 0 ? `<button type="button" class="btn-tabung-withdraw" onclick="event.stopPropagation(); openTabungWithdrawModal('${t.id}')">Withdraw</button>` : ''}
+          <button type="button" class="btn-tabung-deposit" onclick="event.stopPropagation(); openTopupModal('${t.id}')">+ Deposit</button>
+        </div>
       </div>
     `;
     container.appendChild(card);
   });
 }
 
-// ─── LOANS / HUTANG ──────────────────────────────────────────────────────
+// ─── LOANS & INSTALLMENTS ────────────────────────────────────────────────
 
-window.setLoanType = function(type) {
-  loanType = type;
-  document.getElementById('loan-type-owe').classList.toggle('active', type === 'owe');
-  document.getElementById('loan-type-lent').classList.toggle('active', type === 'lent');
+const LOAN_CATEGORY_ICONS = {
+  bank: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>`,
+  car: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>`,
+  home: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  education: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>`,
+  tech: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="20" x2="22" y2="20"/></svg>`,
+  bnpl: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
+  personal: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  business: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`
+};
+
+function normalizeLoanIconKey(raw, nameFallback = '') {
+  const key = String(raw || '').trim().toLowerCase();
+  if (LOAN_CATEGORY_ICONS[key]) return key;
+  const text = (key + ' ' + String(nameFallback || '')).toLowerCase();
+  if (text.includes('car') || text.includes('kereta') || text.includes('honda') || text.includes('perodua') || text.includes('proton') || text.includes('vehicle')) return 'car';
+  if (text.includes('home') || text.includes('house') || text.includes('mortgage') || text.includes('rumah') || text.includes('lppsa')) return 'home';
+  if (text.includes('ptptn') || text.includes('study') || text.includes('edu') || text.includes('mara')) return 'education';
+  if (text.includes('phone') || text.includes('laptop') || text.includes('iphone') || text.includes('macbook') || text.includes('tech')) return 'tech';
+  if (text.includes('spaylater') || text.includes('atome') || text.includes('bnpl') || text.includes('grabpaylater')) return 'bnpl';
+  if (text.includes('business') || text.includes('biz')) return 'business';
+  if (text.includes('personal')) return 'personal';
+  return 'bank';
+}
+
+function getLoanIconSvg(raw, nameFallback = '') {
+  return LOAN_CATEGORY_ICONS[normalizeLoanIconKey(raw, nameFallback)] || LOAN_CATEGORY_ICONS.bank;
+}
+
+window.selectLoanIcon = function(iconKey) {
+  const normalized = normalizeLoanIconKey(iconKey);
+  const input = document.getElementById('loan-icon');
+  if (input) input.value = normalized;
+  document.querySelectorAll('#loan-icon-picker .savings-icon-btn').forEach(btn => {
+    const active = btn.dataset.icon === normalized;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-checked', active ? 'true' : 'false');
+  });
+};
+
+window.selectLoanColor = function(colorKey) {
+  const validColors = ['blue', 'indigo', 'emerald', 'amber', 'rose', 'slate'];
+  const c = validColors.includes(colorKey) ? colorKey : 'blue';
+  const input = document.getElementById('loan-color');
+  if (input) input.value = c;
+  document.querySelectorAll('#loan-color-picker .cc-color-swatch').forEach(btn => {
+    const active = btn.dataset.color === c;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-checked', active ? 'true' : 'false');
+  });
+};
+
+window.openLoanPreset = function(name, iconKey, colorKey) {
+  if (typeof haptic === 'function') haptic();
+  openLoanModal(null);
+  const nameInput = document.getElementById('loan-person');
+  if (nameInput) nameInput.value = name || '';
+  selectLoanIcon(iconKey || 'bank');
+  selectLoanColor(colorKey || 'blue');
+  setTimeout(() => document.getElementById('loan-total')?.focus(), 60);
+};
+
+window.updateLoansOverviewHeader = function() {
+  const totalPrincipal = allLoans.reduce((s, l) => s + (parseFloat(l.total) || 0), 0);
+  const totalPaid = allLoans.reduce((s, l) => s + Math.min(parseFloat(l.total) || 0, parseFloat(l.paid) || 0), 0);
+  const totalRemaining = allLoans.reduce((s, l) => s + Math.max(0, (parseFloat(l.total) || 0) - (parseFloat(l.paid) || 0)), 0);
+  const settledCount = allLoans.filter(l => (parseFloat(l.paid) || 0) >= (parseFloat(l.total) || 1)).length;
+  const activeLoans = allLoans.filter(l => (parseFloat(l.paid) || 0) < (parseFloat(l.total) || 1));
+  const monthlyCommitment = activeLoans.reduce((s, l) => s + (parseFloat(l.monthlyInstallment) || 0), 0);
+
+  const rawPct = totalPrincipal > 0 ? (totalPaid / totalPrincipal) * 100 : 0;
+  const barPct = Math.min(Math.max(rawPct, 0), 100);
+
+  const wRemEl = document.getElementById('wallet-total-loans');
+  const wPrinEl = document.getElementById('wallet-loans-principal');
+  const wBarEl = document.getElementById('wallet-loans-bar');
+  const wMetaEl = document.getElementById('wallet-loans-meta');
+  const wPctEl = document.getElementById('wallet-loans-pct');
+
+  if (wRemEl) wRemEl.textContent = formatCurrency(totalRemaining);
+  if (wPrinEl) {
+    wPrinEl.textContent = totalPrincipal > 0 ? `of ${formatCurrency(totalPrincipal)} principal` : 'No loans recorded';
+  }
+  if (wBarEl) wBarEl.style.width = `${barPct.toFixed(1)}%`;
+
+  if (wMetaEl) {
+    if (allLoans.length === 0) {
+      wMetaEl.textContent = '0 active loans';
+    } else {
+      const parts = [`${activeLoans.length} active`];
+      if (settledCount > 0) parts.push(`${settledCount} settled`);
+      if (monthlyCommitment > 0) parts.push(`${formatCurrency(monthlyCommitment)}/mo commitment`);
+      wMetaEl.textContent = parts.join(' · ');
+    }
+  }
+  if (wPctEl) {
+    wPctEl.textContent = totalPrincipal > 0 ? `${rawPct.toFixed(0)}% paid off` : '0% paid off';
+  }
 };
 
 window.openLoanModal = function(loanId = null) {
   editingLoanId = loanId;
-  document.getElementById('loan-modal-title').textContent = loanId ? 'Edit Loan' : 'Add Loan / Hutang';
+  document.getElementById('loan-modal-title').textContent = loanId ? 'Edit Loan / Installment' : 'New Loan / Installment';
   document.getElementById('loan-modal-error').style.display = 'none';
+
+  const monthlyEl = document.getElementById('loan-monthly');
+  const dueDayEl = document.getElementById('loan-due-day');
 
   if (loanId) {
     const l = allLoans.find(x => x.id === loanId);
     if (l) {
-      setLoanType(l.loanType || 'owe');
-      document.getElementById('loan-person').value = l.person;
-      document.getElementById('loan-desc').value = l.desc;
+      document.getElementById('loan-person').value = l.person || '';
+      document.getElementById('loan-desc').value = l.desc || '';
       setAmountInputValue('loan-total', l.total);
       setAmountInputValue('loan-paid', l.paid);
+      if (monthlyEl) setAmountInputValue('loan-monthly', l.monthlyInstallment || '');
+      if (dueDayEl) dueDayEl.value = l.dueDay || '';
+      selectLoanIcon(l.icon || normalizeLoanIconKey('', l.person));
+      selectLoanColor(l.color || 'blue');
       document.getElementById('loan-due').value = l.due || '';
     }
   } else {
-    setLoanType('owe');
     document.getElementById('loan-person').value = '';
     document.getElementById('loan-desc').value = '';
     setAmountInputValue('loan-total', '');
     setAmountInputValue('loan-paid', '0');
+    if (monthlyEl) setAmountInputValue('loan-monthly', '');
+    if (dueDayEl) dueDayEl.value = '';
+    selectLoanIcon('bank');
+    selectLoanColor('blue');
     document.getElementById('loan-due').value = '';
   }
   document.getElementById('loan-modal-overlay').classList.remove('hidden');
@@ -3263,17 +4079,35 @@ window.saveLoan = async function() {
   const desc = document.getElementById('loan-desc').value.trim();
   const total = parseFloat(document.getElementById('loan-total').value);
   const paid = parseFloat(document.getElementById('loan-paid').value) || 0;
+  const monthlyInstallment = parseFloat(document.getElementById('loan-monthly')?.value) || 0;
+  const rawDueDay = parseInt(document.getElementById('loan-due-day')?.value, 10);
+  const dueDay = (!isNaN(rawDueDay) && rawDueDay >= 1 && rawDueDay <= 31) ? rawDueDay : null;
+  const icon = normalizeLoanIconKey(document.getElementById('loan-icon')?.value || 'bank', person);
+  const color = document.getElementById('loan-color')?.value || 'blue';
   const due = document.getElementById('loan-due').value;
   const errEl = document.getElementById('loan-modal-error');
 
-  if (!person) { errEl.textContent = 'Please enter a person/institution.'; errEl.style.display = 'block'; return; }
-  if (!total || total <= 0) { errEl.textContent = 'Please enter a valid amount.'; errEl.style.display = 'block'; return; }
-  if (paid > total) { errEl.textContent = 'Paid cannot exceed total.'; errEl.style.display = 'block'; return; }
+  if (!person) { errEl.textContent = 'Please enter a loan name or lender.'; errEl.style.display = 'block'; return; }
+  if (!total || total <= 0) { errEl.textContent = 'Please enter a valid total loan amount.'; errEl.style.display = 'block'; return; }
+  if (paid > total) { errEl.textContent = 'Paid amount cannot exceed total loan amount.'; errEl.style.display = 'block'; return; }
 
   const btn = document.getElementById('btn-save-loan');
   btn.disabled = true; btn.textContent = 'Saving…';
 
-  const data = { uid: currentUser.uid, loanType, person, desc, total, paid, due, updatedAt: serverTimestamp() };
+  const data = {
+    uid: currentUser.uid,
+    loanType: 'owe',
+    person,
+    desc,
+    total,
+    paid,
+    monthlyInstallment,
+    dueDay,
+    icon,
+    color,
+    due,
+    updatedAt: serverTimestamp()
+  };
 
   try {
     if (editingLoanId) {
@@ -3281,29 +4115,94 @@ window.saveLoan = async function() {
       showToast('Loan updated!', 'success');
     } else {
       data.createdAt = serverTimestamp();
+      if (paid > 0) {
+        data.history = [{
+          amount: paid,
+          date: new Date().toISOString().split('T')[0],
+          createdAt: new Date()
+        }];
+      }
       await addDoc(collection(db, 'loans'), data);
       showToast('Loan added!', 'success');
     }
     closeLoanModal();
   } catch(e) {
-    errEl.textContent = 'Failed to save.'; errEl.style.display = 'block'; console.error(e);
-  } finally { btn.disabled = false; btn.textContent = 'Save'; }
+    errEl.textContent = 'Failed to save loan.'; errEl.style.display = 'block'; console.error(e);
+  } finally { btn.disabled = false; btn.textContent = 'Save Loan'; }
 };
 
 window.deleteLoan = async function(id) {
   if (confirm('Delete this loan record?')) {
     try { await deleteDoc(doc(db, 'loans', id)); showToast('Loan deleted', 'success'); }
-    catch(e) { showToast('Error deleting', 'error'); }
+    catch(e) { showToast('Error deleting loan', 'error'); }
   }
 };
 
 window.openLoanPayModal = function(id) {
   loanPayId = id;
   const l = allLoans.find(x => x.id === id);
-  const remaining = l.total - l.paid;
-  document.getElementById('loan-pay-desc').textContent = `${l.loanType === 'owe' ? '💸 I owe' : '💰 Lent to'} ${l.person} — ${formatCurrency(remaining)} remaining`;
-  document.getElementById('loan-pay-amount').value = '';
+  if (!l) return;
+  const remaining = Math.max(0, (parseFloat(l.total) || 0) - (parseFloat(l.paid) || 0));
+  const monthly = parseFloat(l.monthlyInstallment) || 0;
+
+  const descEl = document.getElementById('loan-pay-desc');
+  const subEl = document.getElementById('loan-pay-sub');
+  const monthlyChip = document.getElementById('loan-chip-monthly');
+  const settleChip = document.getElementById('loan-chip-settle');
+
+  if (descEl) descEl.textContent = l.person;
+  if (subEl) {
+    subEl.textContent = `${formatCurrency(l.paid)} paid of ${formatCurrency(l.total)} · ${formatCurrency(remaining)} remaining`;
+  }
+  if (monthlyChip) {
+    if (monthly > 0 && remaining > 0) {
+      const suggested = Math.min(monthly, remaining);
+      monthlyChip.style.display = 'inline-flex';
+      monthlyChip.textContent = `Monthly (${formatCurrency(suggested)})`;
+    } else {
+      monthlyChip.style.display = 'none';
+    }
+  }
+  if (settleChip) {
+    settleChip.style.display = remaining > 0 ? 'inline-flex' : 'none';
+    settleChip.textContent = `Settle (${formatCurrency(remaining)})`;
+  }
+
+  if (monthly > 0 && remaining > 0) {
+    setAmountInputValue('loan-pay-amount', Math.min(monthly, remaining).toFixed(2));
+  } else {
+    setAmountInputValue('loan-pay-amount', '');
+  }
   document.getElementById('loan-pay-overlay').classList.remove('hidden');
+};
+
+window.addQuickLoanPayment = function(delta) {
+  if (typeof haptic === 'function') haptic();
+  const input = document.getElementById('loan-pay-amount');
+  if (!input) return;
+  const current = parseFloat(input.value) || 0;
+  setAmountInputValue('loan-pay-amount', (current + delta).toFixed(2));
+};
+
+window.fillMonthlyLoanPayment = function() {
+  if (typeof haptic === 'function') haptic();
+  const l = allLoans.find(x => x.id === loanPayId);
+  if (!l) return;
+  const remaining = Math.max(0, (parseFloat(l.total) || 0) - (parseFloat(l.paid) || 0));
+  const monthly = parseFloat(l.monthlyInstallment) || 0;
+  if (monthly > 0) {
+    setAmountInputValue('loan-pay-amount', Math.min(monthly, remaining > 0 ? remaining : monthly).toFixed(2));
+  }
+};
+
+window.fillSettleLoanPayment = function() {
+  if (typeof haptic === 'function') haptic();
+  const l = allLoans.find(x => x.id === loanPayId);
+  if (!l) return;
+  const remaining = Math.max(0, (parseFloat(l.total) || 0) - (parseFloat(l.paid) || 0));
+  if (remaining > 0) {
+    setAmountInputValue('loan-pay-amount', remaining.toFixed(2));
+  }
 };
 
 window.closeLoanPayModal = function() {
@@ -3317,43 +4216,131 @@ window.closeLoanPayOnOverlay = function(e) {
 
 window.recordLoanPayment = async function() {
   const amount = parseFloat(document.getElementById('loan-pay-amount').value);
-  if (!amount || amount <= 0) { showToast('Enter valid amount', 'error'); return; }
+  if (!amount || amount <= 0) { showToast('Enter a valid payment amount', 'error'); return; }
   const l = allLoans.find(x => x.id === loanPayId);
   if (!l) return;
-  const newPaid = l.paid + amount; // Allow overpayment — no cap
+  const newPaid = (parseFloat(l.paid) || 0) + amount;
+  const history = Array.isArray(l.history) ? [...l.history] : [];
+  if (history.length === 0 && l.paid > 0) {
+    const mockDate = l.createdAt?.toDate ? l.createdAt.toDate() : new Date();
+    history.push({
+      amount: l.paid,
+      date: mockDate.toISOString().split('T')[0],
+      createdAt: l.createdAt || new Date()
+    });
+  }
+  history.push({
+    amount: amount,
+    date: new Date().toISOString().split('T')[0],
+    createdAt: new Date()
+  });
+
   try {
-    await updateDoc(doc(db, 'loans', loanPayId), { paid: newPaid, updatedAt: serverTimestamp() });
-    showToast(`Payment of ${formatCurrency(amount)} recorded!`, 'success');
+    await updateDoc(doc(db, 'loans', loanPayId), {
+      paid: newPaid,
+      history: history,
+      updatedAt: serverTimestamp()
+    });
+    showToast(`Payment of ${formatCurrency(amount)} recorded for ${l.person}!`, 'success');
     closeLoanPayModal();
-  } catch(e) { showToast('Failed to update', 'error'); }
+  } catch(e) { showToast('Failed to record payment', 'error'); }
 };
 
+function ordinalDay_(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function computeLoanScheduleInfo_(l) {
+  const total = parseFloat(l.total) || 0;
+  const paid = parseFloat(l.paid) || 0;
+  const remaining = Math.max(0, total - paid);
+  const isSettled = paid >= total;
+  const monthly = parseFloat(l.monthlyInstallment) || 0;
+  const dueDay = parseInt(l.dueDay, 10);
+
+  if (isSettled) {
+    return {
+      pillHtml: `<span class="tabung-deadline-pill done">Fully settled</span>`,
+      footerText: 'All installments completed'
+    };
+  }
+
+  let pillHtml = '';
+  if (!isNaN(dueDay) && dueDay >= 1 && dueDay <= 31) {
+    const todayDay = new Date().getDate();
+    const daysUntil = dueDay >= todayDay ? (dueDay - todayDay) : (30 - todayDay + dueDay);
+    const isSoon = daysUntil <= 5;
+    pillHtml = `<span class="tabung-deadline-pill ${isSoon ? 'warn' : ''}">Due ${ordinalDay_(dueDay)}</span>`;
+  } else if (l.due) {
+    const d = new Date(l.due + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+    if (diff < 0) {
+      pillHtml = `<span class="tabung-deadline-pill overdue">${Math.abs(diff)}d overdue</span>`;
+    } else if (diff === 0) {
+      pillHtml = `<span class="tabung-deadline-pill warn">Due today</span>`;
+    } else {
+      pillHtml = `<span class="tabung-deadline-pill">${diff}d left</span>`;
+    }
+  }
+
+  let footerText = `${formatCurrency(remaining)} remaining`;
+  if (monthly > 0 && remaining > 0) {
+    const monthsLeft = Math.ceil(remaining / monthly);
+    const estDate = new Date();
+    estDate.setMonth(estDate.getMonth() + monthsLeft);
+    const estStr = estDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    footerText = `${formatCurrency(monthly)}/mo · ${monthsLeft} ${monthsLeft === 1 ? 'installment' : 'installments'} left (Est. ${estStr})`;
+  } else if (l.due && remaining > 0) {
+    const d = new Date(l.due + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+    if (diffDays > 30) {
+      const perMo = remaining / (diffDays / 30.4375);
+      footerText = `Pay ${formatCurrency(perMo)}/mo to settle by ${formatDate(l.due)}`;
+    }
+  }
+
+  return { pillHtml, footerText };
+}
+
 function renderLoans() {
+  updateLoansOverviewHeader();
   const container = document.getElementById('loan-list');
-  const summaryEl = document.getElementById('loan-summary-cards');
-
-  const totalOwe  = allLoans.filter(l => l.loanType === 'owe' ).reduce((s, l) => s + Math.max(0, l.total - l.paid), 0);
-  const totalLent = allLoans.filter(l => l.loanType === 'lent').reduce((s, l) => s + Math.max(0, l.total - l.paid), 0);
-
-  summaryEl.innerHTML = `
-    <div class="summary-card expense">
-      <div class="card-icon">💸</div>
-      <div class="card-info">
-        <span class="card-label">Total I Owe</span>
-        <span class="card-value">${formatCurrency(totalOwe)}</span>
-      </div>
-    </div>
-    <div class="summary-card income">
-      <div class="card-icon">💰</div>
-      <div class="card-info">
-        <span class="card-label">Total Lent Out</span>
-        <span class="card-value">${formatCurrency(totalLent)}</span>
-      </div>
-    </div>
-  `;
+  if (!container) return;
 
   if (!allLoans.length) {
-    container.innerHTML = '<div class="empty-state"><span>🏦</span><p>No loans recorded. Add one to start tracking!</p></div>';
+    container.innerHTML = `
+      <div class="savings-empty-card">
+        <div class="savings-empty-icon">
+          ${LOAN_CATEGORY_ICONS.bank}
+        </div>
+        <h3 class="savings-empty-title">No loans or installments tracked</h3>
+        <p class="savings-empty-sub">Track your vehicle financing, home mortgage, study loans, or 0% installment plans in one place. Pick a preset below or tap Add Loan.</p>
+        <div class="savings-preset-grid">
+          <button type="button" class="savings-preset-chip" onclick="openLoanPreset('Car Financing','car','blue')">
+            ${LOAN_CATEGORY_ICONS.car}
+            <span>Car Financing</span>
+          </button>
+          <button type="button" class="savings-preset-chip" onclick="openLoanPreset('Home Mortgage','home','indigo')">
+            ${LOAN_CATEGORY_ICONS.home}
+            <span>Home Mortgage</span>
+          </button>
+          <button type="button" class="savings-preset-chip" onclick="openLoanPreset('Study Loan (PTPTN)','education','emerald')">
+            ${LOAN_CATEGORY_ICONS.education}
+            <span>Study Loan</span>
+          </button>
+          <button type="button" class="savings-preset-chip" onclick="openLoanPreset('0% Installment Plan','bnpl','amber')">
+            ${LOAN_CATEGORY_ICONS.bnpl}
+            <span>0% Installment</span>
+          </button>
+        </div>
+      </div>
+    `;
     return;
   }
 
@@ -3365,59 +4352,62 @@ function renderLoans() {
   });
 
   allLoans.forEach(l => {
-    const remaining = l.total - l.paid;
-    const isSettled = l.paid >= l.total;
-    const isOverpaid = l.paid > l.total;
-    const overpaidAmt = isOverpaid ? l.paid - l.total : 0;
-    const pct = isOverpaid ? 100 : Math.min((l.paid / l.total) * 100, 100);
+    const total = parseFloat(l.total) || 1;
+    const paid = parseFloat(l.paid) || 0;
+    const remaining = Math.max(0, total - paid);
+    const isSettled = paid >= total;
+    const isOverpaid = paid > total;
+    const rawPct = (paid / total) * 100;
+    const pct = Math.min(Math.max(rawPct, 0), 100);
+    const colorTheme = l.color || 'blue';
+    const iconSvg = getLoanIconSvg(l.icon, l.person);
+    const { pillHtml, footerText } = computeLoanScheduleInfo_(l);
 
-    let dueHtml = '';
-    if (l.due && !isSettled) {
-      const d = new Date(l.due + 'T00:00:00');
-      const today = new Date(); today.setHours(0,0,0,0);
-      const diff = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
-      const label = diff < 0 ? `⚠️ ${Math.abs(diff)} days overdue` : diff === 0 ? '🔔 Due today!' : `📆 ${diff} days left`;
-      dueHtml = `<span class="tabung-deadline-label ${diff < 0 ? 'overdue' : ''}">${label}</span>`;
-    }
-
-    const remainingDisplay = isOverpaid
-      ? `<span>Overpaid: <strong style="color:var(--neon-amber)">+${formatCurrency(overpaidAmt)}</strong></span>`
-      : `<span>Remaining: <strong style="color:${isSettled ? 'var(--accent-green)' : 'var(--accent-red)'}">${formatCurrency(Math.max(remaining, 0))}</strong></span>`;
-
-    const progressClass = isOverpaid ? 'overpaid' : 'safe';
-    const statusText = isOverpaid
-      ? `<span style="font-size:0.8rem;color:var(--neon-amber);font-weight:700;">⚡ Overpaid by ${formatCurrency(overpaidAmt)}</span>`
-      : isSettled
-        ? `<span style="font-size:0.8rem;color:var(--accent-green);">✅ Settled!</span>`
-        : `<span style="font-size:0.8rem;color:var(--text-secondary);">${pct.toFixed(0)}% paid</span>`;
+    const subText = l.desc
+      ? `${l.desc} · Paid ${formatCurrency(paid)}`
+      : `Paid ${formatCurrency(paid)} of ${formatCurrency(total)}`;
 
     const card = document.createElement('div');
-    card.className = `loan-card ${isSettled ? 'settled' : ''} ${l.loanType}`;
+    card.className = `tabung-card loan-tracker-card theme-${colorTheme} ${isSettled ? 'is-completed' : ''}`;
     card.setAttribute('onclick', `openLoanDetailsModal('${l.id}', event)`);
     card.innerHTML = `
-      <div class="loan-type-badge ${l.loanType}">${l.loanType === 'owe' ? '💸 I Owe' : '💰 I Lent'}</div>
-      <div class="loan-header">
-        <div>
-          <div class="loan-person">${l.person}</div>
-          <div class="loan-desc-text">${l.desc || ''}</div>
+      <div class="tabung-card-top">
+        <div class="tabung-icon-badge theme-${colorTheme}">${iconSvg}</div>
+        <div class="tabung-title-wrap">
+          <div class="tabung-title-row">
+            <span class="tabung-name">${l.person}</span>
+            ${pillHtml}
+          </div>
+          <span class="tabung-sub-status">${subText}</span>
         </div>
-        <div style="display:flex;gap:0.5rem;flex-shrink:0;">
-          <button class="btn-tabung-edit" onclick="event.stopPropagation(); openLoanModal('${l.id}')">✏️</button>
-          <button class="btn-del-budget" onclick="event.stopPropagation(); deleteLoan('${l.id}')">✕</button>
+        <div class="tabung-actions">
+          <button type="button" class="btn-tabung-icon" title="Edit loan" aria-label="Edit loan" onclick="event.stopPropagation(); openLoanModal('${l.id}')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </button>
+          <button type="button" class="btn-tabung-icon danger" title="Delete loan" aria-label="Delete loan" onclick="event.stopPropagation(); deleteLoan('${l.id}')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
         </div>
       </div>
-      ${dueHtml}
-      <div class="loan-amounts">
-        <span>Paid: <strong style="color:var(--accent-green)">${formatCurrency(l.paid)}</strong></span>
-        ${remainingDisplay}
-        <span>Total: <strong>${formatCurrency(l.total)}</strong></span>
+
+      <div class="tabung-metrics-row">
+        <div class="tabung-amounts">
+          <span class="tabung-saved">${isSettled ? 'Settled' : formatCurrency(remaining)}</span>
+          <span class="tabung-sep">${isSettled ? 'total' : 'left of'}</span>
+          <span class="tabung-target-val">${formatCurrency(total)}</span>
+        </div>
+        <span class="tabung-pct-badge theme-${colorTheme}">${rawPct.toFixed(0)}% paid</span>
       </div>
-      <div class="budget-progress-wrap" style="margin:0.75rem 0;">
-        <div class="budget-progress ${progressClass}" style="width:${pct}%"></div>
+
+      <div class="tabung-track">
+        <div class="tabung-fill theme-${colorTheme}" style="width:${pct.toFixed(1)}%"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        ${statusText}
-        ${!isSettled ? `<button class="btn-add-tx" style="padding:0.4rem 0.9rem;font-size:0.8rem;" onclick="event.stopPropagation(); openLoanPayModal('${l.id}')">+ Pay</button>` : ''}
+
+      <div class="tabung-card-footer">
+        <span class="tabung-pace-text ${isSettled ? 'completed' : ''}">${isOverpaid ? `Overpaid by ${formatCurrency(paid - total)}` : footerText}</span>
+        <div class="tabung-footer-btns">
+          ${!isSettled ? `<button type="button" class="btn-tabung-deposit" onclick="event.stopPropagation(); openLoanPayModal('${l.id}')">+ Pay Installment</button>` : ''}
+        </div>
       </div>
     `;
     container.appendChild(card);
@@ -3498,7 +4488,11 @@ window.refreshTabungDetailsModal = function() {
   const nameEl = document.getElementById('tabung-details-name');
   const deadlineEl = document.getElementById('tabung-details-deadline');
   
-  if (emojiEl) emojiEl.textContent = t.emoji || '🎯';
+  if (emojiEl) {
+    const colorTheme = t.color || 'emerald';
+    emojiEl.className = `tabung-icon-badge theme-${colorTheme}`;
+    emojiEl.innerHTML = getSavingsIconSvg(t.emoji);
+  }
   if (nameEl) nameEl.textContent = t.name;
   
   if (deadlineEl) {
@@ -3506,10 +4500,10 @@ window.refreshTabungDetailsModal = function() {
       const d = new Date(t.deadline + 'T00:00:00');
       const today = new Date(); today.setHours(0,0,0,0);
       const diff = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
-      const label = diff < 0 ? `⚠️ ${Math.abs(diff)} days overdue` : diff === 0 ? '🔔 Due today!' : `📆 ${diff} days left`;
-      deadlineEl.innerHTML = `<span class="tabung-deadline-label" style="font-size:0.8rem;">${label} (Due: ${formatDate(t.deadline)})</span>`;
+      const label = diff < 0 ? `${Math.abs(diff)} days overdue` : diff === 0 ? 'Due today' : `${diff} days left`;
+      deadlineEl.innerHTML = `<span class="tabung-deadline-label" style="font-size:0.8rem;">${label} · Target: ${formatDate(t.deadline)}</span>`;
     } else {
-      deadlineEl.innerHTML = '<span style="font-size:0.8rem; color:var(--ink-secondary);">No deadline set</span>';
+      deadlineEl.innerHTML = '<span style="font-size:0.8rem; color:var(--ink-secondary);">No target date set</span>';
     }
   }
   
@@ -3539,10 +4533,10 @@ window.refreshTabungDetailsModal = function() {
   
   if (statusEl) {
     if (isExceeded) {
-      statusEl.textContent = `🚀 Exceeded by ${formatCurrency(t.saved - t.target)}!`;
+      statusEl.textContent = `Exceeded by ${formatCurrency(t.saved - t.target)}`;
       statusEl.className = 'budget-status safe income-text';
     } else if (pct >= 100) {
-      statusEl.textContent = '🎉 Goal reached!';
+      statusEl.textContent = 'Goal reached';
       statusEl.className = 'budget-status safe income-text';
     } else {
       statusEl.textContent = `${rawPct.toFixed(0)}% reached`;
@@ -3552,7 +4546,7 @@ window.refreshTabungDetailsModal = function() {
   
   if (remainingEl) {
     if (isExceeded) {
-      remainingEl.textContent = `🎯 ${formatCurrency(t.saved - t.target)} over target`;
+      remainingEl.textContent = `${formatCurrency(t.saved - t.target)} over target`;
     } else {
       const remaining = t.target - t.saved;
       remainingEl.textContent = remaining > 0 ? `${formatCurrency(remaining)} remaining` : 'Fully funded';
@@ -3754,33 +4748,28 @@ window.refreshLoanDetailsModal = function() {
   const descEl = document.getElementById('loan-details-desc');
   const badgeEl = document.getElementById('loan-details-badge');
   const dueEl = document.getElementById('loan-details-due');
+  const amountInput = document.getElementById('detail-loan-amount');
   
   if (personEl) personEl.textContent = l.person;
-  if (descEl) descEl.textContent = l.desc || 'No description';
+  if (descEl) descEl.textContent = l.desc || (l.monthlyInstallment ? `${formatCurrency(l.monthlyInstallment)}/month installment` : 'Installment plan');
+  if (amountInput && !amountInput.value && l.monthlyInstallment > 0 && remaining > 0) {
+    amountInput.value = Math.min(l.monthlyInstallment, remaining).toFixed(2);
+  }
   
   if (badgeEl) {
-    if (l.loanType === 'owe') {
-      badgeEl.textContent = '💸 I Owe';
-      badgeEl.className = 'loan-type-badge owe';
-    } else {
-      badgeEl.textContent = '💰 I Lent';
-      badgeEl.className = 'loan-type-badge lent';
-    }
+    const colorTheme = l.color || 'blue';
+    badgeEl.className = `tabung-icon-badge theme-${colorTheme}`;
+    badgeEl.innerHTML = getLoanIconSvg(l.icon, l.person);
   }
   
   if (dueEl) {
+    const { pillHtml, footerText } = computeLoanScheduleInfo_(l);
     if (isOverpaid) {
-      dueEl.innerHTML = `<span class="tabung-deadline-label" style="background:rgba(251,191,36,0.15);color:var(--neon-amber);font-size:0.8rem;border-color:rgba(251,191,36,0.3);padding:0.25rem 0.6rem;">⚡ Overpaid by ${formatCurrency(overpaidAmt)}</span>`;
+      dueEl.innerHTML = `<span class="tabung-deadline-pill warn">Overpaid by ${formatCurrency(overpaidAmt)}</span>`;
     } else if (isSettled) {
-      dueEl.innerHTML = '<span class="tabung-deadline-label" style="background:var(--accent-green-bg);color:var(--accent-green);font-size:0.8rem;border-color:transparent;padding:0.25rem 0.6rem;">✅ Fully Settled</span>';
-    } else if (l.due) {
-      const d = new Date(l.due + 'T00:00:00');
-      const today = new Date(); today.setHours(0,0,0,0);
-      const diff = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
-      const label = diff < 0 ? `⚠️ ${Math.abs(diff)} days overdue` : diff === 0 ? '🔔 Due today!' : `📆 ${diff} days left`;
-      dueEl.innerHTML = `<span class="tabung-deadline-label ${diff < 0 ? 'overdue' : ''}" style="font-size:0.8rem;">${label} (Due: ${formatDate(l.due)})</span>`;
+      dueEl.innerHTML = `<span class="tabung-deadline-pill done">Fully Settled</span>`;
     } else {
-      dueEl.innerHTML = '<span style="font-size:0.8rem;color:var(--ink-secondary);">No due date set</span>';
+      dueEl.innerHTML = `${pillHtml} <span style="font-size:0.78rem;color:var(--ink-secondary);margin-left:4px;">${footerText}</span>`;
     }
   }
   
@@ -3824,13 +4813,13 @@ window.refreshLoanDetailsModal = function() {
   
   if (statusEl) {
     if (isOverpaid) {
-      statusEl.textContent = `⚡ Overpaid by ${formatCurrency(overpaidAmt)}`;
+      statusEl.textContent = `Overpaid by ${formatCurrency(overpaidAmt)}`;
       statusEl.style.color = 'var(--neon-amber)';
     } else if (isSettled) {
-      statusEl.textContent = '✅ Settled!';
+      statusEl.textContent = 'Fully settled';
       statusEl.style.color = 'var(--accent-green)';
     } else {
-      statusEl.textContent = `${pct.toFixed(0)}% paid`;
+      statusEl.textContent = `${pct.toFixed(0)}% paid off`;
       statusEl.style.color = 'var(--text-secondary)';
     }
   }
