@@ -35,8 +35,8 @@ import type {
 } from '@/types/finance';
 
 export function App() {
-  const { user, authReady } = useAuth();
-  const { loading, deleteTransaction } = useFinance();
+  const { user, authReady, logout } = useAuth();
+  const { loading, syncError, deleteTransaction } = useFinance();
 
   const [page, setPage] = useState<PageId>('dashboard');
   const [walletTab, setWalletTab] = useState<WalletTabId>('cards');
@@ -103,6 +103,41 @@ export function App() {
 
   if (loading) {
     return <SplashScreen message="Syncing your accounts…" />;
+  }
+
+  if (syncError) {
+    return (
+      <div className="auth-overlay">
+        <div className="auth-card" style={{ textAlign: 'center' }}>
+          <h2 style={{ fontFamily: 'Outfit, sans-serif', marginBottom: '0.5rem' }}>Unable to Sync Data</h2>
+          <p style={{ color: 'var(--ink-secondary)', fontSize: '0.88rem', lineHeight: 1.5, marginBottom: '0.85rem' }}>
+            {syncError}
+          </p>
+          <div
+            style={{
+              background: 'var(--bg-elevated)',
+              borderRadius: 10,
+              padding: '0.65rem 0.85rem',
+              fontSize: '0.78rem',
+              color: 'var(--ink-secondary)',
+              marginBottom: '1rem',
+              wordBreak: 'break-all'
+            }}
+          >
+            <div>Signed in as: <strong style={{ color: 'var(--ink-primary)' }}>{user.email}</strong></div>
+            <div style={{ marginTop: '0.25rem' }}>UID: <code style={{ color: 'var(--primary-ink)' }}>{user.uid}</code></div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <button type="button" className="btn-primary" onClick={() => window.location.reload()}>
+              Retry
+            </button>
+            <button type="button" className="btn-logout" style={{ width: '100%', justifyContent: 'center' }} onClick={() => void logout()}>
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

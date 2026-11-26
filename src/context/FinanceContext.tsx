@@ -58,6 +58,7 @@ export interface FinanceContextValue {
   loans: LoanItem[];
   settings: UserSettings;
   loading: boolean;
+  syncError: string | null;
   creditCards: CreditCard[];
   getCardLimit: (card: CreditCard) => number;
   getCardDueDay: (card: CreditCard) => number;
@@ -143,6 +144,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [loans, setLoans] = useState<LoanItem[]>([]);
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [loadedFlags, setLoadedFlags] = useState({ tx: false, budgets: false, settings: false });
+  const [syncError, setSyncError] = useState<string | null>(null);
   const isResettingRef = useRef(false);
 
   // Apply theme to :root + meta theme-color
@@ -163,10 +165,23 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       setLoans([]);
       setSettings(DEFAULT_SETTINGS);
       setLoadedFlags({ tx: false, budgets: false, settings: false });
+      setSyncError(null);
       return;
     }
 
     const uid = user.uid;
+    setSyncError(null);
+    let unsubFallbackTx: (() => void) | null = null;
+
+    const handleSnapError = (source: string, err: { code?: string; message?: string }) => {
+      console.error(`Firestore ${source} error:`, err);
+      if (err?.code === 'permission-denied') {
+        setSyncError('Access denied by Firestore rules. Check that your signed-in account UID is allowed in Firestore Rules.');
+      } else {
+        setSyncError(`Failed to sync ${source}: ${err?.message || 'Network error'}`);
+      }
+      setLoadedFlags({ tx: true, budgets: true, settings: true });
+    };
 
     const sortTransactions = (list: Transaction[]) =>
       list.sort((a, b) => {
@@ -191,60 +206,85 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         setTransactions(list);
         setLoadedFlags((f) => ({ ...f, tx: true }));
       },
-      () => {
+      (err) => {
+        if (err?.code === 'permission-denied') {
+          handleSnapError('transactions', err);
+          return;
+        }
         // Fallback without composite index
         const fallbackQ = query(collection(db, 'transactions'), where('uid', '==', uid));
-        onSnapshot(fallbackQ, (snap) => {
-          const list = sortTransactions(
-            snap.docs.map((d) => {
-              const data = d.data() as Omit<Transaction, 'id'>;
-              if (data.category === 'Food & Dining') data.category = 'Food';
-              return { id: d.id, ...data };
-            })
-          );
-          setTransactions(list);
-          setLoadedFlags((f) => ({ ...f, tx: true }));
-        });
+        unsubFallbackTx = onSnapshot(
+          fallbackQ,
+          (snap) => {
+            const list = sortTransactions(
+              snap.docs.map((d) => {
+                const data = d.data() as Omit<Transaction, 'id'>;
+                if (data.category === 'Food & Dining') data.category = 'Food';
+                return { id: d.id, ...data };
+              })
+            );
+            setTransactions(list);
+            setLoadedFlags((f) => ({ ...f, tx: true }));
+          },
+          (fbErr) => handleSnapError('transactions', fbErr)
+        );
       }
     );
 
     const bQ = query(collection(db, 'budgets'), where('uid', '==', uid));
-    const unsubBudgets = onSnapshot(bQ, (snap) => {
-      const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Array<BudgetItem | ChecklistItem>;
-      setBudgets(docs.filter((d): d is BudgetItem => !('isChecklist' in d && d.isChecklist)));
-      setChecklist(docs.filter((d): d is ChecklistItem => Boolean('isChecklist' in d && d.isChecklist)));
-      setLoadedFlags((f) => ({ ...f, budgets: true }));
-    });
+    const unsubBudgets = onSnapshot(
+      bQ,
+      (snap) => {
+        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Array<BudgetItem | ChecklistItem>;
+        setBudgets(docs.filter((d): d is BudgetItem => !('isChecklist' in d && d.isChecklist)));
+        setChecklist(docs.filter((d): d is ChecklistItem => Boolean('isChecklist' in d && d.isChecklist)));
+        setLoadedFlags((f) => ({ ...f, budgets: true }));
+      },
+      (err) => handleSnapError('budgets', err)
+    );
 
-    const unsubSettings = onSnapshot(doc(db, 'settings', uid), (snap) => {
-      if (snap.exists()) {
-        const data = snap.data() as Partial<UserSettings>;
-        setSettings({
-          ...DEFAULT_SETTINGS,
-          ...data,
-          currency: data.currency || '$',
-          theme: data.theme === 'light' ? 'light' : 'dark',
-          avatarUrl: data.avatarUrl || '',
-          creditCards: Array.isArray(data.creditCards) ? data.creditCards : DEFAULT_SETTINGS.creditCards
-        });
-      } else {
-        setSettings(DEFAULT_SETTINGS);
-      }
-      setLoadedFlags((f) => ({ ...f, settings: true }));
-    });
+    const unsubSettings = onSnapshot(
+      doc(db, 'settings', uid),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data() as Partial<UserSettings>;
+          setSettings({
+            ...DEFAULT_SETTINGS,
+            ...data,
+            currency: data.currency || '$',
+            theme: data.theme === 'light' ? 'light' : 'dark',
+            avatarUrl: data.avatarUrl || '',
+            creditCards: Array.isArray(data.creditCards) ? data.creditCards : DEFAULT_SETTINGS.creditCards
+          });
+        } else {
+          setSettings(DEFAULT_SETTINGS);
+        }
+        setLoadedFlags((f) => ({ ...f, settings: true }));
+      },
+      (err) => handleSnapError('settings', err)
+    );
 
     const tQ = query(collection(db, 'tabung'), where('uid', '==', uid));
-    const unsubTabung = onSnapshot(tQ, (snap) => {
-      setTabung(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<SavingsGoal, 'id'>) })));
-    });
+    const unsubTabung = onSnapshot(
+      tQ,
+      (snap) => {
+        setTabung(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<SavingsGoal, 'id'>) })));
+      },
+      (err) => console.error('Firestore tabung error:', err)
+    );
 
     const lQ = query(collection(db, 'loans'), where('uid', '==', uid));
-    const unsubLoans = onSnapshot(lQ, (snap) => {
-      setLoans(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<LoanItem, 'id'>) })));
-    });
+    const unsubLoans = onSnapshot(
+      lQ,
+      (snap) => {
+        setLoans(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<LoanItem, 'id'>) })));
+      },
+      (err) => console.error('Firestore loans error:', err)
+    );
 
     return () => {
       unsubTx();
+      if (unsubFallbackTx) unsubFallbackTx();
       unsubBudgets();
       unsubSettings();
       unsubTabung();
@@ -724,6 +764,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     loans,
     settings,
     loading,
+    syncError,
     creditCards,
     getCardLimit,
     getCardDueDay,
