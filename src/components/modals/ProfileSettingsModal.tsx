@@ -15,8 +15,6 @@ export function ProfileSettingsModal({ open, onClose }: ProfileSettingsModalProp
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [displayName, setDisplayName] = useState('');
-  const [grossIncome, setGrossIncome] = useState('');
-  const [carryOver, setCarryOver] = useState('');
 
   // Change Password inline panel
   const [pwOpen, setPwOpen] = useState(false);
@@ -29,14 +27,12 @@ export function ProfileSettingsModal({ open, onClose }: ProfileSettingsModalProp
   useEffect(() => {
     if (!open) return;
     setDisplayName(user?.displayName || user?.email?.split('@')[0] || '');
-    setGrossIncome(String(Number(settings.grossIncome || 0).toFixed(2)));
-    setCarryOver(String(Number(settings.carryOverBalance || 0).toFixed(2)));
     setPwOpen(false);
     setCurrentPw('');
     setNewPw('');
     setConfirmPw('');
     setPwError('');
-  }, [open, user, settings.grossIncome, settings.carryOverBalance]);
+  }, [open, user]);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,36 +178,6 @@ export function ProfileSettingsModal({ open, onClose }: ProfileSettingsModalProp
           <option value="dark">Dark Mode</option>
           <option value="light">Light Mode</option>
         </select>
-      </div>
-
-      <div className="input-group" style={{ marginBottom: 0 }}>
-        <label htmlFor="prof-gross">Net Monthly Income</label>
-        <div className="amount-input-wrap">
-          <span className="currency-symbol">{settings.currency}</span>
-          <input
-            id="prof-gross"
-            type="text"
-            inputMode="decimal"
-            value={grossIncome}
-            onChange={(e) => setGrossIncome(e.target.value)}
-            onBlur={() => void updateSettings({ grossIncome: parseFloat(grossIncome) || 0 }, 'Monthly income saved!')}
-          />
-        </div>
-      </div>
-
-      <div className="input-group" style={{ marginBottom: 0 }}>
-        <label htmlFor="prof-carry">Carry-over Balance</label>
-        <div className="amount-input-wrap">
-          <span className="currency-symbol">{settings.currency}</span>
-          <input
-            id="prof-carry"
-            type="text"
-            inputMode="decimal"
-            value={carryOver}
-            onChange={(e) => setCarryOver(e.target.value)}
-            onBlur={() => void updateSettings({ carryOverBalance: parseFloat(carryOver) || 0 }, 'Carry-over balance saved!')}
-          />
-        </div>
       </div>
 
       {/* Change Password */}

@@ -32,43 +32,53 @@ export function DashboardPage({ onNavigate, onInspectTx, onDeleteTx }: Dashboard
   const mask = (val: string) => (hidden ? '••••••' : val);
 
   const monthKey = toMonthKey(selectedYear, selectedMonth);
-  const isCurrentMonth = selectedYear === now.getFullYear() && selectedMonth === now.getMonth();
+  const currentMonthKey = toMonthKey(now.getFullYear(), now.getMonth());
+  const isCurrentMonth = monthKey === currentMonthKey;
 
   const { monthTxs, totalIncome, totalExpense, balance, categoryBreakdown } = useMemo(() => {
+    const calcCashNet = (list: Transaction[]) => {
+      const inc = list
+        .filter((t) => t.type === 'income')
+        .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const cashExp = list
+        .filter(
+          (t) =>
+            t.type === 'expense' &&
+            t.paymentMethod !== 'credit' &&
+            !t.cardId &&
+            t.paymentMethod !== 'mykasih' &&
+            t.category !== 'Credit Card Payment'
+        )
+        .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const ccPay = list
+        .filter((t) => t.type === 'expense' && t.category === 'Credit Card Payment')
+        .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      return { inc, cashExp, ccPay, net: inc - cashExp - ccPay };
+    };
+
     const filtered = transactions.filter((t) => t.date && t.date.startsWith(monthKey));
-
-    const salaryIncome = filtered
-      .filter((t) => t.type === 'income' && t.category?.toLowerCase() === 'salary')
-      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-
-    const otherIncome = filtered
-      .filter((t) => t.type === 'income' && t.category?.toLowerCase() !== 'salary')
-      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-
-    const gross = isCurrentMonth ? Number(settings.grossIncome) || 0 : 0;
-    const totalInc = gross + salaryIncome + otherIncome;
-
-    const cashExpense = filtered
-      .filter(
-        (t) =>
-          t.type === 'expense' &&
-          t.paymentMethod !== 'credit' &&
-          !t.cardId &&
-          t.paymentMethod !== 'mykasih' &&
-          t.category !== 'Credit Card Payment'
-      )
-      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-
-    const ccPayments = filtered
-      .filter((t) => t.type === 'expense' && t.category === 'Credit Card Payment')
-      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const selectedStats = calcCashNet(filtered);
 
     const totalExp = filtered
       .filter((t) => t.type === 'expense' && t.category !== 'Credit Card Payment')
       .reduce((s, t) => s + (Number(t.amount) || 0), 0);
 
-    const carryOver = isCurrentMonth && typeof settings.carryOverBalance === 'number' ? settings.carryOverBalance : 0;
-    const bal = carryOver + totalInc - cashExpense - ccPayments;
+    const baseCarry = typeof settings.carryOverBalance === 'number' ? settings.carryOverBalance : 0;
+
+    let carryForward = 0;
+    if (isCurrentMonth) {
+      carryForward = baseCarry;
+    } else if (monthKey > currentMonthKey) {
+      // Automatically carry forward current month (and any intervening months) into future months
+      const interveningTxs = transactions.filter((t) => {
+        if (!t.date) return false;
+        const ym = t.date.slice(0, 7);
+        return ym >= currentMonthKey && ym < monthKey;
+      });
+      carryForward = baseCarry + calcCashNet(interveningTxs).net;
+    }
+
+    const bal = carryForward + selectedStats.net;
 
     const catMap: Record<string, number> = {};
     filtered
@@ -82,12 +92,12 @@ export function DashboardPage({ onNavigate, onInspectTx, onDeleteTx }: Dashboard
 
     return {
       monthTxs: filtered,
-      totalIncome: totalInc,
+      totalIncome: selectedStats.inc,
       totalExpense: totalExp,
       balance: bal,
       categoryBreakdown: sortedCats
     };
-  }, [transactions, monthKey, isCurrentMonth, settings.grossIncome, settings.carryOverBalance]);
+  }, [transactions, monthKey, currentMonthKey, isCurrentMonth, settings.carryOverBalance]);
 
   const handleShiftMonth = (delta: number) => {
     haptic();
