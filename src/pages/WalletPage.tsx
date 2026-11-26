@@ -8,6 +8,8 @@ interface WalletPageProps {
   onChangeTab: (tab: WalletTabId) => void;
   onOpenCardModal: (card?: CreditCard | null) => void;
   onOpenPayCardModal: (cardId: string) => void;
+  onAddMyKasihTx: () => void;
+  onEditMyKasih: () => void;
   onOpenSavingsModal: (goal?: SavingsGoal | null) => void;
   onOpenSavingsTopup: (goal: SavingsGoal) => void;
   onOpenSavingsDetails: (goal: SavingsGoal) => void;
@@ -21,6 +23,8 @@ export function WalletPage({
   onChangeTab,
   onOpenCardModal,
   onOpenPayCardModal,
+  onAddMyKasihTx,
+  onEditMyKasih,
   onOpenSavingsModal,
   onOpenSavingsTopup,
   onOpenSavingsDetails,
@@ -41,12 +45,16 @@ export function WalletPage({
     totalCardLimit,
     totalSavings,
     totalLoansRemaining,
+    mykasihBalance,
+    mykasihSpentThisMonth,
     deleteCreditCard,
     deleteSavingsGoal,
     deleteLoan
   } = useFinance();
 
   const currency = settings.currency;
+  const mykasihAllowance = Number(settings.mykasihAllowance ?? 50);
+  const mykasihUsedPct = mykasihAllowance > 0 ? Math.min((mykasihSpentThisMonth / mykasihAllowance) * 100, 100) : 0;
 
   // Savings overview totals
   const totalSavingsTarget = tabung.reduce((s, t) => s + (Number(t.target) || 0), 0);
@@ -217,6 +225,91 @@ export function WalletPage({
               })
             )}
           </div>
+
+          {/* Allowance / MyKasih Card */}
+          <div className="wallet-section-subhead">Allowance</div>
+          <article className="wallet-cc-card">
+            <div
+              className="wallet-cc-face wallet-cc-theme-mykasih"
+              role="button"
+              tabIndex={0}
+              aria-label="Edit MyKasih settings"
+              onClick={() => {
+                haptic();
+                onEditMyKasih();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  haptic();
+                  onEditMyKasih();
+                }
+              }}
+            >
+              <div className="wallet-cc-top">
+                <div className="wallet-cc-brand">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="20 12 20 22 4 22 4 12" />
+                    <rect x="2" y="7" width="20" height="5" />
+                    <line x1="12" y1="22" x2="12" y2="7" />
+                    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+                    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+                  </svg>
+                  <span className="wallet-cc-name">MyKasih</span>
+                </div>
+                <span className="wallet-cc-last4">Monthly Aid</span>
+              </div>
+
+              <div className="wallet-cc-balances">
+                <div className="wallet-cc-bal-col">
+                  <span className="wallet-cc-bal-label">Available Balance</span>
+                  <strong className="wallet-cc-bal-val">{formatCurrency(mykasihBalance, currency)}</strong>
+                </div>
+                <div className="wallet-cc-bal-col right">
+                  <span className="wallet-cc-bal-label">Spent This Month</span>
+                  <strong className="wallet-cc-avail-val">{formatCurrency(mykasihSpentThisMonth, currency)}</strong>
+                </div>
+              </div>
+
+              <div className="wallet-cc-track" role="progressbar" aria-valuenow={Math.round(mykasihUsedPct)} aria-valuemin={0} aria-valuemax={100}>
+                <div className="wallet-cc-fill" style={{ width: `${mykasihUsedPct.toFixed(1)}%` }} />
+                <span className="wallet-cc-dot" aria-hidden="true" />
+              </div>
+
+              <div className="wallet-cc-meta">
+                <span>Allowance: {formatCurrency(mykasihAllowance, currency)}/mo</span>
+                <span>{mykasihUsedPct.toFixed(0)}% used</span>
+              </div>
+            </div>
+
+            <div className="wallet-cc-footer">
+              <button
+                type="button"
+                className="wallet-pay-btn"
+                onClick={() => {
+                  haptic();
+                  onAddMyKasihTx();
+                }}
+              >
+                + Add MyKasih Expense
+              </button>
+              <button
+                type="button"
+                className="wallet-del-btn"
+                aria-label="Edit MyKasih settings"
+                title="Edit MyKasih"
+                onClick={() => {
+                  haptic();
+                  onEditMyKasih();
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+            </div>
+          </article>
         </div>
       )}
 

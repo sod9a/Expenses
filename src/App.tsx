@@ -143,6 +143,8 @@ export function App() {
               setCardModalOpen(true);
             }}
             onOpenPayCardModal={setPayCardId}
+            onAddMyKasihTx={() => handleOpenAddTx('expense', 'mykasih')}
+            onEditMyKasih={() => setMykasihOpen(true)}
             onOpenSavingsModal={(g) => {
               setEditingGoal(g || null);
               setSavingsModalOpen(true);

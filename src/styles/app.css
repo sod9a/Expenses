@@ -2775,6 +2775,16 @@ input[type="month"]::-webkit-date-and-time-value { text-align: left; min-height:
 .wallet-cc-theme-crimson { background: linear-gradient(135deg, #9f1239 0%, #881337 100%); }
 .wallet-cc-theme-slate   { background: linear-gradient(135deg, #334155 0%, #1e293b 100%); }
 .wallet-cc-theme-amber   { background: linear-gradient(135deg, #b45309 0%, #92400e 100%); }
+.wallet-cc-theme-mykasih { background: linear-gradient(135deg, #065f46 0%, #047857 100%); }
+
+.wallet-section-subhead {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-secondary);
+  margin: 1.35rem 0 0.65rem;
+}
 
 .wallet-cc-top {
   display: flex;
