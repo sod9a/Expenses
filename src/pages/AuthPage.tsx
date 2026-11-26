@@ -114,9 +114,6 @@ export function AuthPage() {
             <p className="auth-switch" style={{ marginTop: '0.75rem' }}>
               Forgot password? <span onClick={() => switchMode('forgot')}>Reset it</span>
             </p>
-            <p className="auth-switch">
-              No account? <span onClick={() => switchMode('register')}>Create one</span>
-            </p>
             {error && (
               <div className="auth-error" style={{ display: 'block' }}>
                 {error}

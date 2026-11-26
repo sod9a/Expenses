@@ -12,7 +12,7 @@ import {
   updatePassword,
   updateProfile
 } from 'firebase/auth';
-import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { collection, doc, getDocs, limit, query, setDoc, where } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/context/ToastContext';
 
@@ -49,7 +49,7 @@ async function resolveLoginEmail(input: string): Promise<string | null> {
   if (input.includes('@')) return input;
   try {
     const snap = await getDocs(
-      query(collection(db, 'usernames'), where('username', '==', input.toLowerCase()))
+      query(collection(db, 'usernames'), where('username', '==', input.toLowerCase()), limit(1))
     );
     if (snap.empty) return null;
     const data = snap.docs[0].data();

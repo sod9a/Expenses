@@ -1,0 +1,437 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model (ExpenseFlow - Project: expenses-f1216)
+// ===============================================================
+//
+// Collection: usernames
+// Document ID: {userId} (Firebase Auth UID)
+// Fields:
+//   - uid: string (required, == userId, immutable) - owner Auth UID
+//   - username: string (required, 3..20 chars, ^[a-z0-9_]{3,20}$) - unique lowercase handle
+//   - email: string (required, valid email, <= 254 chars) - login email
+//   - displayName: string (optional, 1..100 chars) - user display name
+//
+// Collection: transactions
+// Document ID: auto-generated
+// Fields:
+//   - uid: string (required, == auth.uid, immutable)
+//   - type: string (required, 'income' | 'expense')
+//   - description: string (required, 1..200 chars)
+//   - amount: number (required, 0..1000000000)
+//   - category: string (required, 1..80 chars)
+//   - date: string (required, YYYY-MM-DD)
+//   - notes: string (optional, 0..1000 chars)
+//   - paymentMethod: string (optional, 'cash' | 'credit' | 'mykasih')
+//   - cardId: string | null (optional, 1..100 chars if string)
+//   - createdAt: timestamp (optional, immutable once set)
+//   - updatedAt: timestamp (optional)
+//
+// Collection: budgets (stores both monthly Budgets and Checklist items)
+// Document ID: auto-generated
+// Variant A - Budget (!('isChecklist' in data) || data.isChecklist == false):
+//   - uid: string (required, == auth.uid, immutable)
+//   - category: string (required, 1..80 chars)
+//   - limit: number (required, 0..1000000000)
+//   - isChecklist: bool (optional, false)
+//   - createdAt: timestamp (optional, immutable once set)
+//   - updatedAt: timestamp (optional)
+// Variant B - Checklist (data.isChecklist == true):
+//   - uid: string (required, == auth.uid, immutable)
+//   - isChecklist: bool (required, true, immutable)
+//   - name: string (required, 1..150 chars)
+//   - amount: number (required, 0..1000000000)
+//   - paid: bool (required)
+//   - createdAt: timestamp (optional, immutable once set)
+//   - updatedAt: timestamp (optional)
+//
+// Collection: settings
+// Document ID: {userId} (Firebase Auth UID)
+// Fields (all optional to support setDoc(..., { merge: true })):
+//   - uid: string (optional, == userId, immutable)
+//   - currency: string (optional, 1..10 chars)
+//   - theme: string (optional, 'dark' | 'light')
+//   - avatarUrl: string (optional, empty, http(s) URL, or image data URL <= 150000 chars)
+//   - grossIncome: number (optional, 0..1000000000)
+//   - carryOverBalance: number (optional, -1000000000..1000000000)
+//   - balanceHidden: bool (optional)
+//   - lastProcessedMonth: string (optional, 0..10 chars)
+//   - creditPoolLimit: number (optional, 0..1000000000)
+//   - creditPoolDueDay: number (optional, 1..31)
+//   - creditLimit: number (optional, 0..1000000000)
+//   - creditDueDay: number (optional, 1..31)
+//   - creditCards: list (optional, <= 50 items)
+//   - mykasihAllowance: number (optional, 0..1000000)
+//   - mykasihBaseBalance: number (optional, 0..1000000)
+//   - mykasihLastTopupMonth: string (optional, 0..10 chars)
+//   - updatedAt: timestamp (optional)
+//
+// Collection: tabung (Savings Goals)
+// Document ID: auto-generated
+// Fields:
+//   - uid: string (required, == auth.uid, immutable)
+//   - name: string (required, 1..150 chars)
+//   - target: number (required, 0..1000000000)
+//   - saved: number (required, 0..1000000000)
+//   - emoji: string (optional, 0..16 chars)
+//   - color: string (optional, 'emerald' | 'blue' | 'indigo' | 'amber' | 'rose' | 'slate')
+//   - deadline: string (optional, 0..20 chars)
+//   - history: list (optional, <= 500 entries)
+//   - createdAt: timestamp (optional, immutable once set)
+//   - updatedAt: timestamp (optional)
+//
+// Collection: loans
+// Document ID: auto-generated
+// Fields:
+//   - uid: string (required, == auth.uid, immutable)
+//   - loanType: string (optional, 'owe' | 'lent')
+//   - person: string (required, 1..150 chars)
+//   - desc: string (optional, 0..500 chars)
+//   - total: number (required, 0..1000000000)
+//   - paid: number (required, 0..1000000000)
+//   - monthlyInstallment: number (optional, 0..1000000000)
+//   - dueDay: number | null (optional, 1..31 if number)
+//   - icon: string (optional, 0..32 chars)
+//   - color: string (optional, 'blue' | 'indigo' | 'emerald' | 'amber' | 'rose' | 'slate')
+//   - due: string (optional, 0..20 chars)
+//   - history: list (optional, <= 500 entries)
+//   - createdAt: timestamp (optional, immutable once set)
+//   - updatedAt: timestamp (optional)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Personal / Invite-Only Access Gate
+    // ---------------------------------------------------------------
+    // Out-of-the-box: `allowedUids` is empty (`[]`), so any signed-in
+    // user can access ONLY their own documents (never anyone else's).
+    //
+    // To lock the entire database to ONLY your own account(s):
+    //   1. Open Firebase Console -> Authentication -> Users.
+    //   2. Copy your User UID.
+    //   3. Paste it into `allowedUids` below, e.g.:
+    //        let allowedUids = ['YOUR_FIREBASE_AUTH_UID_HERE'];
+    //   4. Publish the rules.
+    function isAllowedUser() {
+      let allowedUids = [];
+      return isAuthenticated() &&
+             (allowedUids.size() == 0 || request.auth.uid in allowedUids);
+    }
+
+    function isOwner(userId) {
+      return isAllowedUser() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAllowedUser() && resource.data.uid == request.auth.uid;
+    }
+
+    function uidUnchanged() {
+      return 'uid' in request.resource.data &&
+             request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return 'uid' in request.resource.data &&
+             request.resource.data.uid == resource.data.uid;
+    }
+
+    function createdAtUnchanged() {
+      return !('createdAt' in resource.data) ||
+             request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isNonEmptyString(val, maxLen) {
+      return val is string && val.size() >= 1 && val.size() <= maxLen;
+    }
+
+    function isOptionalString(data, field, minLen, maxLen) {
+      return !(field in data) ||
+             (data[field] is string &&
+              data[field].size() >= minLen &&
+              data[field].size() <= maxLen);
+    }
+
+    function isValidNumberRange(val, minVal, maxVal) {
+      return val is number && val >= minVal && val <= maxVal;
+    }
+
+    function isOptionalNumberRange(data, field, minVal, maxVal) {
+      return !(field in data) || isValidNumberRange(data[field], minVal, maxVal);
+    }
+
+    function isOptionalTimestamp(data, field) {
+      return !(field in data) || data[field] is timestamp;
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+             email.size() >= 3 &&
+             email.size() <= 254 &&
+             email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    function isValidDateYMD(dateStr) {
+      return dateStr is string &&
+             dateStr.size() == 10 &&
+             dateStr.matches('^\\d{4}-\\d{2}-\\d{2}$');
+    }
+
+    function isValidAvatarUrl(url) {
+      return url is string &&
+             url.size() <= 150000 &&
+             (url == '' ||
+              url.matches('^https?://.*') ||
+              url.matches('^data:image/(jpeg|png|webp|gif);base64,.*'));
+    }
+
+    // ===============================================================
+    // Domain Validators (Used in BOTH create and update rules)
+    // ===============================================================
+
+    function isValidUsernameDoc(data, userId) {
+      return hasOnlyAllowedFields(['uid', 'username', 'email', 'displayName']) &&
+             hasRequiredFields(['uid', 'username', 'email']) &&
+             data.uid is string && data.uid == userId &&
+             data.username is string && data.username.matches('^[a-z0-9_]{3,20}$') &&
+             isValidEmail(data.email) &&
+             isOptionalString(data, 'displayName', 1, 100);
+    }
+
+    function isValidTransaction(data) {
+      return hasOnlyAllowedFields([
+               'uid', 'type', 'description', 'amount', 'category',
+               'date', 'notes', 'paymentMethod', 'cardId', 'createdAt', 'updatedAt'
+             ]) &&
+             hasRequiredFields(['uid', 'type', 'description', 'amount', 'category', 'date']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.type in ['income', 'expense'] &&
+             isNonEmptyString(data.description, 200) &&
+             isValidNumberRange(data.amount, 0, 1000000000) &&
+             isNonEmptyString(data.category, 80) &&
+             isValidDateYMD(data.date) &&
+             isOptionalString(data, 'notes', 0, 1000) &&
+             (!('paymentMethod' in data) || data.paymentMethod in ['cash', 'credit', 'mykasih']) &&
+             (!('cardId' in data) || data.cardId == null || isNonEmptyString(data.cardId, 100)) &&
+             isOptionalTimestamp(data, 'createdAt') &&
+             isOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidChecklistItem(data) {
+      return hasOnlyAllowedFields([
+               'uid', 'isChecklist', 'name', 'amount', 'paid', 'createdAt', 'updatedAt'
+             ]) &&
+             hasRequiredFields(['uid', 'isChecklist', 'name', 'amount', 'paid']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.isChecklist == true &&
+             isNonEmptyString(data.name, 150) &&
+             isValidNumberRange(data.amount, 0, 1000000000) &&
+             data.paid is bool &&
+             isOptionalTimestamp(data, 'createdAt') &&
+             isOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidBudgetItem(data) {
+      return hasOnlyAllowedFields([
+               'uid', 'category', 'limit', 'isChecklist', 'createdAt', 'updatedAt'
+             ]) &&
+             hasRequiredFields(['uid', 'category', 'limit']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             (!('isChecklist' in data) || data.isChecklist == false) &&
+             isNonEmptyString(data.category, 80) &&
+             isValidNumberRange(data.limit, 0, 1000000000) &&
+             isOptionalTimestamp(data, 'createdAt') &&
+             isOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidBudgetDoc(data) {
+      return ('isChecklist' in data && data.isChecklist == true)
+             ? isValidChecklistItem(data)
+             : isValidBudgetItem(data);
+    }
+
+    function isChecklistFlagUnchanged() {
+      let wasChecklist = 'isChecklist' in resource.data && resource.data.isChecklist == true;
+      let isChecklistNow = 'isChecklist' in request.resource.data && request.resource.data.isChecklist == true;
+      return wasChecklist == isChecklistNow;
+    }
+
+    function isValidSettings(data, userId) {
+      return hasOnlyAllowedFields([
+               'uid', 'currency', 'theme', 'avatarUrl',
+               'grossIncome', 'carryOverBalance', 'balanceHidden', 'lastProcessedMonth',
+               'creditPoolLimit', 'creditPoolDueDay', 'creditLimit', 'creditDueDay', 'creditCards',
+               'mykasihAllowance', 'mykasihBaseBalance', 'mykasihLastTopupMonth',
+               'updatedAt'
+             ]) &&
+             (!('uid' in data) || (data.uid is string && data.uid == userId)) &&
+             isOptionalString(data, 'currency', 1, 10) &&
+             (!('theme' in data) || data.theme in ['dark', 'light']) &&
+             (!('avatarUrl' in data) || isValidAvatarUrl(data.avatarUrl)) &&
+             isOptionalNumberRange(data, 'grossIncome', 0, 1000000000) &&
+             isOptionalNumberRange(data, 'carryOverBalance', -1000000000, 1000000000) &&
+             (!('balanceHidden' in data) || data.balanceHidden is bool) &&
+             isOptionalString(data, 'lastProcessedMonth', 0, 10) &&
+             isOptionalNumberRange(data, 'creditPoolLimit', 0, 1000000000) &&
+             isOptionalNumberRange(data, 'creditPoolDueDay', 1, 31) &&
+             isOptionalNumberRange(data, 'creditLimit', 0, 1000000000) &&
+             isOptionalNumberRange(data, 'creditDueDay', 1, 31) &&
+             (!('creditCards' in data) || (data.creditCards is list && data.creditCards.size() <= 50)) &&
+             isOptionalNumberRange(data, 'mykasihAllowance', 0, 1000000) &&
+             isOptionalNumberRange(data, 'mykasihBaseBalance', 0, 1000000) &&
+             isOptionalString(data, 'mykasihLastTopupMonth', 0, 10) &&
+             isOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidSavingsGoal(data) {
+      return hasOnlyAllowedFields([
+               'uid', 'name', 'target', 'saved', 'emoji', 'color',
+               'deadline', 'history', 'createdAt', 'updatedAt'
+             ]) &&
+             hasRequiredFields(['uid', 'name', 'target', 'saved']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             isNonEmptyString(data.name, 150) &&
+             isValidNumberRange(data.target, 0, 1000000000) &&
+             isValidNumberRange(data.saved, 0, 1000000000) &&
+             isOptionalString(data, 'emoji', 0, 16) &&
+             (!('color' in data) || data.color in ['emerald', 'blue', 'indigo', 'amber', 'rose', 'slate']) &&
+             isOptionalString(data, 'deadline', 0, 20) &&
+             (!('history' in data) || (data.history is list && data.history.size() <= 500)) &&
+             isOptionalTimestamp(data, 'createdAt') &&
+             isOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidLoan(data) {
+      return hasOnlyAllowedFields([
+               'uid', 'loanType', 'person', 'desc', 'total', 'paid',
+               'monthlyInstallment', 'dueDay', 'icon', 'color', 'due',
+               'history', 'createdAt', 'updatedAt'
+             ]) &&
+             hasRequiredFields(['uid', 'person', 'total', 'paid']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             (!('loanType' in data) || data.loanType in ['owe', 'lent']) &&
+             isNonEmptyString(data.person, 150) &&
+             isOptionalString(data, 'desc', 0, 500) &&
+             isValidNumberRange(data.total, 0, 1000000000) &&
+             isValidNumberRange(data.paid, 0, 1000000000) &&
+             isOptionalNumberRange(data, 'monthlyInstallment', 0, 1000000000) &&
+             (!('dueDay' in data) || data.dueDay == null || isValidNumberRange(data.dueDay, 1, 31)) &&
+             isOptionalString(data, 'icon', 0, 32) &&
+             (!('color' in data) || data.color in ['blue', 'indigo', 'emerald', 'amber', 'rose', 'slate']) &&
+             isOptionalString(data, 'due', 0, 20) &&
+             (!('history' in data) || (data.history is list && data.history.size() <= 500)) &&
+             isOptionalTimestamp(data, 'createdAt') &&
+             isOptionalTimestamp(data, 'updatedAt');
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // Username -> Email lookup for sign-in
+    match /usernames/{userId} {
+      // Deny unauthenticated single-doc get; allow owner get
+      allow get: if isOwner(userId);
+      // Allow unauthenticated list ONLY for single-record login lookup (limit <= 1)
+      // to prevent bulk scraping of usernames/emails; allow owner list
+      allow list: if (request.auth == null && request.query.limit is int && request.query.limit <= 1) ||
+                     isOwner(userId);
+      allow create: if isOwner(userId) &&
+                       uidUnchanged() &&
+                       isValidUsernameDoc(request.resource.data, userId);
+      allow update: if isOwner(userId) &&
+                       uidNotModified() &&
+                       isValidUsernameDoc(request.resource.data, userId);
+      allow delete: if isOwner(userId);
+    }
+
+    // Transactions
+    match /transactions/{txId} {
+      allow read: if isDocOwner();
+      allow create: if isAllowedUser() &&
+                       uidUnchanged() &&
+                       isValidTransaction(request.resource.data);
+      allow update: if isDocOwner() &&
+                       uidNotModified() &&
+                       createdAtUnchanged() &&
+                       isValidTransaction(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    // Budgets & Monthly Checklist items
+    match /budgets/{budgetId} {
+      allow read: if isDocOwner();
+      allow create: if isAllowedUser() &&
+                       uidUnchanged() &&
+                       isValidBudgetDoc(request.resource.data);
+      allow update: if isDocOwner() &&
+                       uidNotModified() &&
+                       createdAtUnchanged() &&
+                       isChecklistFlagUnchanged() &&
+                       isValidBudgetDoc(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    // Per-user Settings
+    match /settings/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+                       isValidSettings(request.resource.data, userId);
+      allow update: if isOwner(userId) &&
+                       (!('uid' in resource.data) || request.resource.data.uid == resource.data.uid) &&
+                       isValidSettings(request.resource.data, userId);
+      allow delete: if isOwner(userId);
+    }
+
+    // Savings Goals (Tabung)
+    match /tabung/{goalId} {
+      allow read: if isDocOwner();
+      allow create: if isAllowedUser() &&
+                       uidUnchanged() &&
+                       isValidSavingsGoal(request.resource.data);
+      allow update: if isDocOwner() &&
+                       uidNotModified() &&
+                       createdAtUnchanged() &&
+                       isValidSavingsGoal(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    // Loans
+    match /loans/{loanId} {
+      allow read: if isDocOwner();
+      allow create: if isAllowedUser() &&
+                       uidUnchanged() &&
+                       isValidLoan(request.resource.data);
+      allow update: if isDocOwner() &&
+                       uidNotModified() &&
+                       createdAtUnchanged() &&
+                       isValidLoan(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    // ===============================================================
+    // Default Deny (All Unknown Collections & Subcollections)
+    // ===============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
