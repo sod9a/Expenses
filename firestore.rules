@@ -236,7 +236,7 @@ service cloud.firestore {
 
     function isValidChecklistItem(data) {
       return hasOnlyAllowedFields([
-               'uid', 'isChecklist', 'name', 'amount', 'paid', 'createdAt', 'updatedAt'
+               'uid', 'isChecklist', 'name', 'amount', 'paid', 'month', 'createdAt', 'updatedAt'
              ]) &&
              hasRequiredFields(['uid', 'isChecklist', 'name', 'amount', 'paid']) &&
              data.uid is string && data.uid == request.auth.uid &&
@@ -244,6 +244,7 @@ service cloud.firestore {
              isNonEmptyString(data.name, 150) &&
              isValidNumberRange(data.amount, 0, 1000000000) &&
              data.paid is bool &&
+             (!('month' in data) || (data.month is string && data.month.size() == 7 && data.month.matches('^\\d{4}-\\d{2}$'))) &&
              isOptionalTimestamp(data, 'createdAt') &&
              isOptionalTimestamp(data, 'updatedAt');
     }

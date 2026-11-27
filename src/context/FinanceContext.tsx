@@ -88,7 +88,7 @@ export interface FinanceContextValue {
   deleteTransaction: (id: string) => Promise<void>;
   saveBudget: (category: string, limit: number, editingId?: string | null) => Promise<void>;
   deleteBudget: (id: string) => Promise<void>;
-  addChecklistItem: (name: string, amount: number) => Promise<void>;
+  addChecklistItem: (name: string, amount: number, month?: string) => Promise<void>;
   toggleChecklistItem: (item: ChecklistItem) => Promise<void>;
   deleteChecklistItem: (id: string) => Promise<void>;
   saveCreditCard: (
@@ -429,8 +429,6 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           const prevGross = typeof settings.grossIncome === 'number' ? settings.grossIncome : 0;
           patch.carryOverBalance = prevCarry + prevGross + prevSalary + prevOther - prevCashExp - prevCCPay;
           patch.lastProcessedMonth = currentMonthStr;
-
-          await Promise.all(checklist.map((item) => deleteDoc(doc(db, 'budgets', item.id))));
         }
 
         if (needsInitTopup) {
@@ -650,14 +648,17 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addChecklistItem = useCallback(
-    async (name: string, amount: number) => {
+    async (name: string, amount: number, month?: string) => {
       if (!user) return;
+      const now = new Date();
+      const targetMonth = month || toMonthKey(now.getFullYear(), now.getMonth());
       await addDoc(collection(db, 'budgets'), {
         uid: user.uid,
         isChecklist: true,
         name,
         amount,
         paid: false,
+        month: targetMonth,
         createdAt: serverTimestamp()
       });
       showToast('Checklist item added!', 'success');

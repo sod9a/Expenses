@@ -41,21 +41,35 @@ export function TransactionsPage({ onInspectTx, onDeleteTx }: TransactionsPagePr
     });
   }, [transactions, monthKey, filter]);
 
+  const currentMonthKey = toMonthKey(now.getFullYear(), now.getMonth());
+
+  const monthChecklist = useMemo(() => {
+    return checklist.filter((item) => {
+      if (item.month) return item.month === monthKey;
+      // Legacy checklist items without a month field belong to their createdAt month (or current month)
+      if (item.createdAt?.toMillis) {
+        const d = new Date(item.createdAt.toMillis());
+        return toMonthKey(d.getFullYear(), d.getMonth()) === monthKey;
+      }
+      return monthKey === currentMonthKey;
+    });
+  }, [checklist, monthKey, currentMonthKey]);
+
   const sortedChecklist = useMemo(() => {
-    return [...checklist].sort((a, b) => {
+    return [...monthChecklist].sort((a, b) => {
       if (a.paid !== b.paid) return a.paid ? 1 : -1;
       const aMs = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
       const bMs = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
       return aMs - bMs;
     });
-  }, [checklist]);
+  }, [monthChecklist]);
 
-  const paidCount = checklist.filter((c) => c.paid).length;
-  const totalChecklistAmt = checklist.reduce((s, c) => s + (Number(c.amount) || 0), 0);
-  const unpaidChecklistAmt = checklist
+  const paidCount = monthChecklist.filter((c) => c.paid).length;
+  const totalChecklistAmt = monthChecklist.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  const unpaidChecklistAmt = monthChecklist
     .filter((c) => !c.paid)
     .reduce((s, c) => s + (Number(c.amount) || 0), 0);
-  const checklistPct = checklist.length > 0 ? Math.round((paidCount / checklist.length) * 100) : 0;
+  const checklistPct = monthChecklist.length > 0 ? Math.round((paidCount / monthChecklist.length) * 100) : 0;
 
   const handleShift = (delta: number) => {
     if (delta > 0 && isCurrentMonth) return;
@@ -72,7 +86,7 @@ export function TransactionsPage({ onInspectTx, onDeleteTx }: TransactionsPagePr
     const amt = parseFloat(itemAmount) || 0;
     setAddingItem(true);
     try {
-      await addChecklistItem(name, amt);
+      await addChecklistItem(name, amt, monthKey);
       setItemName('');
       setItemAmount('');
     } finally {
@@ -141,8 +155,8 @@ export function TransactionsPage({ onInspectTx, onDeleteTx }: TransactionsPagePr
               <div>
                 <h2>Payment Checklist</h2>
                 <span className="checklist-subtitle">
-                  {paidCount} of {checklist.length} paid
-                  {unpaidChecklistAmt > 0 ? ` · ${formatCurrency(unpaidChecklistAmt, currency)} left` : checklist.length > 0 ? ' · All paid' : ''}
+                  {paidCount} of {monthChecklist.length} paid
+                  {unpaidChecklistAmt > 0 ? ` · ${formatCurrency(unpaidChecklistAmt, currency)} left` : monthChecklist.length > 0 ? ' · All paid' : ''}
                 </span>
               </div>
             </div>
@@ -159,7 +173,7 @@ export function TransactionsPage({ onInspectTx, onDeleteTx }: TransactionsPagePr
             <div className="checklist-list">
               {sortedChecklist.length === 0 ? (
                 <div className="checklist-empty">
-                  No payments listed for this month yet. Add bills or commitments below to track them.
+                  No payments listed for {formatMonthYear(selectedYear, selectedMonth)} yet. Add bills or commitments below to track them.
                 </div>
               ) : (
                 sortedChecklist.map((item) => (

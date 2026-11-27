@@ -71,6 +71,7 @@ export interface ChecklistItem {
   name: string;
   amount: number;
   paid: boolean;
+  month?: string; // YYYY-MM
   createdAt?: { toMillis?: () => number };
 }
 
