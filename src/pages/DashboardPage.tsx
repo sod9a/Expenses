@@ -174,7 +174,7 @@ export function DashboardPage({ onNavigate, onInspectTx, onDeleteTx }: Dashboard
       {/* 3-Column Mini Stats */}
       <div className="sw-mini-stats">
         <button type="button" className="sw-mini-card" onClick={() => { haptic(); onNavigate('wallet', 'cards'); }}>
-          <span className="sw-mini-label">Card Debt</span>
+          <span className="sw-mini-label">Credit Card</span>
           <span className="sw-mini-val debt">{mask(formatCurrency(totalCardDebt, currency))}</span>
         </button>
         <button type="button" className="sw-mini-card" onClick={() => { haptic(); onNavigate('wallet', 'savings'); }}>
